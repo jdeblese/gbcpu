@@ -7,12 +7,12 @@ use UNISIM.VComponents.all;
 ENTITY falledge_tb IS
 END falledge_tb;
 
-ARCHITECTURE behavior OF falledge_tb IS 
+ARCHITECTURE behavior OF falledge_tb IS
 
     -- Component Declaration
     COMPONENT falledge
         Port (  ABUS : out STD_LOGIC_VECTOR(15 downto 0);
-                DBUS : in STD_LOGIC_VECTOR(7 downto 0);
+                DBUS : inout STD_LOGIC_VECTOR(7 downto 0);
                 RAM_OE : out STD_LOGIC;
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
@@ -81,14 +81,15 @@ BEGIN
 		
 		-- 00 NOP
 		-- 01 NOP
-		-- 02 JR 4
+		-- 02 JR 5
 		-- 04 NOP
-		-- 05 JMP 1
+		-- 05 JMP 11
 		-- 08 NOP
 		-- 09 JR -6
-		-- 11
+		-- 11 LD H,L
+		-- 12
 
-        INIT_00 => X"000000000000000000000000000000000000000000fa18000001c30004180000",
+        INIT_00 => X"000000000000000000000000000000000000000065fa1800000bc30005180000",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -157,21 +158,21 @@ BEGIN
         INIT_B => X"000000000",
         -- INIT_FILE: Optional file used to specify initial RAM contents
         INIT_FILE => "NONE",
-        -- RSTTYPE: "SYNC" or "ASYNC" 
+        -- RSTTYPE: "SYNC" or "ASYNC"
         RSTTYPE => "SYNC",
-        -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+        -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
         RST_PRIORITY_A => "CE",
         RST_PRIORITY_B => "CE",
-        -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+        -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
         SIM_COLLISION_CHECK => "ALL",
         -- SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
         SIM_DEVICE => "SPARTAN6", -- was: "SPARTAN3ADSP",
         -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
         SRVAL_A => X"000000000",
         SRVAL_B => X"000000000",
-        -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+        -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
         WRITE_MODE_A => "WRITE_FIRST",
-        WRITE_MODE_B => "WRITE_FIRST" 
+        WRITE_MODE_B => "WRITE_FIRST"
     )
     port map (
         -- Port A
@@ -222,6 +223,6 @@ BEGIN
 
         wait; -- will wait forever
      END PROCESS tb;
-     --  End Test Bench 
+     --  End Test Bench
 
 END;
