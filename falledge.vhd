@@ -16,7 +16,7 @@ end falledge;
 
 architecture FSM of falledge is
 
-type STATE_TYPE is (RESET, FETCH, ERR, READ, JMP, WAI, PRELD, LD);
+type STATE_TYPE is (RESET, FETCH, ERR, READ, JMP, WAI, PARAM, LD);
 type PC_TYPE is (PCINC, PCJMP, PCJR);
 type ABUS_SRC is (APC, ASP, AHL, APTR);
 
@@ -172,26 +172,50 @@ begin
                     NS <= WAI;
                     tics <= "00010";	-- 3 tics
                     w_en <= '1';
-                elsif ( DBUS = "01110110" ) then -- 76 HALT
-                    NS <= ERR;
-                elsif ( DBUS(7) = '0' and DBUS(6) = '1' ) then  -- 40-7F LD, excl. HALT
-                    NS <= PRELD;
                 elsif ( DBUS = "00011000" ) then  -- 18 JR n
                     NS <= READ;
                 elsif ( DBUS = "11000011" ) then  -- C3 JMP nn
                     NS <= READ;
+                elsif ( DBUS = "01110110" ) then -- 76 HALT
+                    NS <= ERR;
+                elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops
+                    NS <= PARAM;
+                elsif (DBUS(2 downto 0) = "110" ) then  -- 8-bit ops
+                    NS <= PARAM;
                 else
                     ns <= ERR;
                 end if;
 
-            when PRELD =>
+           when PARAM =>  -- Gives RAM output a chance to go HiZ if needed
                 NS <= LD;
+                if ( CMD(2 downto 0) = "110" ) then  -- reading from (HL) or (PC)
+                    RAM_OE <= '1';
+                end if;
 
             when LD =>
                 NS <= WAI;
 
-                RF_OMUX <= CMD(2 downto 0);
-                RF_IMUX <= CMD(5 downto 3);
+                RF_IMUX <= CMD(5 downto 3);  -- Destination register
+
+                RF_OMUX <= CMD(2 downto 0);  -- Source register
+                case CMD(2 downto 0) is
+                    when "110" =>  -- Source is RAM
+                        RAM_OE <= '1';
+                        if ( (CMD(7) xor CMD(6)) = '1' ) then  -- (HL)
+                            AMUX <= AHL;
+                        else  -- (PC)
+                            AMUX <= APC;
+	    			        PC_CE <= '1';	-- Update PC
+		    		        PC_MUX <= PCINC;	-- ... increment update
+                        end if;
+                        tics <= "00100";  -- 5 tics
+                        w_en <= '1';
+                    when "111" =>  -- Source is accumulator
+                        null;
+                    when others =>
+                        null;
+                end case;
+
                 RF_CE <= '1';
 
 			when READ =>
