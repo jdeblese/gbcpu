@@ -8,17 +8,20 @@ use UNISIM.VComponents.all;
 
 entity falledge is
 	Port (	ABUS : out STD_LOGIC_VECTOR(15 downto 0);
-			DBUS : inout STD_LOGIC_VECTOR(7 downto 0);
+			RAM : in STD_LOGIC_VECTOR(7 downto 0);
 			RAM_OE : out STD_LOGIC;
+            WR_D : out STD_LOGIC_VECTOR(7 downto 0);
+            WR_EN : out STD_LOGIC;
 			CLK : IN STD_LOGIC;
 			RST : IN STD_LOGIC );
 end falledge;
 
 architecture FSM of falledge is
 
-type STATE_TYPE is (RESET, FETCH, ERR, READ, JMP, WAI, PARAM, LD);
+type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, ST8, INCPC);
 type PC_TYPE is (PCINC, PCJMP, PCJR);
-type ABUS_SRC is (APC, ASP, AHL, APTR);
+type ABUS_SRC is (RFADDR);
+type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
 signal CS, NS: STATE_TYPE;
 signal w_en  : STD_LOGIC;
@@ -32,36 +35,65 @@ signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
 signal CMD_CE : STD_LOGIC;
 
 signal AMUX : ABUS_SRC;
+signal DMUX : DBUS_SRC;
+signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
+
+signal tmp : std_logic_vector(7 downto 0);
+signal tmp_ce : std_logic;
 
 signal A : STD_LOGIC_VECTOR(7 downto 0);
-signal RF_IMUX : STD_LOGIC_VECTOR(2 downto 0);
-signal RF_OMUX : STD_LOGIC_VECTOR(2 downto 0);
-signal RF_CE : STD_LOGIC;
 
 signal PC, SP : STD_LOGIC_VECTOR( 15 downto 0);
 signal PC_CE  : STD_LOGIC;
 signal PC_MUX : PC_TYPE;
 
-    component regfile
-        port( DBUS : inout std_logic_vector(7 downto 0);
-              DOMUX : in std_logic_vector(2 downto 0);
-              DIMUX : in std_logic_vector(2 downto 0);
-              CE : in std_logic;
-              CLK : in std_logic;
-              RST : in std_logic );
+    component regfile16bit
+	    Port (  idata : in std_logic_vector(7 downto 0);
+                odata : out std_logic_vector(7 downto 0);
+                addr : out std_logic_vector(15 downto 0);
+                imux : in std_logic_vector(2 downto 0);
+                omux : in std_logic_vector(2 downto 0);
+                amux : in std_logic_vector(1 downto 0);
+                bmux : in std_logic;
+                ce : in std_logic_vector(1 downto 0);
+                CLK : IN STD_LOGIC;
+                RST : IN STD_LOGIC );
     end component;
+
+	signal rf_idata : std_logic_vector(7 downto 0);
+    signal rf_odata : std_logic_vector(7 downto 0);
+    signal rf_addr : std_logic_vector(15 downto 0);
+    signal rf_imux : std_logic_vector(2 downto 0);
+    signal rf_omux : std_logic_vector(2 downto 0);
+    signal rf_amux : std_logic_vector(1 downto 0);
+    signal rf_bmux : std_logic;
+    signal rf_ce : std_logic_vector(1 downto 0);
 
 begin
 
-    urf : regfile port map(
-        DBUS => DBUS,
-        DOMUX => RF_OMUX,
-        DIMUX => RF_IMUX,
-        CE => RF_CE,
-        CLK => CLK, RST => RST );
+    urf : regfile16bit
+        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_amux, rf_bmux, rf_ce, CLK, RST);
 
-    ABUS <= PC    when AMUX = APC else
+    ABUS <= rf_addr when AMUX = RFADDR else
 			"ZZZZZZZZZZZZZZZZ";
+    DBUS <= RAM         when DMUX = RAMDATA else
+            rf_odata    when DMUX = RFDATA else
+            A           when DMUX = ACCDATA else
+            tmp         when DMUX = TMPDATA else
+            "ZZZZZZZZ";
+    rf_idata <= DBUS;
+    WR_D <= DBUS;
+
+    tmp_proc : process(CLK, RST)
+	begin
+		if (RST = '1') then
+			tmp <= "00000000";
+		elsif (falling_edge(CLK)) then
+			if (tmp_ce = '1') then
+				tmp <= DBUS;
+			end if;
+		end if;
+	end process;
 
 	CMD_PROC : process(CLK, RST)
 	begin
@@ -104,42 +136,44 @@ begin
 	end process;
 
 	SYNC_PROC: process (clk, rst)
-		variable old : std_logic;
 	begin
 		if (rst = '1') then
 			CS <= RESET;
 			waits <= "00000";
-			old := '0';
 		elsif (falling_edge(clk)) then
 			CS <= NS;
 			if w_en = '0' then
 				waits <= "00000";
 			elsif w_en = '1' then
-				if old = '0' then
-					waits <= tics;
-				else
+                if CS = wai then -- waiting
 					waits <= waits - "00001";
+                elsif NS = WAI then    -- preparing to wait
+					waits <= tics;
 				end if;
 			end if;
-			old := w_en;
 		end if;
 	end process; --End SYNC_PROC
 
 	COMB_PROC: process (CS, DBUS, waits)
 	begin
-        RF_OMUX <= "110";  -- Register file in high impedance
-        RF_IMUX <= "110";  -- Doesn't matter
-        RF_CE <= '0';
+
+        DMUX <= RAMDATA;    -- RAM on DBUS
+        AMUX <= RFADDR;     -- rf on ABUS
+        RAM_OE <= '1';	    -- RAM on DBUS
+
+        rf_imux <= "100";   -- rf input to PC
+        rf_omux <= "100";   -- rf output from PC
+        rf_amux <= "11";    -- rf operand '+1'
+        rf_bmux <= '0';     -- LSByte on DBUS, were it enabled
+        rf_ce <= "00";      -- No change to register file
 
         w_en <= '0';
         tics <= "00000";
 
         CMD_CE <= '0';	-- Preserve CMD
-        PC_CE <= '0';	-- Preserve PC
-        AMUX <= APC;
-        PC_MUX <= PCINC;	-- Doesn't matter, won't change
-        RAM_OE <= '0';	-- Don't need data from RAM
-        PCBUF_CE <= '0';	-- Doesn't matter, not relevant
+        tmp_ce <= '0';  -- Preserve tmp
+
+        WR_EN <= '0';   -- Don't edit RAM
 
         NS <= ERR;
 
@@ -149,129 +183,134 @@ begin
 
 				w_en <= '0';	-- Continue waiting
 				
-				CMD_CE <= '0';	-- Preserve CMD
-				PC_CE <= '0';	-- Preserve PC
-				AMUX <= APC;
-				PC_MUX <= PCINC;  -- Doesn't matter, won't change
-				RAM_OE <= '0';	-- Don't need data from RAM
-				PCBUF_CE <= '0';	-- Doesn't matter, not relevant
-
 			when FETCH =>
-				PCBUF_CE <= '0';	-- Don't care
-
-				AMUX <= APC;
-				PC_CE <= '1';	-- After fetch, increment PC
-				PC_MUX <= PCINC;  -- Increment
-
-				RAM_OE <= '1';	-- Put command on data bus
+                rf_ce <= "11";  -- Save incremented PC
                 CMD_CE <= '1';	-- Save the command at the end of the state
-
-				w_en <= '0';
 
                 if ( DBUS = "00000000" ) then     -- 00 NOP
                     NS <= WAI;
                     tics <= "00010";	-- 3 tics
                     w_en <= '1';
                 elsif ( DBUS = "00011000" ) then  -- 18 JR n
-                    NS <= READ;
+                    NS <= JR;
                 elsif ( DBUS = "11000011" ) then  -- C3 JMP nn
                     NS <= READ;
                 elsif ( DBUS = "01110110" ) then -- 76 HALT
                     NS <= ERR;
                 elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops
-                    NS <= PARAM;
+                    NS <= LD8;
                 elsif (DBUS(2 downto 0) = "110" ) then  -- 8-bit ops
-                    NS <= PARAM;
+                    NS <= LD8;
                 else
                     ns <= ERR;
                 end if;
 
            when PARAM =>  -- Gives RAM output a chance to go HiZ if needed
-                NS <= LD;
-                if ( CMD(2 downto 0) = "110" ) then  -- reading from (HL) or (PC)
-                    RAM_OE <= '1';
+                NS <= LD8;
+                if ( CMD(2 downto 0) /= "110" ) then  -- not reading from (HL) or (PC), so A or rf
+                    RAM_OE <= '0';
                 end if;
 
-            when LD =>
+            when LD8 =>
                 NS <= WAI;
 
-                RF_IMUX <= CMD(5 downto 3);  -- Destination register
+                -- Destination register
+                rf_imux <= '0' & CMD(5 downto 4);
+                if ( CMD(5 downto 4) /= "11" ) then -- Target is rf
+                    rf_ce(1) <= not CMD(3);
+                    rf_ce(0) <= CMD(3);
+                elsif ( CMD(3) /= '1' ) then -- Target is RAM, so save it in tmp
+                    rf_ce <= "00";
+                    tmp_ce <= '1';
+                    NS <= ST8;
+                else    -- Target is accumulator
+                    NS <= ERR;
+                end if;
 
-                RF_OMUX <= CMD(2 downto 0);  -- Source register
+                -- Source register
+                rf_omux <= '0' & CMD(2 downto 1);
+                rf_bmux <= not CMD(0);
                 case CMD(2 downto 0) is
-                    when "110" =>  -- Source is RAM
+                    when "110" =>   -- Source is RAM
+                        DMUX <= RAMDATA;
                         RAM_OE <= '1';
-                        if ( (CMD(7) xor CMD(6)) = '1' ) then  -- (HL)
-                            AMUX <= AHL;
-                        else  -- (PC)
-                            AMUX <= APC;
-	    			        PC_CE <= '1';	-- Update PC
-		    		        PC_MUX <= PCINC;	-- ... increment update
+                        AMUX <= RFADDR;
+                        if ( (CMD(7) xor CMD(6)) = '1' ) then
+                            rf_omux <= "010";   -- HL as rf_addr
+                            tics <= "00101";    -- 6 tics
+                        else
+                            rf_omux <= "100";   -- PC as rf_addr
+                            NS <= INCPC;
+                            tics <= "00100";    -- 5 tics
                         end if;
-                        tics <= "00100";  -- 5 tics
                         w_en <= '1';
-                    when "111" =>  -- Source is accumulator
-                        null;
-                    when others =>
-                        null;
+                    when "111" =>   -- Source is accumulator
+                        DMUX <= ACCDATA;
+                        NS <= ERR;
+                    when others =>  -- Source is rf
+                        DMUX <= RFDATA;
+                        tics <= "00001";    -- 2 tics
+                        w_en <= '1';
                 end case;
 
-                RF_CE <= '1';
+            when ST8 =>
+                AMUX <= RFADDR;
+                rf_omux <= "010";   -- (HL)
+                DMUX <= TMPDATA;    -- <= tmp
+                WR_EN <= '1';       -- Enable RAM write
+
+                NS <= WAI;
+                tics <= "00100";    -- 5 tics
+                w_en <= '1';
+
+            when INCPC =>
+                rf_ce   <= "11";    -- 16-bit update
+                if ( w_en = '1' ) then
+                    NS <= WAI;
+                    w_en <= '1';
+                    tics <= tics;
+                else
+                    NS <= FETCH;
+                end if;
+
+            when JR =>
+
+                -- PC currently points to the second byte of the operand. If
+                --  relative jumps are from the first byte of the following
+                --  operand, we also need to increment PC once.
+                NS <= INCPC;
+
+                rf_amux <= "00";    -- PC + n
+                rf_ce   <= "11";    -- 16-bit update
+
+                tics <= "00100";    -- 5 tics
+                w_en <= '1';
 
 			when READ =>
-				NS <= JMP;
+				NS <= JMP_HI;
 
-				w_en <= '0';	-- Not waiting
-				
-				CMD_CE <= '0';	-- Preserve CMD
+                tmp_ce <= '1';  -- Store byte in tmp
+                rf_ce <= "11";  -- 16-bit update
 
-                AMUX <= APC;
-				PC_CE <= '1';	-- Update PC
-				PC_MUX <= PCINC;	-- ... increment update
+			when JMP_HI =>
+				-- Jump target read, now store as two 8-bit loads
+				NS <= JMP_LO;
 
-				RAM_OE <= '1';	-- Allow n_lo on data bus
+                rf_ce <= "10";  -- Update msB from DBUS (linked to RAM)
 
-                PCBUF_CE <= '1';	-- latch n_lo in pcbuf at end of state
-			
-			when JMP =>
-				-- Jump complete, wait
+            when JMP_LO =>
 				NS <= WAI;
-				w_en <= '1';
+                tics <= "00111";    -- 8 tics
+                w_en <= '1';
 
-				CMD_CE <= '0';	-- Preserve CMD
-
-                AMUX <= APC;
-				PC_CE <= '1';	-- Update PC
-				PC_MUX <= PCJMP;	-- ... jump update
-
-				RAM_OE <= '1';	-- Allow n_hi on data bus
-
-				PCBUF_CE <= '0';	-- Doesn't matter, contents will be latched in PC at next tic
-
-                case CMD is
-                    when "11000011" =>  -- JMP nn
-				        tics <= "01000";	-- 9 tics
-                        PC_MUX <= PCJMP;
-                    when "00011000" =>  -- JR n
-				        tics <= "00100";	-- 5 tics
-                        PC_MUX <= PCJR;
-                    when others =>
-                        PC_MUX <= PCINC;
-                        NS <= ERR;
-                end case;
+                DMUX <= TMPDATA;
+                rf_ce <= "01";  -- Update lsB from DBUS (linked to tmp)
 
 			when WAI =>
 				NS <= WAI;
 
 				w_en <= '1';	-- Continue waiting
 				
-				CMD_CE <= '0';	-- Preserve CMD
-				PC_CE <= '0';	-- Preserve PC
-				AMUX <= APC;
-				PC_MUX <= PCINC;	-- Doesn't matter, won't change
-				RAM_OE <= '0';	-- Don't need data from RAM
-				PCBUF_CE <= '0';	-- Doesn't matter, not relevant
-
 				if waits = "00000" then
 					NS <= FETCH;
 					w_en <= '0';
@@ -279,15 +318,6 @@ begin
 				
 			when ERR =>
 				NS <= ERR;
-
-				w_en <= '0';	-- Continue waiting
-				
-				CMD_CE <= '0';	-- Preserve CMD
-				PC_CE <= '0';	-- Preserve PC
-				AMUX <= APC;
-				PC_MUX <= PCINC;	-- Doesn't matter, won't change
-				RAM_OE <= '0';	-- Don't need data from RAM
-				PCBUF_CE <= '0';	-- Doesn't matter, not relevant
 
 		end case;
 	end process; -- End COMB_PROC

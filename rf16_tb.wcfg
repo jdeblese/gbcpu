@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="./isim.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="numeric_std" />
+            <top_module name="regfile16bit_tb" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="vcomponents" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="16" />
+   <wvobject fp_name="/regfile16bit_tb/idata" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">idata[7:0]</obj_property>
+      <obj_property name="ObjectShortName">idata[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/imux" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">imux[2:0]</obj_property>
+      <obj_property name="ObjectShortName">imux[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/omux" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">omux[2:0]</obj_property>
+      <obj_property name="ObjectShortName">omux[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/amux" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">amux[1:0]</obj_property>
+      <obj_property name="ObjectShortName">amux[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/bmux" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bmux</obj_property>
+      <obj_property name="ObjectShortName">bmux</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/ce" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ce[1:0]</obj_property>
+      <obj_property name="ObjectShortName">ce[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/clk_period" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">clk_period</obj_property>
+      <obj_property name="ObjectShortName">clk_period</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/uut/rfile[0]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[0]</obj_property>
+      <obj_property name="ObjectShortName">rfile[0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/uut/rfile[1]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[1]</obj_property>
+      <obj_property name="ObjectShortName">rfile[1]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/uut/rfile[2]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[2]</obj_property>
+      <obj_property name="ObjectShortName">rfile[2]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/uut/rfile[3]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[3]</obj_property>
+      <obj_property name="ObjectShortName">rfile[3]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/uut/rfile[4]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[4]</obj_property>
+      <obj_property name="ObjectShortName">rfile[4]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/odata" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">odata[7:0]</obj_property>
+      <obj_property name="ObjectShortName">odata[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/regfile16bit_tb/addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">addr[15:0]</obj_property>
+      <obj_property name="ObjectShortName">addr[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

@@ -12,8 +12,10 @@ ARCHITECTURE behavior OF falledge_tb IS
     -- Component Declaration
     COMPONENT falledge
         Port (  ABUS : out STD_LOGIC_VECTOR(15 downto 0);
-                DBUS : inout STD_LOGIC_VECTOR(7 downto 0);
+                RAM : in STD_LOGIC_VECTOR(7 downto 0);
                 RAM_OE : out STD_LOGIC;
+                WR_D : out std_logic_vector(7 downto 0);
+                WR_EN : out std_logic;
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     END COMPONENT;
@@ -30,7 +32,10 @@ ARCHITECTURE behavior OF falledge_tb IS
     signal RAM_OE : STD_LOGIC;
 
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
-    signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
+    signal RAM : STD_LOGIC_VECTOR(7 downto 0);
+
+    signal WR_D : STD_LOGIC_VECTOR(7 downto 0);
+    signal WR_EN : STD_LOGIC;
 
     constant clk_period : time := 10 ns;
 
@@ -41,14 +46,16 @@ BEGIN
 
     ADDRA(13 downto 3) <= ABUS(10 downto 0);
     ADDRA(2 downto 0) <= "000";
-    DBUS <= DOA(7 downto 0) WHEN RAM_OE = '1' ELSE
+    RAM <= DOA(7 downto 0) WHEN RAM_OE = '1' ELSE
             "ZZZZZZZZ";
 
     -- Component Instantiation
     uut: falledge PORT MAP(
         ABUS => ABUS,
-        DBUS => DBUS,
+        RAM => RAM,
         RAM_OE => RAM_OE,
+        WR_D => WR_D,
+        WR_EN => WR_EN,
         CLK => CLK,
         RST => RST
     );
@@ -86,11 +93,18 @@ BEGIN
 		-- 05 JMP 11
 		-- 08 NOP
 		-- 09 JR -6
-		-- 11 LD H,L
-		-- 12 LD L,42h
-		-- 14
+		-- 0b LD L,42h
+		-- 0d LD H,L
+		-- 0e LD L,A0h
+        -- 10 LD B,80h
+        -- 12 LD H,00h
+        -- 14 LD L,19h
+        -- 16 LD D,(HL)
+        -- 17 LD (HL),B
+        -- 18 LD C,FFh
+        -- 1a 
 
-        INIT_00 => X"000000000000000000000000000000000000422e65fa1800000bc30005180000",
+        INIT_00 => X"000000000000ff0e7056192e00268006a02e65422efa1800000bc30005180000",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -184,8 +198,8 @@ BEGIN
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input
-        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
-        DIA => DIA,       -- 32-bit input: A port data input
+        WEA => "000" & WR_EN,    -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"000000" & WR_D,       -- 32-bit input: A port data input
         DIPA => "0000",   -- 4-bit input: A port parity input
         -- Port B
 --      DOB => DOB,       -- 32-bit output: B port data output
