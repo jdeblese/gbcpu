@@ -41,7 +41,8 @@ signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
 signal tmp : std_logic_vector(7 downto 0);
 signal tmp_ce : std_logic;
 
-signal A : STD_LOGIC_VECTOR(7 downto 0);
+signal acc : STD_LOGIC_VECTOR(7 downto 0);
+signal acc_ce : std_logic;
 
 signal PC, SP : STD_LOGIC_VECTOR( 15 downto 0);
 signal PC_CE  : STD_LOGIC;
@@ -78,11 +79,22 @@ begin
 			"ZZZZZZZZZZZZZZZZ";
     DBUS <= RAM         when DMUX = RAMDATA else
             rf_odata    when DMUX = RFDATA else
-            A           when DMUX = ACCDATA else
+            acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
             "ZZZZZZZZ";
     rf_idata <= DBUS;
     WR_D <= DBUS;
+
+    acc_proc : process(CLK, RST)
+	begin
+		if RST = '1' then
+			acc <= "00000000";
+		elsif falling_edge(CLK) then
+			if acc_ce = '1' then
+				acc <= DBUS;
+			end if;
+		end if;
+	end process;
 
     tmp_proc : process(CLK, RST)
 	begin
@@ -172,6 +184,7 @@ begin
 
         CMD_CE <= '0';	-- Preserve CMD
         tmp_ce <= '0';  -- Preserve tmp
+        acc_ce <= '0';  -- Preserve acc
 
         WR_EN <= '0';   -- Don't edit RAM
 
@@ -220,11 +233,10 @@ begin
                     rf_ce(1) <= not CMD(3);
                     rf_ce(0) <= CMD(3);
                 elsif ( CMD(3) /= '1' ) then -- Target is RAM, so save it in tmp
-                    rf_ce <= "00";
                     tmp_ce <= '1';
                     NS <= ST8;
                 else    -- Target is accumulator
-                    NS <= ERR;
+                    acc_ce <= '1';
                 end if;
 
                 -- Source register
@@ -246,7 +258,8 @@ begin
                         w_en <= '1';
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
-                        NS <= ERR;
+                        tics <= "00001";    -- 2 tics
+                        w_en <= '1';
                     when others =>  -- Source is rf
                         DMUX <= RFDATA;
                         tics <= "00001";    -- 2 tics

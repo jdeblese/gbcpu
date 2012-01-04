@@ -36,6 +36,7 @@
       <marker time="900000000" label="" />
       <marker time="980000000" label="" />
       <marker time="1060000000" label="" />
+      <marker time="1140000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
@@ -68,14 +69,19 @@
       <obj_property name="ObjectShortName">cmd[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/tmp_ce" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">tmp_ce</obj_property>
-      <obj_property name="ObjectShortName">tmp_ce</obj_property>
+   <wvobject fp_name="/falledge_tb/uut/acc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">acc[7:0]</obj_property>
+      <obj_property name="ObjectShortName">acc[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="CustomSignalColor">#008080</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/tmp" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">tmp[7:0]</obj_property>
       <obj_property name="ObjectShortName">tmp[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="CustomSignalColor">#008080</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/rf_ce" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">rf_ce[1:0]</obj_property>
