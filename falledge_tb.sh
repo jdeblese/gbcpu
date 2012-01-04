@@ -9,4 +9,4 @@ vhdl work falledge_tb.vhd
 EOF
 
 fuse -prj falledge_tb.prj -o falledge_tb.exe falledge_tb && \
-	./falledge_tb.exe -tclbatch falledge_tb.cmd -view falledge_tb.wcfg -log falledge_tb.log -gui
+	./falledge_tb.exe -view falledge_tb.wcfg -log falledge_tb.log -gui

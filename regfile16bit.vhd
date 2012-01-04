@@ -8,12 +8,10 @@ use UNISIM.VComponents.all;
 
 entity regfile16bit is
 	Port (  idata : in std_logic_vector(7 downto 0);
-            odata : out std_logic_vector(7 downto 0);
             addr : out std_logic_vector(15 downto 0);
             imux : in std_logic_vector(2 downto 0);
             omux : in std_logic_vector(2 downto 0);
             amux : in std_logic_vector(1 downto 0);
-            bmux : in std_logic;
             ce : in std_logic_vector(1 downto 0);
 			CLK : IN STD_LOGIC;
 			RST : IN STD_LOGIC );
@@ -45,11 +43,6 @@ begin
                 X"0001" when "11",
                 X"0000" when others;
     addr <= obus;
-
-    with bmux select
-        odata <= obus(7 downto 0) when '0',
-                 obus(15 downto 8) when '1',
-                 X"00" when others;
 
     REGFILE_IN : process(CLK, RST, ce)
     begin

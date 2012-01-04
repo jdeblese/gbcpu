@@ -13,31 +13,27 @@ ARCHITECTURE behavior OF regfile16bit_tb IS
 
     component regfile16bit
 	    Port (  idata : in std_logic_vector(7 downto 0);
-                odata : out std_logic_vector(7 downto 0);
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
                 amux : in std_logic_vector(1 downto 0);
-                bmux : in std_logic;
                 ce : in std_logic_vector(1 downto 0);
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     end component;
 
 	signal idata : std_logic_vector(7 downto 0) := X"00";
-    signal odata : std_logic_vector(7 downto 0) := X"00";
     signal addr : std_logic_vector(15 downto 0) := X"0000";
     signal imux : std_logic_vector(2 downto 0) := "000";
     signal omux : std_logic_vector(2 downto 0) := "000";
     signal amux : std_logic_vector(1 downto 0) := "00";
-    signal bmux : std_logic := '0';
     signal ce : std_logic_vector(1 downto 0) := "00";
     signal CLK : STD_LOGIC := '0';
     signal RST : STD_LOGIC := '1';
 
 begin
 
-    uut : regfile16bit port map (idata, odata, addr, imux, omux, amux, bmux, ce, CLK, RST);
+    uut : regfile16bit port map (idata, addr, imux, omux, amux, ce, CLK, RST);
 
     clk_process : process
     begin
@@ -61,9 +57,7 @@ begin
         ce <= "01";
         idata <= X"0A";
         omux <= "010";
-        bmux <= '1';
         wait for clk_period;
-        bmux <= '0';
 
         -- BC <= F5h
         imux <= "000";

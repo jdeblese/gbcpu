@@ -18,70 +18,65 @@ end falledge;
 
 architecture FSM of falledge is
 
-type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, ST8, INCPC);
-type PC_TYPE is (PCINC, PCJMP, PCJR);
-type ABUS_SRC is (RFADDR);
-type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
+    type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, ST8, INCPC);
+    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
-signal CS, NS: STATE_TYPE;
-signal w_en  : STD_LOGIC;
-signal waits : STD_LOGIC_VECTOR(4 downto 0);
-signal tics  : STD_LOGIC_VECTOR(4 downto 0);
+    signal CS, NS: STATE_TYPE;
 
-signal PCBUF    : STD_LOGIC_VECTOR(7 downto 0);
-signal PCBUF_CE : STD_LOGIC;
+    -- For wait cycles
+    signal w_en  : STD_LOGIC;
+    signal waits : STD_LOGIC_VECTOR(4 downto 0);
+    signal tics  : STD_LOGIC_VECTOR(4 downto 0);
 
-signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
-signal CMD_CE : STD_LOGIC;
+    signal DMUX : DBUS_SRC;
+    signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
 
-signal AMUX : ABUS_SRC;
-signal DMUX : DBUS_SRC;
-signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
+    signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
+    signal CMD_CE : STD_LOGIC;
 
-signal tmp : std_logic_vector(7 downto 0);
-signal tmp_ce : std_logic;
+    -- Either this or an independent 8-bit output from the register file
+    signal tmp : std_logic_vector(7 downto 0);
+    signal tmp_ce : std_logic;
 
-signal acc : STD_LOGIC_VECTOR(7 downto 0);
-signal acc_ce : std_logic;
-
-signal PC, SP : STD_LOGIC_VECTOR( 15 downto 0);
-signal PC_CE  : STD_LOGIC;
-signal PC_MUX : PC_TYPE;
+    signal acc : STD_LOGIC_VECTOR(7 downto 0);
+    signal acc_ce : std_logic;
 
     component regfile16bit
 	    Port (  idata : in std_logic_vector(7 downto 0);
-                odata : out std_logic_vector(7 downto 0);
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
                 amux : in std_logic_vector(1 downto 0);
-                bmux : in std_logic;
                 ce : in std_logic_vector(1 downto 0);
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     end component;
 
 	signal rf_idata : std_logic_vector(7 downto 0);
-    signal rf_odata : std_logic_vector(7 downto 0);
     signal rf_addr : std_logic_vector(15 downto 0);
     signal rf_imux : std_logic_vector(2 downto 0);
     signal rf_omux : std_logic_vector(2 downto 0);
     signal rf_amux : std_logic_vector(1 downto 0);
-    signal rf_bmux : std_logic;
     signal rf_ce : std_logic_vector(1 downto 0);
+
+    signal bmux : std_logic;
+    signal odata : std_logic_vector(7 downto 0);
 
 begin
 
     urf : regfile16bit
-        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_amux, rf_bmux, rf_ce, CLK, RST);
+        port map (rf_idata, rf_addr, rf_imux, rf_omux, rf_amux, rf_ce, CLK, RST);
 
-    ABUS <= rf_addr when AMUX = RFADDR else
-			"ZZZZZZZZZZZZZZZZ";
-    DBUS <= RAM         when DMUX = RAMDATA else
-            rf_odata    when DMUX = RFDATA else
+    ABUS <= rf_addr;
+
+    odata <= rf_addr(15 downto 8) when bmux = '1' else
+             rf_addr(7 downto 0);
+
+    DBUS <= odata       when DMUX = RFDATA else
             acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
-            "ZZZZZZZZ";
+            RAM;
+
     rf_idata <= DBUS;
     WR_D <= DBUS;
 
@@ -118,35 +113,6 @@ begin
 		end if;
 	end process;
 
-	PCBUF_PROC : process(CLK, RST)
-	begin
-		if (RST = '1') then
-			PCBUF <= "00000000";
-		elsif (falling_edge(CLK)) then
-			if (PCBUF_CE = '1') then
-				PCBUF <= DBUS;
-			end if;
-		end if;
-	end process;
-
-	PC_PROC : process(CLK, RST, DBUS)
-	begin
-		if (RST = '1') then
-			PC <= "0000000000000000";
-		elsif (falling_edge(CLK)) then
-			if (PC_CE = '1') then
-                case PC_MUX is
-                    when PCINC =>
-					    PC <= PC + "0000000000000001";
-                    when PCJMP =>
-					    PC <= DBUS & PCBUF;
-                    when PCJR =>
-					    PC <= PC + (PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF(7) & PCBUF);
-                end case;
-			end if;
-		end if;
-	end process;
-
 	SYNC_PROC: process (clk, rst)
 	begin
 		if (rst = '1') then
@@ -170,13 +136,12 @@ begin
 	begin
 
         DMUX <= RAMDATA;    -- RAM on DBUS
-        AMUX <= RFADDR;     -- rf on ABUS
         RAM_OE <= '1';	    -- RAM on DBUS
 
         rf_imux <= "100";   -- rf input to PC
         rf_omux <= "100";   -- rf output from PC
         rf_amux <= "11";    -- rf operand '+1'
-        rf_bmux <= '0';     -- LSByte on DBUS, were it enabled
+        bmux <= '0';        -- LSByte on DBUS, were it enabled
         rf_ce <= "00";      -- No change to register file
 
         w_en <= '0';
@@ -241,12 +206,11 @@ begin
 
                 -- Source register
                 rf_omux <= '0' & CMD(2 downto 1);
-                rf_bmux <= not CMD(0);
+                bmux <= not CMD(0);
                 case CMD(2 downto 0) is
                     when "110" =>   -- Source is RAM
                         DMUX <= RAMDATA;
                         RAM_OE <= '1';
-                        AMUX <= RFADDR;
                         if ( (CMD(7) xor CMD(6)) = '1' ) then
                             rf_omux <= "010";   -- HL as rf_addr
                             tics <= "00101";    -- 6 tics
@@ -267,7 +231,6 @@ begin
                 end case;
 
             when ST8 =>
-                AMUX <= RFADDR;
                 rf_omux <= "010";   -- (HL)
                 DMUX <= TMPDATA;    -- <= tmp
                 WR_EN <= '1';       -- Enable RAM write
