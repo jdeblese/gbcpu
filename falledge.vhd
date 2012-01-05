@@ -18,7 +18,10 @@ end falledge;
 
 architecture FSM of falledge is
 
-    type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, INCPC);
+    type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
+                        READ, JR, JMP_HI, JMP_LO,
+                        LD16_A, LD16_HI, LD16_B, LD16_LO, LD16_C, 
+                        LD8);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
     signal CS, NS: STATE_TYPE;
@@ -40,6 +43,9 @@ architecture FSM of falledge is
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
+
+    signal cflag, zflag, hflag, nflag : std_logic;
+    signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
 
     component regfile16bit
 	    Port (  idata : in std_logic_vector(7 downto 0);
@@ -123,7 +129,7 @@ begin
 			elsif w_en = '1' then
                 if CS = wai then -- waiting
 					waits <= waits - "00001";
-                elsif NS = WAI then    -- preparing to wait
+                else    -- preparing to wait
 					waits <= tics;
 				end if;
 			end if;
@@ -163,29 +169,85 @@ begin
                 rf_ce <= "11";  -- Save incremented PC
                 CMD_CE <= '1';	-- Save the command at the end of the state
 
-                if ( DBUS = "00000000" ) then     -- 00 NOP
+                if ( DBUS = "00000000" ) then               -- 00h NOP
                     NS <= WAI;
                     tics <= "00010";	-- 3 tics
                     w_en <= '1';
-                elsif ( DBUS = "00011000" ) then  -- 18 JR n
+                elsif ( DBUS = "00011000" ) then            -- 18h JR n
                     NS <= JR;
-                elsif ( DBUS = "11000011" ) then  -- C3 JMP nn
+                elsif ( DBUS = "11000011" ) then            -- C3h JMP nn
                     NS <= READ;
-                elsif ( DBUS = "01110110" ) then -- 76 HALT
+                elsif ( DBUS = "01110110" ) then            -- 76h HALT
                     NS <= ERR;
-                elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops
+                elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
                     NS <= LD8;
-                elsif (DBUS(2 downto 0) = "110" ) then  -- 8-bit ops
+                elsif DBUS(3 downto 0) = "0001" then        -- 16-bit loads x1h
+                    NS <= LD16_HI;
+                elsif (DBUS(2 downto 0) = "110" ) then      -- 8-bit ops
                     NS <= LD8;
                 else
                     ns <= ERR;
                 end if;
 
-           when PARAM =>  -- Gives RAM output a chance to go HiZ if needed
-                NS <= LD8;
-                if ( CMD(2 downto 0) /= "110" ) then  -- not reading from (HL) or (PC), so A or rf
-                    RAM_OE <= '0';
+            when LD16_A =>
+                NS <= LD16_HI;
+                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "01" then    -- PUSH
+                    rf_ce   <= "11";    -- 16-bit update
+                    rf_omux <= "011";   -- SP
+                    rf_imux <= "011";
+                    rf_amux <= "10";    -- rf operand '-1'
                 end if;
+
+            when LD16_HI =>
+                NS <= LD16_B;
+
+                -- Source is (PC), (SP) or the msB of a 16-bit register
+                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
+                    rf_omux <= "011";   -- SP
+                elsif CMD(7 downto 6) = '1' and CMD(3 downto 2) = "01" then -- PUSH
+                    if CMD(5 downto 4) = "11" then  -- PUSH AF
+                        NS <= ERR;
+                    else
+
+                end if;
+
+                -- Target is msB of 16-bit register
+                rf_imux <= '0' & CMD(5 downto 4);
+                rf_ce <= "10";
+
+            when LD16_B =>
+                NS <= LD16_LO;
+                rf_ce   <= "11";    -- 16-bit update
+                if CMD(7 downto 6) = '1' and CMD(3) = '0' then  -- PUSH/POP
+                    rf_omux <= "011";   -- SP
+                    rf_imux <= "011";
+                    if CMD(2) = '1' then    -- PUSH
+                        rf_amux <= "10";    -- rf operand '-1'
+                    end if;
+                end if; -- Otherwise, PC must be incremented
+
+            when LD16_LO =>
+                NS <= LD16_INC1;
+
+                -- Source is (PC) or (SP)
+                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
+                    rf_omux <= "011";   -- SP
+                end if;
+
+                -- Target is msB of 16-bit register
+                rf_imux <= '0' & CMD(5 downto 4);
+                rf_ce <= "01";
+
+                w_en <= '1';
+                tics <= "00110";    -- 7 tics
+
+            when LD16_C =>
+                NS <= LD16_LO;
+                rf_ce   <= "11";    -- 16-bit update
+                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
+                    rf_omux <= "011";   -- SP
+                    rf_imux <= "011";
+                end if; -- Otherwise, PC must be incremented
 
             when LD8 =>
                 NS <= WAI;
@@ -229,10 +291,10 @@ begin
 
             when INCPC =>
                 rf_ce   <= "11";    -- 16-bit update
-                if ( w_en = '1' ) then
+                if waits /= "00000" then
                     NS <= WAI;
+                    tics <= waits;
                     w_en <= '1';
-                    tics <= tics;
                 else
                     NS <= FETCH;
                 end if;
