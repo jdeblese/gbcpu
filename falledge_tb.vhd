@@ -85,17 +85,17 @@ BEGIN
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         -- INIT_00 to INIT_3F: Initial memory contents.
-		
-		-- 00 NOP
-		-- 01 NOP
-		-- 02 JR 5
-		-- 04 NOP
-		-- 05 JMP 0b
-		-- 08 NOP
-		-- 09 JR -6
-		-- 0b LD L,42h
-		-- 0d LD H,L
-		-- 0e LD L,A0h
+
+        -- 00 NOP
+        -- 01 NOP
+        -- 02 JR 5
+        -- 04 NOP
+        -- 05 JMP 0b
+        -- 08 NOP
+        -- 09 JR -6
+        -- 0b LD L,42h
+        -- 0d LD H,L
+        -- 0e LD L,A0h
         -- 10 LD A,80h
         -- 12 LD HL,0019h
         -- 14 NOP

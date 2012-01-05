@@ -7,13 +7,13 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity falledge is
-	Port (	ABUS : out STD_LOGIC_VECTOR(15 downto 0);
-			RAM : in STD_LOGIC_VECTOR(7 downto 0);
-			RAM_OE : out STD_LOGIC;
+    Port (  ABUS : out STD_LOGIC_VECTOR(15 downto 0);
+            RAM : in STD_LOGIC_VECTOR(7 downto 0);
+            RAM_OE : out STD_LOGIC;
             WR_D : out STD_LOGIC_VECTOR(7 downto 0);
             WR_EN : out STD_LOGIC;
-			CLK : IN STD_LOGIC;
-			RST : IN STD_LOGIC );
+            CLK : IN STD_LOGIC;
+            RST : IN STD_LOGIC );
 end falledge;
 
 architecture FSM of falledge is
@@ -48,8 +48,8 @@ architecture FSM of falledge is
     signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
 
     component regfile16bit
-	    Port (  idata : in std_logic_vector(7 downto 0);
-	            odata : out std_logic_vector(7 downto 0);
+        Port (  idata : in std_logic_vector(7 downto 0);
+                odata : out std_logic_vector(7 downto 0);
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
@@ -60,8 +60,8 @@ architecture FSM of falledge is
                 RST : IN STD_LOGIC );
     end component;
 
-	signal rf_idata : std_logic_vector(7 downto 0);
-	signal rf_odata : std_logic_vector(7 downto 0);
+    signal rf_idata : std_logic_vector(7 downto 0);
+    signal rf_odata : std_logic_vector(7 downto 0);
     signal rf_addr : std_logic_vector(15 downto 0);
     signal rf_imux : std_logic_vector(2 downto 0);
     signal rf_omux : std_logic_vector(2 downto 0);
@@ -85,62 +85,62 @@ begin
     WR_D <= DBUS;
 
     acc_proc : process(CLK, RST)
-	begin
-		if RST = '1' then
-			acc <= "00000000";
-		elsif falling_edge(CLK) then
-			if acc_ce = '1' then
-				acc <= DBUS;
-			end if;
-		end if;
-	end process;
+    begin
+        if RST = '1' then
+            acc <= "00000000";
+        elsif falling_edge(CLK) then
+            if acc_ce = '1' then
+                acc <= DBUS;
+            end if;
+        end if;
+    end process;
 
     tmp_proc : process(CLK, RST)
-	begin
-		if (RST = '1') then
-			tmp <= "00000000";
-		elsif (falling_edge(CLK)) then
-			if (tmp_ce = '1') then
-				tmp <= DBUS;
-			end if;
-		end if;
-	end process;
+    begin
+        if (RST = '1') then
+            tmp <= "00000000";
+        elsif (falling_edge(CLK)) then
+            if (tmp_ce = '1') then
+                tmp <= DBUS;
+            end if;
+        end if;
+    end process;
 
-	CMD_PROC : process(CLK, RST)
-	begin
-		if (RST = '1') then
-			CMD <= "00000000";
-		elsif (falling_edge(CLK)) then
-			if (CMD_CE = '1') then
-				CMD <= DBUS;
-			end if;
-		end if;
-	end process;
+    CMD_PROC : process(CLK, RST)
+    begin
+        if (RST = '1') then
+            CMD <= "00000000";
+        elsif (falling_edge(CLK)) then
+            if (CMD_CE = '1') then
+                CMD <= DBUS;
+            end if;
+        end if;
+    end process;
 
-	SYNC_PROC: process (clk, rst)
-	begin
-		if (rst = '1') then
-			CS <= RESET;
-			waits <= "00000";
-		elsif (falling_edge(clk)) then
-			CS <= NS;
-			if w_en = '0' then
-				waits <= "00000";
-			elsif w_en = '1' then
+    SYNC_PROC: process (clk, rst)
+    begin
+        if (rst = '1') then
+            CS <= RESET;
+            waits <= "00000";
+        elsif (falling_edge(clk)) then
+            CS <= NS;
+            if w_en = '0' then
+                waits <= "00000";
+            elsif w_en = '1' then
                 if CS = wai then -- waiting
-					waits <= waits - "00001";
+                    waits <= waits - "00001";
                 else    -- preparing to wait
-					waits <= tics;
-				end if;
-			end if;
-		end if;
-	end process; --End SYNC_PROC
+                    waits <= tics;
+                end if;
+            end if;
+        end if;
+    end process; --End SYNC_PROC
 
-	COMB_PROC: process (CS, DBUS, waits)
-	begin
+    COMB_PROC: process (CS, DBUS, waits)
+    begin
 
         DMUX <= RAMDATA;    -- RAM on DBUS
-        RAM_OE <= '1';	    -- RAM on DBUS
+        RAM_OE <= '1';      -- RAM on DBUS
 
         rf_imux <= "100";   -- rf input to PC
         rf_omux <= "100";   -- rf output from PC
@@ -151,7 +151,7 @@ begin
         w_en <= '0';
         tics <= "00000";
 
-        CMD_CE <= '0';	-- Preserve CMD
+        CMD_CE <= '0';  -- Preserve CMD
         tmp_ce <= '0';  -- Preserve tmp
         acc_ce <= '0';  -- Preserve acc
 
@@ -159,19 +159,19 @@ begin
 
         NS <= ERR;
 
-		case CS is
-			when RESET =>
-				NS <= FETCH;
+        case CS is
+            when RESET =>
+                NS <= FETCH;
 
-				w_en <= '0';	-- Continue waiting
-				
-			when FETCH =>
+                w_en <= '0';    -- Continue waiting
+
+            when FETCH =>
                 rf_ce <= "11";  -- Save incremented PC
-                CMD_CE <= '1';	-- Save the command at the end of the state
+                CMD_CE <= '1';  -- Save the command at the end of the state
 
                 if ( DBUS = "00000000" ) then               -- 00h NOP
                     NS <= WAI;
-                    tics <= "00010";	-- 3 tics
+                    tics <= "00010";                        -- 3 tics
                     w_en <= '1';
                 elsif ( DBUS = "00011000" ) then            -- 18h JR n
                     NS <= JR;
@@ -358,41 +358,41 @@ begin
                 tics <= "00100";    -- 5 tics
                 w_en <= '1';
 
-			when READ =>
-				NS <= JMP_HI;
+            when READ =>
+                NS <= JMP_HI;
 
                 tmp_ce <= '1';  -- Store byte in tmp
                 rf_ce <= "11";  -- 16-bit update
 
-			when JMP_HI =>
-				-- Jump target read, now store as two 8-bit loads
-				NS <= JMP_LO;
+            when JMP_HI =>
+                -- Jump target read, now store as two 8-bit loads
+                NS <= JMP_LO;
 
                 rf_ce <= "10";  -- Update msB from DBUS (linked to RAM)
 
             when JMP_LO =>
-				NS <= WAI;
+                NS <= WAI;
                 tics <= "00111";    -- 8 tics
                 w_en <= '1';
 
                 DMUX <= TMPDATA;
                 rf_ce <= "01";  -- Update lsB from DBUS (linked to tmp)
 
-			when WAI =>
-				NS <= WAI;
+            when WAI =>
+                NS <= WAI;
 
-				w_en <= '1';	-- Continue waiting
-				
-				if waits = "00000" then
-					NS <= FETCH;
-					w_en <= '0';
-				end if;
-				
-			when ERR =>
-				NS <= ERR;
+                w_en <= '1';    -- Continue waiting
 
-		end case;
-	end process; -- End COMB_PROC
-	
+                if waits = "00000" then
+                    NS <= FETCH;
+                    w_en <= '0';
+                end if;
+
+            when ERR =>
+                NS <= ERR;
+
+        end case;
+    end process; -- End COMB_PROC
+
 end FSM;
 
