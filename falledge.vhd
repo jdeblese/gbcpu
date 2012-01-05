@@ -20,7 +20,7 @@ architecture FSM of falledge is
 
     type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
                         READ, JR, JMP_HI, JMP_LO,
-                        LD16_A, LD16_HI, LD16_B, LD16_LO, LD16_C, 
+                        LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
                         LD8);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
@@ -181,8 +181,9 @@ begin
                     NS <= ERR;
                 elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
                     NS <= LD8;
-                elsif DBUS(3 downto 0) = "0001" then        -- 16-bit loads x1h
-                    NS <= LD16_HI;
+                elsif DBUS(3 downto 0) = "0001"
+                    or (DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11") then        -- 16-bit loads, pops & pushes
+                    NS <= LD16_A;
                 elsif (DBUS(2 downto 0) = "110" ) then      -- 8-bit ops
                     NS <= LD8;
                 else
@@ -190,35 +191,54 @@ begin
                 end if;
 
             when LD16_A =>
-                NS <= LD16_HI;
-                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "01" then    -- PUSH
+                NS <= LD16_1ST;
+                if CMD(7 downto 6) = "11" and CMD(3 downto 2) = "01" then    -- PUSH
                     rf_ce   <= "11";    -- 16-bit update
                     rf_omux <= "011";   -- SP
                     rf_imux <= "011";
                     rf_amux <= "10";    -- rf operand '-1'
                 end if;
 
-            when LD16_HI =>
+            when LD16_1ST =>
                 NS <= LD16_B;
 
-                -- Source is (PC), (SP) or the msB of a 16-bit register
-                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
-                    rf_omux <= "011";   -- SP
-                elsif CMD(7 downto 6) = '1' and CMD(3 downto 2) = "01" then -- PUSH
-                    if CMD(5 downto 4) = "11" then  -- PUSH AF
-                        NS <= ERR;
-                    else
+                -- msB pushed first, so lsB popped first
 
+                -- Target is lsB of 16-bit register or (SP) (set later)
+                -- Source is (PC), (SP) or the msB of a 16-bit register
+                if CMD(7 downto 6) = "11" and CMD(3 downto 2) = "00" then    -- POP
+                    -- src
+                    rf_omux <= "011";   -- SP
+                    -- dst
+                    if CMD(5 downto 4) = "11" then  -- POP AF
+                        NS <= ERR;  -- Not yet implemented
+                    else
+                        rf_imux <= '0' & CMD(5 downto 4);
+                        rf_ce <= "01";  -- lsB
+                    end if;
+                elsif CMD(7 downto 6) = "11" and CMD(3 downto 2) = "01" then -- PUSH
+                    -- src
+                    if CMD(5 downto 4) = "11" then  -- PUSH AF
+                        DMUX <= ACCDATA;
+                    else
+                        DMUX <= RFDATA;
+                        rf_dmux(0) <= '0'; -- msB
+                        rf_dmux(2 downto 1) <= CMD(5 downto 4);
+                    end if;
+                    -- dst
+                    rf_omux <= "011";   -- SP
+                    WR_EN <= '1';       -- Enable RAM write
+                else    -- LD
+                    -- src is (PC)
+                    -- dst
+                    rf_imux <= '0' & CMD(5 downto 4);
+                    rf_ce <= "10";  -- msB
                 end if;
 
-                -- Target is msB of 16-bit register
-                rf_imux <= '0' & CMD(5 downto 4);
-                rf_ce <= "10";
-
             when LD16_B =>
-                NS <= LD16_LO;
+                NS <= LD16_2ND;
                 rf_ce   <= "11";    -- 16-bit update
-                if CMD(7 downto 6) = '1' and CMD(3) = '0' then  -- PUSH/POP
+                if CMD(7 downto 6) = "11" and CMD(3) = '0' then  -- PUSH/POP
                     rf_omux <= "011";   -- SP
                     rf_imux <= "011";
                     if CMD(2) = '1' then    -- PUSH
@@ -226,27 +246,53 @@ begin
                     end if;
                 end if; -- Otherwise, PC must be incremented
 
-            when LD16_LO =>
-                NS <= LD16_INC1;
+            when LD16_2ND =>
+                NS <= LD16_C;
 
-                -- Source is (PC) or (SP)
-                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
+                -- Target is msB of 16-bit register or (SP) (set later)
+                -- Source is (PC), (SP) or the lsB of a 16-bit register
+                if CMD(7 downto 6) = "11" and CMD(3 downto 2) = "00" then    -- POP
+                    -- src
                     rf_omux <= "011";   -- SP
+                    -- dst
+                    if CMD(5 downto 4) = "11" then  -- POP AF
+                        acc_ce <= '1';
+                    else
+                        rf_imux <= '0' & CMD(5 downto 4);
+                        rf_ce <= "10";  -- msB
+                    end if;
+                elsif CMD(7 downto 6) = "11" and CMD(3 downto 2) = "01" then -- PUSH
+                    -- src
+                    if CMD(5 downto 4) = "11" then  -- PUSH AF
+                        DMUX <= ACCDATA;
+                    else
+                        DMUX <= RFDATA;
+                        rf_dmux(0) <= '1'; -- lsB
+                        rf_dmux(2 downto 1) <= CMD(5 downto 4);
+                    end if;
+                    -- dst
+                    rf_omux <= "011";   -- Target is (SP)
+                    WR_EN <= '1';       -- Enable RAM write
+                else
+                    -- src is (PC)
+                    -- dst
+                    rf_imux <= '0' & CMD(5 downto 4);
+                    rf_ce <= "01";  -- lsB
                 end if;
 
-                -- Target is msB of 16-bit register
-                rf_imux <= '0' & CMD(5 downto 4);
-                rf_ce <= "01";
-
-                w_en <= '1';
-                tics <= "00110";    -- 7 tics
-
             when LD16_C =>
-                NS <= LD16_LO;
+                NS <= WAI;
+                tics <= "00101";    -- 6 tics
+                w_en <= '1';
+
                 rf_ce   <= "11";    -- 16-bit update
-                if CMD(7 downto 6) = '1' and CMD(3 downto 2) = "00" then    -- POP
+                if CMD(7 downto 6) = "11" and CMD(3 downto 2) = "00" then    -- POP
                     rf_omux <= "011";   -- SP
                     rf_imux <= "011";
+                elsif CMD(7 downto 6) = "11" and CMD(3 downto 2) = "01" then -- PUSH
+                    rf_ce   <= "00";    -- No update needed
+                    tics <= "01001";    -- 10 tics
+                    w_en <= '1';
                 end if; -- Otherwise, PC must be incremented
 
             when LD8 =>

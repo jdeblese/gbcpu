@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="20" />
+   <WVObjectSize size="19" />
    <wave_markers>
       <marker time="100000000" label="" />
       <marker time="140000000" label="" />
@@ -33,10 +33,14 @@
       <marker time="660000000" label="" />
       <marker time="740000000" label="" />
       <marker time="820000000" label="" />
+      <marker time="860000000" label="" />
       <marker time="900000000" label="" />
       <marker time="980000000" label="" />
       <marker time="1060000000" label="" />
       <marker time="1140000000" label="" />
+      <marker time="1260000000" label="" />
+      <marker time="1420000000" label="" />
+      <marker time="1540000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
@@ -50,10 +54,6 @@
    <wvobject fp_name="/falledge_tb/uut/dmux" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">dmux</obj_property>
       <obj_property name="ObjectShortName">dmux</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_omux" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_omux[2:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_omux[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/dbus" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">dbus[7:0]</obj_property>
