@@ -18,7 +18,7 @@ end falledge;
 
 architecture FSM of falledge is
 
-    type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, ST8, INCPC);
+    type STATE_TYPE is (RESET, FETCH, ERR, READ, JR, JMP_HI, JMP_LO, WAI, PARAM, LD8, INCPC);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
     signal CS, NS: STATE_TYPE;
@@ -43,9 +43,11 @@ architecture FSM of falledge is
 
     component regfile16bit
 	    Port (  idata : in std_logic_vector(7 downto 0);
+	            odata : out std_logic_vector(7 downto 0);
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
+                dmux : in std_logic_vector(2 downto 0);
                 amux : in std_logic_vector(1 downto 0);
                 ce : in std_logic_vector(1 downto 0);
                 CLK : IN STD_LOGIC;
@@ -53,26 +55,22 @@ architecture FSM of falledge is
     end component;
 
 	signal rf_idata : std_logic_vector(7 downto 0);
+	signal rf_odata : std_logic_vector(7 downto 0);
     signal rf_addr : std_logic_vector(15 downto 0);
     signal rf_imux : std_logic_vector(2 downto 0);
     signal rf_omux : std_logic_vector(2 downto 0);
+    signal rf_dmux : std_logic_vector(2 downto 0);
     signal rf_amux : std_logic_vector(1 downto 0);
     signal rf_ce : std_logic_vector(1 downto 0);
-
-    signal bmux : std_logic;
-    signal odata : std_logic_vector(7 downto 0);
 
 begin
 
     urf : regfile16bit
-        port map (rf_idata, rf_addr, rf_imux, rf_omux, rf_amux, rf_ce, CLK, RST);
+        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, CLK, RST);
 
     ABUS <= rf_addr;
 
-    odata <= rf_addr(15 downto 8) when bmux = '1' else
-             rf_addr(7 downto 0);
-
-    DBUS <= odata       when DMUX = RFDATA else
+    DBUS <= rf_odata    when DMUX = RFDATA else
             acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
             RAM;
@@ -140,8 +138,8 @@ begin
 
         rf_imux <= "100";   -- rf input to PC
         rf_omux <= "100";   -- rf output from PC
+        rf_dmux <= "000";   -- rf 8-bit output from H
         rf_amux <= "11";    -- rf operand '+1'
-        bmux <= '0';        -- LSByte on DBUS, were it enabled
         rf_ce <= "00";      -- No change to register file
 
         w_en <= '0';
@@ -191,22 +189,25 @@ begin
 
             when LD8 =>
                 NS <= WAI;
+                tics <= "00001";    -- 2 tics
+                w_en <= '1';
 
                 -- Destination register
                 rf_imux <= '0' & CMD(5 downto 4);
                 if ( CMD(5 downto 4) /= "11" ) then -- Target is rf
                     rf_ce(1) <= not CMD(3);
                     rf_ce(0) <= CMD(3);
-                elsif ( CMD(3) /= '1' ) then -- Target is RAM, so save it in tmp
-                    tmp_ce <= '1';
-                    NS <= ST8;
+                elsif ( CMD(3) /= '1' ) then -- Target is RAM
+                    rf_omux <= "010";   -- (HL)
+                    WR_EN <= '1';       -- Enable RAM write
+                    tics <= "00101";    -- 6 tics
+                    w_en <= '1';
                 else    -- Target is accumulator
                     acc_ce <= '1';
                 end if;
 
                 -- Source register
-                rf_omux <= '0' & CMD(2 downto 1);
-                bmux <= not CMD(0);
+                rf_dmux <= CMD(2 downto 0);
                 case CMD(2 downto 0) is
                     when "110" =>   -- Source is RAM
                         DMUX <= RAMDATA;
@@ -222,22 +223,9 @@ begin
                         w_en <= '1';
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
-                        tics <= "00001";    -- 2 tics
-                        w_en <= '1';
                     when others =>  -- Source is rf
                         DMUX <= RFDATA;
-                        tics <= "00001";    -- 2 tics
-                        w_en <= '1';
                 end case;
-
-            when ST8 =>
-                rf_omux <= "010";   -- (HL)
-                DMUX <= TMPDATA;    -- <= tmp
-                WR_EN <= '1';       -- Enable RAM write
-
-                NS <= WAI;
-                tics <= "00100";    -- 5 tics
-                w_en <= '1';
 
             when INCPC =>
                 rf_ce   <= "11";    -- 16-bit update

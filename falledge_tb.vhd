@@ -90,7 +90,7 @@ BEGIN
 		-- 01 NOP
 		-- 02 JR 5
 		-- 04 NOP
-		-- 05 JMP 11
+		-- 05 JMP 0b
 		-- 08 NOP
 		-- 09 JR -6
 		-- 0b LD L,42h
