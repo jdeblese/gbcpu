@@ -21,6 +21,7 @@ architecture FSM of falledge is
     type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
+                        OP16,
                         LD8);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
 
@@ -181,13 +182,33 @@ begin
                     NS <= ERR;
                 elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
                     NS <= LD8;
+                elsif DBUS(7 downto 6) = "00"
+                    and ( DBUS(3 downto 0) = "1001" or DBUS(2 downto 0) = "011" ) then  -- 16-bit Ops
+                    NS <= OP16;
                 elsif DBUS(3 downto 0) = "0001"
-                    or (DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11") then        -- 16-bit loads, pops & pushes
+                    or (DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11") then     -- 16-bit loads, pops & pushes
                     NS <= LD16_A;
                 elsif (DBUS(2 downto 0) = "110" ) then      -- 8-bit ops
                     NS <= LD8;
                 else
                     ns <= ERR;
+                end if;
+
+            when OP16 =>
+                NS <= WAI;
+                tics <= "00101";    -- 6 tics
+                w_en <= '1';
+
+                if CMD(1) = '1' then    -- INC or DEC
+                    rf_amux <= '1' & not CMD(3);
+                    rf_imux <= '0' & CMD(5 downto 4);
+                    rf_omux <= '0' & CMD(5 downto 4);
+                    rf_ce <= "11";
+                else    -- ADD
+                    rf_amux <= "01";    -- Second source is HL
+                    rf_imux <= "010";   -- Target is HL
+                    rf_omux <= '0' & CMD(5 downto 4);
+                    rf_ce <= "11";
                 end if;
 
             when LD16_A =>

@@ -47,4 +47,20 @@ test urf/rfile(1) 88aa -radix hex
 test urf/rfile(2) 0019 -radix hex
 test urf/rfile(3) 0000 -radix hex
 test urf/rfile(4) 001f -radix hex
+run 240 ns
+show time
+test urf/rfile(1) FFFF -radix hex
+run 80 ns
+show time
+test urf/rfile(3) 0001 -radix hex
+run 80 ns
+show time
+test urf/rfile(2) 0018 -radix hex
+run 80 ns
+show time
+test urf/rfile(2) 0019 -radix hex
+run 80 ns
+show time
+test urf/rfile(3) 0000 -radix hex
+test urf/rfile(4) 0028 -radix hex
 quit

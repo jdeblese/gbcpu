@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="19" />
+   <WVObjectSize size="21" />
    <wave_markers>
       <marker time="100000000" label="" />
       <marker time="140000000" label="" />
@@ -41,6 +41,13 @@
       <marker time="1260000000" label="" />
       <marker time="1420000000" label="" />
       <marker time="1540000000" label="" />
+      <marker time="1580000000" label="" />
+      <marker time="1700000000" label="" />
+      <marker time="1780000000" label="" />
+      <marker time="1860000000" label="" />
+      <marker time="1940000000" label="" />
+      <marker time="2020000000" label="" />
+      <marker time="2100000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
@@ -83,13 +90,21 @@
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="CustomSignalColor">#008080</obj_property>
    </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_ce" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_ce[1:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_ce[1:0]</obj_property>
-   </wvobject>
    <wvobject fp_name="/falledge_tb/uut/rf_imux" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">rf_imux[2:0]</obj_property>
       <obj_property name="ObjectShortName">rf_imux[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/falledge_tb/uut/rf_omux" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rf_omux[2:0]</obj_property>
+      <obj_property name="ObjectShortName">rf_omux[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/falledge_tb/uut/rf_amux" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rf_amux[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rf_amux[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/falledge_tb/uut/rf_ce" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rf_ce[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rf_ce[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/urf/rfile[0]" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">[0]</obj_property>
