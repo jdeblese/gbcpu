@@ -23,7 +23,7 @@ architecture FSM of falledge is
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
                         OP16,
                         LD8);
-    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA);
+    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA, ZERODATA);
 
     signal CS, NS: STATE_TYPE;
 
@@ -80,7 +80,8 @@ begin
     DBUS <= rf_odata    when DMUX = RFDATA else
             acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
-            RAM;
+            RAM         when DMUX = RAMDATA else
+            X"00";
 
     rf_idata <= DBUS;
     WR_D <= DBUS;
@@ -88,7 +89,7 @@ begin
     acc_proc : process(CLK, RST)
     begin
         if RST = '1' then
-            acc <= "00000000";
+            acc <= X"EE";
         elsif falling_edge(CLK) then
             if acc_ce = '1' then
                 acc <= DBUS;
@@ -137,7 +138,7 @@ begin
         end if;
     end process; --End SYNC_PROC
 
-    COMB_PROC: process (CS, DBUS, waits)
+    COMB_PROC: process (RST, CS, DBUS, waits)
     begin
 
         DMUX <= RAMDATA;    -- RAM on DBUS
@@ -162,9 +163,15 @@ begin
 
         case CS is
             when RESET =>
-                NS <= FETCH;
-
-                w_en <= '0';    -- Continue waiting
+                if RST = '0' then
+                    NS <= FETCH;
+                    DMUX <= ZERODATA;
+                    rf_omux <= "111";   -- X"0000"
+                    rf_amux <= "00";    -- + dbus
+                    rf_ce   <= "11";    -- 16-bit update
+                else
+                    NS <= RESET;
+                end if;
 
             when FETCH =>
                 rf_ce <= "11";  -- Save incremented PC
@@ -188,7 +195,7 @@ begin
                 elsif DBUS(3 downto 0) = "0001"
                     or (DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11") then     -- 16-bit loads, pops & pushes
                     NS <= LD16_A;
-                elsif (DBUS(2 downto 0) = "110" ) then      -- 8-bit ops
+                elsif (DBUS(1 downto 0) = "10" ) then       -- 8-bit ops
                     NS <= LD8;
                 else
                     ns <= ERR;
@@ -253,7 +260,7 @@ begin
                     -- src is (PC)
                     -- dst
                     rf_imux <= '0' & CMD(5 downto 4);
-                    rf_ce <= "10";  -- msB
+                    rf_ce <= "01";  -- lsB
                 end if;
 
             when LD16_B =>
@@ -298,7 +305,7 @@ begin
                     -- src is (PC)
                     -- dst
                     rf_imux <= '0' & CMD(5 downto 4);
-                    rf_ce <= "01";  -- lsB
+                    rf_ce <= "10";  -- msB
                 end if;
 
             when LD16_C =>
@@ -323,21 +330,44 @@ begin
 
                 -- Destination register
                 rf_imux <= '0' & CMD(5 downto 4);
-                if ( CMD(5 downto 4) /= "11" ) then -- Target is rf
-                    rf_ce(1) <= not CMD(3);
-                    rf_ce(0) <= CMD(3);
-                elsif ( CMD(3) /= '1' ) then -- Target is RAM
-                    rf_omux <= "010";   -- (HL)
-                    WR_EN <= '1';       -- Enable RAM write
+                if CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
+                    if CMD(5) = '0' then
+                        rf_omux <= "00" & CMD(4);
+                    elsif CMD(5) = '1' then    -- Set up incrementing or decrementing HL
+                        rf_omux <= "010";   -- HL
+                        rf_imux <= "010";
+                        rf_amux <= '1' & not CMD(4);    -- INC or DEC HL
+                        rf_ce <= "11";
+                    end if;
+                    if CMD(3) = '1' then
+                        acc_ce <= '1';
+                    elsif CMD(3) = '0' then
+                        WR_EN <= '1';
+                    end if;
                     tics <= "00101";    -- 6 tics
                     w_en <= '1';
-                else    -- Target is accumulator
-                    acc_ce <= '1';
+                elsif CMD(5 downto 4) = "11" then   -- LD (HL),r or LD A,r
+                    if CMD(3) = '1' then
+                        acc_ce <= '1';
+                    else
+                        rf_omux <= "010";   -- HL
+                        WR_EN <= '1';
+                    end if;
+                    tics <= "00101";    -- 6 tics
+                    w_en <= '1';
+                else    -- target is in rf
+                    rf_ce(1) <= not CMD(3);
+                    rf_ce(0) <= CMD(3);
                 end if;
 
                 -- Source register
                 rf_dmux <= CMD(2 downto 0);
                 case CMD(2 downto 0) is
+                    when "010" =>   -- Source is RAM or ACC
+                        case CMD(3) is
+                            when '1' => DMUX <= RAMDATA;
+                            when others => DMUX <= ACCDATA;
+                        end case;
                     when "110" =>   -- Source is RAM
                         DMUX <= RAMDATA;
                         RAM_OE <= '1';

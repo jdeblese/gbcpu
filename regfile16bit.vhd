@@ -60,7 +60,7 @@ begin
     begin
         if (RST = '1') then
             for I in rfile'range loop
-                rfile(I) <= X"0000";
+                rfile(I) <= X"DEAD";
             end loop;
         elsif (falling_edge(CLK)) then
             for I in rfile'range loop

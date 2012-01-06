@@ -48,6 +48,8 @@
       <marker time="1940000000" label="" />
       <marker time="2020000000" label="" />
       <marker time="2100000000" label="" />
+      <marker time="220000000" label="" />
+      <marker time="380000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
