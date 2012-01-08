@@ -21,8 +21,7 @@ architecture FSM of falledge is
     type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
-                        OP16,
-                        LD8);
+                        OP16, LD8, BITFETCH, BITMANIP);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA, ZERODATA);
 
     signal CS, NS: STATE_TYPE;
@@ -44,6 +43,7 @@ architecture FSM of falledge is
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
+    signal accmux : std_logic;
 
     signal cflag, zflag, hflag, nflag : std_logic;
     signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
@@ -70,7 +70,16 @@ architecture FSM of falledge is
     signal rf_amux : std_logic_vector(1 downto 0);
     signal rf_ce : std_logic_vector(1 downto 0);
 
+    signal alu_out : std_logic_vector(8 downto 0);
+    signal alu_op : std_logic_vector(2 downto 0);
+
 begin
+
+    -- 8-bit ALU
+    with alu_op select
+        alu_out <=  ('0' & acc) + ('0' & DBUS)    when "000",
+                    '0' & (acc xor DBUS)          when "101",
+                    "000000000" when others;
 
     urf : regfile16bit
         port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, CLK, RST);
@@ -92,7 +101,11 @@ begin
             acc <= X"EE";
         elsif falling_edge(CLK) then
             if acc_ce = '1' then
-                acc <= DBUS;
+                if accmux = '0' then
+                    acc <= DBUS;
+                else
+                    acc <= alu_out(7 downto 0);
+                end if;
             end if;
         end if;
     end process;
@@ -138,7 +151,7 @@ begin
         end if;
     end process; --End SYNC_PROC
 
-    COMB_PROC: process (RST, CS, DBUS, waits)
+    COMB_PROC: process (RST, CS, DBUS, CMD, waits)
     begin
 
         DMUX <= RAMDATA;    -- RAM on DBUS
@@ -156,6 +169,7 @@ begin
         CMD_CE <= '0';  -- Preserve CMD
         tmp_ce <= '0';  -- Preserve tmp
         acc_ce <= '0';  -- Preserve acc
+        accmux <= '0';  -- By default, acc reads from DBUS
 
         WR_EN <= '0';   -- Don't edit RAM
 
@@ -181,12 +195,14 @@ begin
                     NS <= WAI;
                     tics <= "00010";                        -- 3 tics
                     w_en <= '1';
-                elsif ( DBUS = "00011000" ) then            -- 18h JR n
+                elsif DBUS = X"18" or DBUS = X"20" then     -- Relative jumps
                     NS <= JR;
                 elsif ( DBUS = "11000011" ) then            -- C3h JMP nn
                     NS <= READ;
                 elsif ( DBUS = "01110110" ) then            -- 76h HALT
                     NS <= ERR;
+                elsif DBUS = X"CB" then                     -- Bit Manipulations
+                    NS <= BITFETCH;
                 elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
                     NS <= LD8;
                 elsif DBUS(7 downto 6) = "00"
@@ -199,6 +215,43 @@ begin
                     NS <= LD8;
                 else
                     ns <= ERR;
+                end if;
+
+            when BITFETCH =>
+                NS <= BITMANIP;
+                rf_ce <= "11";  -- Save incremented PC
+                CMD_CE <= '1';  -- Save the command at the end of the state, overwriting CBh
+
+            when BITMANIP =>
+                NS <= WAI;
+                tics <= "00100";    -- 5 tics
+                w_en <= '1';
+
+                -- Register
+                rf_dmux <= CMD(2 downto 0);
+                case CMD(2 downto 0) is
+                    when "110" =>   -- Source is (HL)
+                        DMUX <= RAMDATA;
+                        RAM_OE <= '1';
+                        rf_omux <= "010";   -- HL
+                        tics <= "01100";    -- 13 tics
+                    when "111" =>   -- Source is accumulator
+                        DMUX <= ACCDATA;
+                    when others =>  -- Source is rf
+                        DMUX <= RFDATA;
+                end case;
+
+                if CMD(7 downto 6) = "01" then  -- BIT b,r
+                    case CMD(5 downto 3) is
+                        when "000" => zflag <= not DBUS(0);
+                        when "001" => zflag <= not DBUS(1);
+                        when "010" => zflag <= not DBUS(2);
+                        when "011" => zflag <= not DBUS(3);
+                        when "100" => zflag <= not DBUS(4);
+                        when "101" => zflag <= not DBUS(5);
+                        when "110" => zflag <= not DBUS(6);
+                        when others => zflag <= not DBUS(7);
+                    end case;
                 end if;
 
             when OP16 =>
@@ -330,7 +383,11 @@ begin
 
                 -- Destination register
                 rf_imux <= '0' & CMD(5 downto 4);
-                if CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
+                if CMD(7 downto 6) = "10" then      -- ALU Operation, destination is ACC
+                    accmux <= '1';
+                    acc_ce <= '1';
+                    alu_op <= cmd(5 downto 3);
+                elsif CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
                     if CMD(5) = '0' then
                         rf_omux <= "00" & CMD(4);
                     elsif CMD(5) = '1' then    -- Set up incrementing or decrementing HL
@@ -363,11 +420,15 @@ begin
                 -- Source register
                 rf_dmux <= CMD(2 downto 0);
                 case CMD(2 downto 0) is
-                    when "010" =>   -- Source is RAM or ACC
-                        case CMD(3) is
-                            when '1' => DMUX <= RAMDATA;
-                            when others => DMUX <= ACCDATA;
-                        end case;
+                    when "010" =>   -- Source is RAM or ACC if left column op, otherwise rf
+                        if CMD(7 downto 6) = "00" then
+                            case CMD(3) is
+                                when '1' => DMUX <= RAMDATA;
+                                when others => DMUX <= ACCDATA;
+                            end case;
+                        else
+                            DMUX <= RFDATA;
+                        end if;
                     when "110" =>   -- Source is RAM
                         DMUX <= RAMDATA;
                         RAM_OE <= '1';
@@ -404,7 +465,11 @@ begin
                 NS <= INCPC;
 
                 rf_amux <= "00";    -- PC + n
-                rf_ce   <= "11";    -- 16-bit update
+
+                -- Update is conditional
+                if CMD = X"18" or (CMD = X"20" and zflag = '0') then
+                    rf_ce   <= "11";    -- 16-bit update
+                end if;
 
                 tics <= "00100";    -- 5 tics
                 w_en <= '1';
