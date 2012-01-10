@@ -20,20 +20,11 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="27" />
+   <WVObjectSize size="12" />
    <wave_markers>
       <marker time="100000000" label="" />
-      <marker time="140000000" label="" />
       <marker time="180000000" label="" />
       <marker time="260000000" label="" />
-      <marker time="340000000" label="" />
-      <marker time="460000000" label="" />
-      <marker time="540000000" label="" />
-      <marker time="580000000" label="" />
-      <marker time="660000000" label="" />
-      <marker time="740000000" label="" />
-      <marker time="820000000" label="" />
-      <marker time="860000000" label="" />
       <marker time="900000000" label="" />
       <marker time="980000000" label="" />
       <marker time="1060000000" label="" />
@@ -48,17 +39,46 @@
       <marker time="1940000000" label="" />
       <marker time="2020000000" label="" />
       <marker time="2100000000" label="" />
-      <marker time="220000000" label="" />
-      <marker time="380000000" label="" />
+      <marker time="500000000" label="" />
+      <marker time="540000000" label="" />
+      <marker time="340000000" label="" />
+      <marker time="460000000" label="" />
+      <marker time="420000000" label="" />
+      <marker time="580000000" label="" />
+      <marker time="620000000" label="" />
+      <marker time="660000000" label="" />
+      <marker time="700000000" label="" />
+      <marker time="1966460100000" label="" />
+      <marker time="1966580100000" label="" />
+      <marker time="1966660000000" label="" />
+      <marker time="1966740000000" label="" />
+      <marker time="1966820000000" label="" />
+      <marker time="1966820000000" label="" />
+      <marker time="1966900000000" label="" />
+      <marker time="1967380000000" label="" />
+      <marker time="1967300000000" label="" />
+      <marker time="1967220000000" label="" />
+      <marker time="1967500000000" label="" />
+      <marker time="1967620000000" label="" />
+      <marker time="1966980000000" label="" />
+      <marker time="1967060000000" label="" />
+      <marker time="1967140000000" label="" />
+      <marker time="1967700000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
+   <wvobject fp_name="/falledge_tb/uut/amux" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">amux</obj_property>
+      <obj_property name="ObjectShortName">amux</obj_property>
+   </wvobject>
    <wvobject fp_name="/falledge_tb/abus" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">abus[15:0]</obj_property>
       <obj_property name="ObjectShortName">abus[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="CustomSignalColor">#800000</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/dmux" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">dmux</obj_property>
@@ -68,13 +88,8 @@
       <obj_property name="ElementShortName">dbus[7:0]</obj_property>
       <obj_property name="ObjectShortName">dbus[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/alu_out" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">alu_out[8:0]</obj_property>
-      <obj_property name="ObjectShortName">alu_out[8:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="CustomSignalColor">#800000</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/uut/cs" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">cs</obj_property>
@@ -83,92 +98,9 @@
    <wvobject fp_name="/falledge_tb/uut/cmd" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">cmd[7:0]</obj_property>
       <obj_property name="ObjectShortName">cmd[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/acc_ce" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">acc_ce</obj_property>
-      <obj_property name="ObjectShortName">acc_ce</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/acc" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">acc[7:0]</obj_property>
-      <obj_property name="ObjectShortName">acc[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/tmp" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tmp[7:0]</obj_property>
-      <obj_property name="ObjectShortName">tmp[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider25" type="divider">
-      <obj_property name="label">Register File</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="BkColor">#808080</obj_property>
-      <obj_property name="TextColor">230 230 230</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_imux" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_imux[2:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_imux[2:0]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_omux" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_omux[2:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_omux[2:0]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_amux" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_amux[1:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_amux[1:0]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/rf_ce" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rf_ce[1:0]</obj_property>
-      <obj_property name="ObjectShortName">rf_ce[1:0]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/urf/rfile[0]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[0]</obj_property>
-      <obj_property name="ObjectShortName">rfile[0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/urf/rfile[1]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[1]</obj_property>
-      <obj_property name="ObjectShortName">rfile[1]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/urf/rfile[2]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[2]</obj_property>
-      <obj_property name="ObjectShortName">rfile[2]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/urf/rfile[3]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[3]</obj_property>
-      <obj_property name="ObjectShortName">rfile[3]</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#008080</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/urf/rfile[4]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[4]</obj_property>
-      <obj_property name="ObjectShortName">rfile[4]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#ff00ff</obj_property>
+      <obj_property name="CustomSignalColor">#800000</obj_property>
    </wvobject>
    <wvobject fp_name="/falledge_tb/wr_en" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">wr_en</obj_property>
@@ -176,38 +108,270 @@
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="CustomSignalColor">#808000</obj_property>
    </wvobject>
-   <wvobject fp_name="divider24" type="divider">
+   <wvobject fp_name="group32" type="group">
+      <obj_property name="label">Registers</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/acc_ce" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">acc_ce</obj_property>
+         <obj_property name="ObjectShortName">acc_ce</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/acc" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">acc[7:0]</obj_property>
+         <obj_property name="ObjectShortName">acc[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/tmp_ce" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tmp_ce</obj_property>
+         <obj_property name="ObjectShortName">tmp_ce</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/tmp" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tmp[7:0]</obj_property>
+         <obj_property name="ObjectShortName">tmp[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/rf_ce" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rf_ce[1:0]</obj_property>
+         <obj_property name="ObjectShortName">rf_ce[1:0]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/rf_imux" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rf_imux[2:0]</obj_property>
+         <obj_property name="ObjectShortName">rf_imux[2:0]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/rf_omux" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rf_omux[2:0]</obj_property>
+         <obj_property name="ObjectShortName">rf_omux[2:0]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/rf_amux" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rf_amux[1:0]</obj_property>
+         <obj_property name="ObjectShortName">rf_amux[1:0]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/rf_dmux" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rf_dmux[2:0]</obj_property>
+         <obj_property name="ObjectShortName">rf_dmux[2:0]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/urf/rfile[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">rfile[0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/urf/rfile[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">rfile[1]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/urf/rfile[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">rfile[2]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/urf/rfile[3]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">rfile[3]</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/urf/rfile[4]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">rfile[4]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#ff00ff</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group34" type="group">
+      <obj_property name="label">ALU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/alu_ce" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">alu_ce</obj_property>
+         <obj_property name="ObjectShortName">alu_ce</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/alu_cmd" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">alu_cmd[8:0]</obj_property>
+         <obj_property name="ObjectShortName">alu_cmd[8:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/alu_odata" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">alu_odata[7:0]</obj_property>
+         <obj_property name="ObjectShortName">alu_odata[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="vbus43" type="vbus" db_ref_id="1">
+         <obj_property name="label">ZCHN_in</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_zin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_zin</obj_property>
+            <obj_property name="ObjectShortName">alu_zin</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_cin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_cin</obj_property>
+            <obj_property name="ObjectShortName">alu_cin</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_hin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_hin</obj_property>
+            <obj_property name="ObjectShortName">alu_hin</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_nin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_nin</obj_property>
+            <obj_property name="ObjectShortName">alu_nin</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="vbus44" type="vbus" db_ref_id="1">
+         <obj_property name="label">ZCHN_out</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_zout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_zout</obj_property>
+            <obj_property name="ObjectShortName">alu_zout</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_cout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_cout</obj_property>
+            <obj_property name="ObjectShortName">alu_cout</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_hout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_hout</obj_property>
+            <obj_property name="ObjectShortName">alu_hout</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/alu_nout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_nout</obj_property>
+            <obj_property name="ObjectShortName">alu_nout</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group45" type="group">
+         <obj_property name="label">Internal</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/ualu/cmd" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">cmd[8:0]</obj_property>
+            <obj_property name="ObjectShortName">cmd[8:0]</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/idata" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">idata[7:0]</obj_property>
+            <obj_property name="ObjectShortName">idata[7:0]</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/acc" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">acc[7:0]</obj_property>
+            <obj_property name="ObjectShortName">acc[7:0]</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/neg" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">neg[7:0]</obj_property>
+            <obj_property name="ObjectShortName">neg[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/muxed" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">muxed[7:0]</obj_property>
+            <obj_property name="ObjectShortName">muxed[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/carry" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">carry</obj_property>
+            <obj_property name="ObjectShortName">carry</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/adata" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">adata[7:0]</obj_property>
+            <obj_property name="ObjectShortName">adata[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/niblo" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">niblo[4:0]</obj_property>
+            <obj_property name="ObjectShortName">niblo[4:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/nibhi" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">nibhi[4:0]</obj_property>
+            <obj_property name="ObjectShortName">nibhi[4:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/arith" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">arith[7:0]</obj_property>
+            <obj_property name="ObjectShortName">arith[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/logic" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">logic[7:0]</obj_property>
+            <obj_property name="ObjectShortName">logic[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/uut/ualu/odata" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">odata[7:0]</obj_property>
+            <obj_property name="ObjectShortName">odata[7:0]</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="vbus44" type="vbus" db_ref_id="1">
+      <obj_property name="label">FLAGS</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/cflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cflag</obj_property>
+         <obj_property name="ObjectShortName">cflag</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/zflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">zflag</obj_property>
+         <obj_property name="ObjectShortName">zflag</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/hflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">hflag</obj_property>
+         <obj_property name="ObjectShortName">hflag</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/nflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">nflag</obj_property>
+         <obj_property name="ObjectShortName">nflag</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group33" type="group">
       <obj_property name="label">Timing</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="BkColor">#808080</obj_property>
-      <obj_property name="TextColor">230 230 230</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/waits" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">waits[4:0]</obj_property>
-      <obj_property name="ObjectShortName">waits[4:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/tics" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tics[4:0]</obj_property>
-      <obj_property name="ObjectShortName">tics[4:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/w_en" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">w_en</obj_property>
-      <obj_property name="ObjectShortName">w_en</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="CustomSignalColor">#808000</obj_property>
-   </wvobject>
-   <wvobject fp_name="divider27" type="divider">
-      <obj_property name="label">Flags</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="BkColor">#808080</obj_property>
-      <obj_property name="TextColor">230 230 230</obj_property>
-   </wvobject>
-   <wvobject fp_name="/falledge_tb/uut/zflag" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">zflag</obj_property>
-      <obj_property name="ObjectShortName">zflag</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/waits" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">waits[4:0]</obj_property>
+         <obj_property name="ObjectShortName">waits[4:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/tics" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tics[4:0]</obj_property>
+         <obj_property name="ObjectShortName">tics[4:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/w_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">w_en</obj_property>
+         <obj_property name="ObjectShortName">w_en</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
    </wvobject>
 </wave_config>

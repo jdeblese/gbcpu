@@ -21,8 +21,9 @@ architecture FSM of falledge is
     type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
-                        OP16, LD8, BITFETCH, BITMANIP);
-    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, TMPDATA, ZERODATA);
+                        OP16, LD8, LDSADDR1, LSADDR2, LOADACC, INCDEC8, LOADRF, BITFETCH, BITMANIP);
+    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, ZERODATA);
+    type ABUS_SRC is (RFADDR, RF8ADDR, TMPADDR);
 
     signal CS, NS: STATE_TYPE;
 
@@ -34,6 +35,8 @@ architecture FSM of falledge is
     signal DMUX : DBUS_SRC;
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
 
+    signal AMUX : ABUS_SRC;
+
     signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
     signal CMD_CE : STD_LOGIC;
 
@@ -43,7 +46,6 @@ architecture FSM of falledge is
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
-    signal accmux : std_logic;
 
     signal cflag, zflag, hflag, nflag : std_logic;
     signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
@@ -70,26 +72,53 @@ architecture FSM of falledge is
     signal rf_amux : std_logic_vector(1 downto 0);
     signal rf_ce : std_logic_vector(1 downto 0);
 
-    signal alu_out : std_logic_vector(8 downto 0);
-    signal alu_op : std_logic_vector(2 downto 0);
+    component alu
+        Port (  IDATA   : in std_logic_vector(7 downto 0);
+                ACC     : in std_logic_vector(7 downto 0);
+                ODATA   : out std_logic_vector(7 downto 0);
+                CE      : in std_logic;
+                CMD     : in std_logic_vector(8 downto 0);
+                ZIN     : in std_logic;
+                CIN     : in std_logic;
+                HIN     : in std_logic;
+                NIN     : in std_logic;
+                ZOUT    : out std_logic;
+                COUT    : out std_logic;
+                HOUT    : out std_logic;
+                NOUT    : out std_logic;
+                CLK : IN STD_LOGIC;
+                RST : IN STD_LOGIC );
+    end component;
+
+    signal ALU_ODATA   : std_logic_vector(7 downto 0);
+    signal ALU_CE      : std_logic;
+    signal ALU_CMD     : std_logic_vector(8 downto 0);
+    signal ALU_ZIN     : std_logic;
+    signal ALU_CIN     : std_logic;
+    signal ALU_HIN     : std_logic;
+    signal ALU_NIN     : std_logic;
+    signal ALU_ZOUT    : std_logic;
+    signal ALU_COUT    : std_logic;
+    signal ALU_HOUT    : std_logic;
+    signal ALU_NOUT    : std_logic;
 
 begin
-
-    -- 8-bit ALU
-    with alu_op select
-        alu_out <=  ('0' & acc) + ('0' & DBUS)    when "000",
-                    '0' & (acc xor DBUS)          when "101",
-                    "000000000" when others;
 
     urf : regfile16bit
         port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, CLK, RST);
 
-    ABUS <= rf_addr;
+    ualu : alu
+        port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
+
+    ABUS <= rf_addr when AMUX = RFADDR else
+            X"FF" & tmp when AMUX = TMPADDR else
+            X"0000";
 
     DBUS <= rf_odata    when DMUX = RFDATA else
             acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
             RAM         when DMUX = RAMDATA else
+            ALU_ODATA   when DMUX = ALUDATA else
             X"00";
 
     rf_idata <= DBUS;
@@ -101,11 +130,7 @@ begin
             acc <= X"EE";
         elsif falling_edge(CLK) then
             if acc_ce = '1' then
-                if accmux = '0' then
-                    acc <= DBUS;
-                else
-                    acc <= alu_out(7 downto 0);
-                end if;
+                acc <= DBUS;
             end if;
         end if;
     end process;
@@ -154,6 +179,7 @@ begin
     COMB_PROC: process (RST, CS, DBUS, CMD, waits)
     begin
 
+        AMUX <= RFADDR;     -- Address from rf
         DMUX <= RAMDATA;    -- RAM on DBUS
         RAM_OE <= '1';      -- RAM on DBUS
 
@@ -169,7 +195,9 @@ begin
         CMD_CE <= '0';  -- Preserve CMD
         tmp_ce <= '0';  -- Preserve tmp
         acc_ce <= '0';  -- Preserve acc
-        accmux <= '0';  -- By default, acc reads from DBUS
+
+        ALU_CMD <= "000000000";
+        ALU_CE <= '0';
 
         WR_EN <= '0';   -- Don't edit RAM
 
@@ -183,6 +211,7 @@ begin
                     rf_omux <= "111";   -- X"0000"
                     rf_amux <= "00";    -- + dbus
                     rf_ce   <= "11";    -- 16-bit update
+
                 else
                     NS <= RESET;
                 end if;
@@ -205,6 +234,10 @@ begin
                     NS <= BITFETCH;
                 elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
                     NS <= LD8;
+                elsif DBUS(7 downto 5) = "111" and DBUS(3 downto 2) = "00" and DBUS(0) = '0' then   -- LD (FF+.),A
+                    NS <= LDSADDR1;
+                elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 1) = "10" then  -- Inc & Dec
+                    NS <= INCDEC8;
                 elsif DBUS(7 downto 6) = "00"
                     and ( DBUS(3 downto 0) = "1001" or DBUS(2 downto 0) = "011" ) then  -- 16-bit Ops
                     NS <= OP16;
@@ -383,10 +416,10 @@ begin
 
                 -- Destination register
                 rf_imux <= '0' & CMD(5 downto 4);
-                if CMD(7 downto 6) = "10" then      -- ALU Operation, destination is ACC
-                    accmux <= '1';
-                    acc_ce <= '1';
-                    alu_op <= cmd(5 downto 3);
+                if CMD(7 downto 6) = "10" then  -- ALU Operation, destination is ACC
+                    NS <= LOADACC;
+                    ALU_CE <= '1';
+                    ALU_CMD <= '0' & CMD;
                 elsif CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
                     if CMD(5) = '0' then
                         rf_omux <= "00" & CMD(4);
@@ -421,14 +454,16 @@ begin
                 rf_dmux <= CMD(2 downto 0);
                 case CMD(2 downto 0) is
                     when "010" =>   -- Source is RAM or ACC if left column op, otherwise rf
-                        if CMD(7 downto 6) = "00" then
-                            case CMD(3) is
-                                when '1' => DMUX <= RAMDATA;
-                                when others => DMUX <= ACCDATA;
-                            end case;
-                        else
-                            DMUX <= RFDATA;
-                        end if;
+                        case CMD(7 downto 6) is
+                            when "00" =>
+                                case CMD(3) is
+                                    when '1' => DMUX <= RAMDATA;
+                                    when others => DMUX <= ACCDATA;
+                                end case;
+                                tics <= "00101";    -- 6 tics
+                            when others =>
+                                DMUX <= RFDATA;
+                        end case;
                     when "110" =>   -- Source is RAM
                         DMUX <= RAMDATA;
                         RAM_OE <= '1';
@@ -446,6 +481,84 @@ begin
                     when others =>  -- Source is rf
                         DMUX <= RFDATA;
                 end case;
+
+            when LOADACC =>
+                DMUX <= ALUDATA;
+                acc_ce   <= '1';
+                NS <= WAI;
+
+                zflag <= ALU_ZOUT;
+                hflag <= ALU_HOUT;
+                nflag <= ALU_NOUT;
+                cflag <= ALU_COUT;
+
+            when LDSADDR1 =>
+                NS <= LSADDR2;
+
+                -- Store address lsB in tmp
+                tmp_ce <= '1';
+                if CMD(2) = '1' then    -- Address is FFh + C
+                    DMUX <= RFDATA;
+                    rf_omux <= "001";   -- C
+                end if;
+
+            when LSADDR2 =>
+                NS <= WAI;
+                tics <= "00100";    -- 5 tics
+                w_en <= '1';
+
+                AMUX <= TMPADDR;
+
+                -- Destination register
+                -- Source register
+                if CMD(4) = '1' then
+                    ACC_CE <= '1';
+                else
+                    WR_EN <= '1';
+                    DMUX <= ACCDATA;
+                end if;
+
+                rf_ce <= "11";  -- Increment PC
+
+            when INCDEC8 =>
+                NS <= LOADRF;
+
+                -- Destination register
+                ALU_CE <= '1';
+                ALU_CMD <= '0' & CMD;
+
+                -- Source register
+                case CMD(5 downto 3) is
+                    when "110" =>   -- (HL)
+                        rf_omux <= "010";   -- HL
+                    when "111" =>   -- ACC
+                        DMUX <= ACCDATA;
+                    when others =>  -- rf
+                        DMUX <= RFDATA;
+                        rf_dmux <= CMD(5 downto 3);
+                end case;
+
+            when LOADRF =>
+                NS <= WAI;
+
+                -- Destination register
+                case CMD(5 downto 3) is
+                    when "110" =>   -- (HL)
+                        rf_omux <= "010";   -- HL
+                        WR_EN <= '1';
+                    when "111" =>   -- ACC
+                        acc_ce <= '1';
+                    when others =>  -- rf
+                        case CMD(3) is
+                            when '0' => rf_ce <= "10";
+                            when '1' => rf_ce <= "01";
+                            when others => rf_ce <= "ZZ";
+                        end case;
+                        rf_imux <= '0' & CMD(5 downto 4);
+                end case;
+
+                -- Source register
+                DMUX <= ALUDATA;
 
             when INCPC =>
                 rf_ce   <= "11";    -- 16-bit update
