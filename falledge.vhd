@@ -21,8 +21,10 @@ architecture FSM of falledge is
     type STATE_TYPE is (RESET, FETCH, ERR, INCPC, WAI,
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
-                        OP16, LD8, LDSADDR1, LSADDR2, LOADACC, INCDEC8, LOADRF, BITFETCH, BITMANIP);
-    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, ZERODATA);
+                        CALL1, CALL2, CALL3, CALL4, CALL5, CALL6, RET1, RET2, RET3, RET4,
+                        OP16, LD8, LDSADDR1, LSADDR2, ALU8, LOADACC, INCDEC8, LOADRF,
+                        BITFETCH, BITMANIP, BITSAVE);
+    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, ZERODATA);
     type ABUS_SRC is (RFADDR, RF8ADDR, TMPADDR);
 
     signal CS, NS: STATE_TYPE;
@@ -40,9 +42,10 @@ architecture FSM of falledge is
     signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
     signal CMD_CE : STD_LOGIC;
 
-    -- Either this or an independent 8-bit output from the register file
     signal tmp : std_logic_vector(7 downto 0);
     signal tmp_ce : std_logic;
+    signal unq : std_logic_vector(7 downto 0);
+    signal unq_ce : std_logic;
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
@@ -56,7 +59,7 @@ architecture FSM of falledge is
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
-                dmux : in std_logic_vector(2 downto 0);
+                dmux : in std_logic_vector(3 downto 0);
                 amux : in std_logic_vector(1 downto 0);
                 ce : in std_logic_vector(1 downto 0);
                 CLK : IN STD_LOGIC;
@@ -68,7 +71,7 @@ architecture FSM of falledge is
     signal rf_addr : std_logic_vector(15 downto 0);
     signal rf_imux : std_logic_vector(2 downto 0);
     signal rf_omux : std_logic_vector(2 downto 0);
-    signal rf_dmux : std_logic_vector(2 downto 0);
+    signal rf_dmux : std_logic_vector(3 downto 0);
     signal rf_amux : std_logic_vector(1 downto 0);
     signal rf_ce : std_logic_vector(1 downto 0);
 
@@ -117,6 +120,7 @@ begin
     DBUS <= rf_odata    when DMUX = RFDATA else
             acc         when DMUX = ACCDATA else
             tmp         when DMUX = TMPDATA else
+            unq         when DMUX = UNQDATA else
             RAM         when DMUX = RAMDATA else
             ALU_ODATA   when DMUX = ALUDATA else
             X"00";
@@ -142,6 +146,17 @@ begin
         elsif (falling_edge(CLK)) then
             if (tmp_ce = '1') then
                 tmp <= DBUS;
+            end if;
+        end if;
+    end process;
+
+    unq_proc : process(CLK, RST)
+    begin
+        if (RST = '1') then
+            unq <= "00000000";
+        elsif (falling_edge(CLK)) then
+            if (unq_ce = '1') then
+                unq <= DBUS;
             end if;
         end if;
     end process;
@@ -185,7 +200,7 @@ begin
 
         rf_imux <= "100";   -- rf input to PC
         rf_omux <= "100";   -- rf output from PC
-        rf_dmux <= "000";   -- rf 8-bit output from H
+        rf_dmux <= "0000";  -- rf 8-bit output from H
         rf_amux <= "11";    -- rf operand '+1'
         rf_ce <= "00";      -- No change to register file
 
@@ -194,6 +209,7 @@ begin
 
         CMD_CE <= '0';  -- Preserve CMD
         tmp_ce <= '0';  -- Preserve tmp
+        unq_ce <= '0';  -- Preserve unq
         acc_ce <= '0';  -- Preserve acc
 
         ALU_CMD <= "000000000";
@@ -232,8 +248,17 @@ begin
                     NS <= ERR;
                 elsif DBUS = X"CB" then                     -- Bit Manipulations
                     NS <= BITFETCH;
-                elsif ( (DBUS(7) xor DBUS(6)) = '1' ) then  -- 8-bit ops 40h-BFh
+                elsif DBUS(7 downto 5) = "000" and DBUS(2 downto 0) = "111" then   -- RLCA, RLA, RRCA, RRA
+                    NS <= BITMANIP;
+                elsif DBUS(7 downto 6) = "01" then          -- 8-bit loads 40h-7Fh
                     NS <= LD8;
+                elsif DBUS(7 downto 6) = "10"               -- 8-bit alu ops 80h-BFh
+                    or ( DBUS(7 downto 6) = "11" and DBUS(2 downto 0) = "110" ) then  -- 8-bit alu ops with immediate
+                    NS <= ALU8;
+                elsif DBUS = X"CD" then                     -- CALL
+                    NS <= CALL1;
+                elsif DBUS = X"C9" then                     -- RET
+                    NS <= RET1;
                 elsif DBUS(7 downto 5) = "111" and DBUS(3 downto 2) = "00" and DBUS(0) = '0' then   -- LD (FF+.),A
                     NS <= LDSADDR1;
                 elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 1) = "10" then  -- Inc & Dec
@@ -256,12 +281,10 @@ begin
                 CMD_CE <= '1';  -- Save the command at the end of the state, overwriting CBh
 
             when BITMANIP =>
-                NS <= WAI;
-                tics <= "00100";    -- 5 tics
-                w_en <= '1';
+                NS <= BITSAVE;
 
                 -- Register
-                rf_dmux <= CMD(2 downto 0);
+                rf_dmux <= '0' & CMD(2 downto 0);
                 case CMD(2 downto 0) is
                     when "110" =>   -- Source is (HL)
                         DMUX <= RAMDATA;
@@ -274,18 +297,38 @@ begin
                         DMUX <= RFDATA;
                 end case;
 
-                if CMD(7 downto 6) = "01" then  -- BIT b,r
-                    case CMD(5 downto 3) is
-                        when "000" => zflag <= not DBUS(0);
-                        when "001" => zflag <= not DBUS(1);
-                        when "010" => zflag <= not DBUS(2);
-                        when "011" => zflag <= not DBUS(3);
-                        when "100" => zflag <= not DBUS(4);
-                        when "101" => zflag <= not DBUS(5);
-                        when "110" => zflag <= not DBUS(6);
-                        when others => zflag <= not DBUS(7);
-                    end case;
-                end if;
+                ALU_CE <= '1';
+                ALU_CMD <= '1' & CMD;
+
+            when BITSAVE =>
+                NS <= WAI;
+                tics <= "00011";    -- 4 tics
+                w_en <= '1';
+
+                DMUX <= ALUDATA;
+
+                -- Register
+                rf_imux <= '0' & CMD(2 downto 1);
+                case CMD(2 downto 0) is
+                    when "000" => rf_ce <= "10";
+                    when "001" => rf_ce <= "01";
+                    when "010" => rf_ce <= "10";
+                    when "011" => rf_ce <= "01";
+                    when "100" => rf_ce <= "10";
+                    when "101" => rf_ce <= "01";
+                    when "110" =>   -- Dest. is (HL)
+                        rf_omux <= "010";   -- HL
+                        tics <= "01100";    -- 13 tics
+                        WR_EN <= '1';
+                    when "111" => acc_ce <= '1';
+                    when others =>
+                        null;
+                end case;
+
+                zflag <= ALU_ZOUT;
+                hflag <= ALU_HOUT;
+                nflag <= ALU_NOUT;
+                cflag <= ALU_COUT;
 
             when OP16 =>
                 NS <= WAI;
@@ -451,7 +494,7 @@ begin
                 end if;
 
                 -- Source register
-                rf_dmux <= CMD(2 downto 0);
+                rf_dmux <= '0' & CMD(2 downto 0);
                 case CMD(2 downto 0) is
                     when "010" =>   -- Source is RAM or ACC if left column op, otherwise rf
                         case CMD(7 downto 6) is
@@ -473,6 +516,36 @@ begin
                         else
                             rf_omux <= "100";   -- PC as rf_addr
                             NS <= INCPC;
+                            tics <= "00100";    -- 5 tics
+                        end if;
+                        w_en <= '1';
+                    when "111" =>   -- Source is accumulator
+                        DMUX <= ACCDATA;
+                    when others =>  -- Source is rf
+                        DMUX <= RFDATA;
+                end case;
+
+            when ALU8 =>
+                NS <= LOADACC;
+                tics <= "00001";    -- 2 tics
+                w_en <= '1';
+
+                -- Destination register
+                ALU_CE <= '1';
+                ALU_CMD <= '0' & CMD;
+
+                -- Source register
+                rf_dmux <= '0' & CMD(2 downto 0);
+                case CMD(2 downto 0) is
+                    when "110" =>   -- Source is RAM
+                        DMUX <= RAMDATA;
+                        RAM_OE <= '1';
+                        if CMD(7 downto 6) = "10" then
+                            rf_omux <= "010";   -- HL as rf_addr
+                            tics <= "00101";    -- 6 tics
+                        else
+                            rf_omux <= "100";   -- PC as rf_addr
+                            rf_ce <= "11";      -- 16-bit update
                             tics <= "00100";    -- 5 tics
                         end if;
                         w_en <= '1';
@@ -535,7 +608,7 @@ begin
                         DMUX <= ACCDATA;
                     when others =>  -- rf
                         DMUX <= RFDATA;
-                        rf_dmux <= CMD(5 downto 3);
+                        rf_dmux <= '0' & CMD(5 downto 3);
                 end case;
 
             when LOADRF =>
@@ -559,6 +632,10 @@ begin
 
                 -- Source register
                 DMUX <= ALUDATA;
+
+                zflag <= ALU_ZOUT;
+                hflag <= ALU_HOUT;
+                nflag <= ALU_NOUT;
 
             when INCPC =>
                 rf_ce   <= "11";    -- 16-bit update
@@ -586,6 +663,82 @@ begin
 
                 tics <= "00100";    -- 5 tics
                 w_en <= '1';
+
+            when RET1 =>
+                NS <= RET2;
+
+                -- msB pushed first, so lsB popped first
+                rf_omux <= "011";   -- SP
+                rf_imux <= "100";   -- PC
+                rf_ce <= "01";      -- lsB
+
+            when RET2 =>
+                NS <= RET3;
+                rf_ce   <= "11";    -- 16-bit update
+                rf_omux <= "011";   -- SP
+                rf_imux <= "011";
+
+            when RET3 =>
+                NS <= RET4;
+
+                rf_omux <= "011";   -- SP
+                rf_imux <= "100";   -- PC
+                rf_ce <= "10";      -- msB
+
+            when RET4 =>
+                NS <= WAI;
+                tics <= "00101";    -- 6 tics
+                w_en <= '1';
+
+                rf_ce   <= "11";    -- 16-bit update
+                rf_omux <= "011";   -- SP
+                rf_imux <= "011";
+
+            when CALL1 =>   -- tmp <= (PC++)
+                NS <= CALL2;
+
+                tmp_ce <= '1';  -- Store lsB in tmp
+                rf_ce <= "11";  -- 16-bit update
+
+            when CALL2 =>   -- unq <= (PC++)
+                NS <= CALL3;
+
+                unq_ce <= '1';  -- Store msB in unq
+                rf_ce <= "11";  -- Update msB from DBUS (linked to RAM)
+
+            when CALL3 =>   -- SP--
+                NS <= CALL4;
+                rf_ce   <= "11";    -- 16-bit update
+                rf_omux <= "011";   -- SP
+                rf_imux <= "011";
+                rf_amux <= "10";    -- rf operand '-1'
+
+            when CALL4 =>   -- (SP--) <= [PC]msB
+                NS <= CALL5;
+                -- src
+                DMUX <= RFDATA;
+                rf_dmux <= "1000";  -- msB of PC
+                -- dst
+                rf_omux <= "011";   -- SP
+                WR_EN <= '1';       -- Enable RAM write
+                -- decrement
+                rf_ce   <= "11";    -- 16-bit update
+                rf_imux <= "011";
+                rf_amux <= "10";    -- rf operand '-1'
+
+            when CALL5 =>   -- (SP) <= [PC]lsB
+                NS <= CALL6;
+                -- src
+                DMUX <= RFDATA;
+                rf_dmux <= "1001";  -- lsB of PC
+                -- dst
+                rf_omux <= "011";   -- SP
+                WR_EN <= '1';       -- Enable RAM write
+
+            when CALL6 =>   -- [PC]msB <= unq
+                NS <= JMP_LO;
+                DMUX <= UNQDATA;
+                rf_ce <= "10";  -- Update lsB from DBUS (linked to unq)
 
             when READ =>
                 NS <= JMP_HI;

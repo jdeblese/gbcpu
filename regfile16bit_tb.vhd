@@ -17,7 +17,7 @@ ARCHITECTURE behavior OF regfile16bit_tb IS
                 addr : out std_logic_vector(15 downto 0);
                 imux : in std_logic_vector(2 downto 0);
                 omux : in std_logic_vector(2 downto 0);
-                dmux : in std_logic_vector(2 downto 0);
+                dmux : in std_logic_vector(3 downto 0);
                 amux : in std_logic_vector(1 downto 0);
                 ce : in std_logic_vector(1 downto 0);
                 CLK : IN STD_LOGIC;
@@ -29,7 +29,7 @@ ARCHITECTURE behavior OF regfile16bit_tb IS
     signal addr : std_logic_vector(15 downto 0) := X"0000";
     signal imux : std_logic_vector(2 downto 0) := "000";
     signal omux : std_logic_vector(2 downto 0) := "000";
-    signal dmux : std_logic_vector(2 downto 0) := "000";
+    signal dmux : std_logic_vector(3 downto 0) := "0000";
     signal amux : std_logic_vector(1 downto 0) := "00";
     signal ce : std_logic_vector(1 downto 0) := "00";
     signal CLK : STD_LOGIC := '0';

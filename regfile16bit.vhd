@@ -12,7 +12,7 @@ entity regfile16bit is
             addr : out std_logic_vector(15 downto 0);
             imux : in std_logic_vector(2 downto 0);
             omux : in std_logic_vector(2 downto 0);
-            dmux : in std_logic_vector(2 downto 0);
+            dmux : in std_logic_vector(3 downto 0);
             amux : in std_logic_vector(1 downto 0);
             ce : in std_logic_vector(1 downto 0);
 			CLK : IN STD_LOGIC;
@@ -39,14 +39,16 @@ begin
                 X"0000" when others;
 
     with dmux select
-        odata <= rfile(0)(15 downto 8) when "000",  -- B
-                 rfile(0)( 7 downto 0) when "001",  -- C
-                 rfile(1)(15 downto 8) when "010",  -- D
-                 rfile(1)( 7 downto 0) when "011",  -- E
-                 rfile(2)(15 downto 8) when "100",  -- H
-                 rfile(2)( 7 downto 0) when "101",  -- L
-                 rfile(3)(15 downto 8) when "110",  -- S
-                 rfile(3)( 7 downto 0) when others; -- P
+        odata <= rfile(0)(15 downto 8) when "0000",  -- B
+                 rfile(0)( 7 downto 0) when "0001",  -- C
+                 rfile(1)(15 downto 8) when "0010",  -- D
+                 rfile(1)( 7 downto 0) when "0011",  -- E
+                 rfile(2)(15 downto 8) when "0100",  -- H
+                 rfile(2)( 7 downto 0) when "0101",  -- L
+                 rfile(3)(15 downto 8) when "0110",  -- S
+                 rfile(3)( 7 downto 0) when "0111",  -- P
+                 rfile(4)(15 downto 8) when "1000",  -- P
+                 rfile(4)( 7 downto 0) when others;  -- C
 
     with amux select
         abus <= idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata when "00",

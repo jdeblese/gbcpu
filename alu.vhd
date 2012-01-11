@@ -78,20 +78,21 @@ begin
         cen <= '0';
 
         if CMD(8) = '0' then
-            if CMD(7 downto 4) = "1000" then    -- ADD, ADC
-                cen <= cmd(3);
-            elsif CMD(7 downto 4) = "1001" then -- SUB, SBC
-                addsub <= '1';
-                cen <= cmd(3);
-            elsif CMD(7 downto 3) = "10111" then -- CP
-                addsub <= '1';
-            elsif CMD(7 downto 6) = "00" then -- INC, DEC
+            if CMD(7 downto 6) = "00" then -- INC, DEC
                 accmux <= CMD(1 downto 0);
+            elsif CMD(5 downto 4) = "00" then    -- ADD, ADC
+                cen <= cmd(3);
+            elsif CMD(5 downto 4) = "01" then -- SUB, SBC
+                addsub <= '1';
+                cen <= cmd(3);
+            elsif CMD(5 downto 3) = "111" then -- CP
+                addsub <= '1';
             end if;
         end if;
     end process;
 
     out_proc : process(CLK, CE, RST)
+        variable inter : std_logic_vector(7 downto 0);
     begin
         if RST = '1' then
             ODATA <= X"EE";
@@ -104,8 +105,13 @@ begin
             if CMD(8) = '0' then
                 ODATA <= arith;
 
-                COUT <= nibhi(4);
-                HOUT <= niblo(4);
+                if addsub = '0' then
+                    COUT <= nibhi(4);
+                    HOUT <= niblo(4);
+                else
+                    COUT <= not nibhi(4);
+                    HOUT <= not niblo(4);
+                end if;
                 NOUT <= '0';
 
                 if arith = X"00" then
@@ -114,28 +120,64 @@ begin
                     ZOUT <= '0';
                 end if;
 
-                if CMD(7 downto 4) = "1001" then -- SUB, SBC
+                if CMD(7 downto 6) = "00" then -- INC, DEC
+                    COUT <= CIN;
+                    NOUT <= CMD(0);
+                elsif CMD(5 downto 4) = "01" then -- SUB, SBC
                     NOUT <= '1';
-                elsif CMD(7 downto 3) = "10111" then -- CP
-                    ODATA <= X"00";
+                elsif CMD(5 downto 3) = "111" then -- CP
+                    ODATA <= ACC;
                     NOUT <= '1';
-                elsif CMD(7 downto 4) = "1010" then -- AND, XOR
+                elsif CMD(5 downto 4) = "10" then -- AND, XOR
                     HOUT <= not CMD(3); -- set for AND, reset for XOR
                     COUT <= '0';
                     ODATA <= logic;
-                elsif CMD(7 downto 3) = "10110" then -- OR
+                elsif CMD(5 downto 3) = "110" then -- OR
                     HOUT <= '0';
                     COUT <= '0';
                     ODATA <= logic;
-                elsif CMD(7 downto 6) = "00" then -- INC, DEC
-                    COUT <= CIN;
-                    NOUT <= CMD(0);
-                end if;
+                end if;     -- Nothing special for ADD, ADC
 
             else    -- CB (bitwise) operation
                 ODATA <= IDATA;
                 if CMD(7 downto 6) = "00" then -- Bit move operation
-                    null;
+                    NOUT <= '0';
+                    HOUT <= '0';
+                    case CMD(5 downto 3) is
+                        when "000" =>   -- RLC
+                            inter := IDATA(6 downto 0) & IDATA(7);
+                            COUT <= IDATA(7);
+                        when "010" =>   -- RL
+                            inter := IDATA(6 downto 0) & CIN;
+                            COUT <= IDATA(7);
+                        when "001" =>   -- RRC
+                            inter := IDATA(0) & IDATA(7 downto 1);
+                            COUT <= IDATA(0);
+                        when "011" =>   -- RR
+                            inter := CIN & IDATA(7 downto 1);
+                            COUT <= IDATA(0);
+                        when "100" =>   -- SLA
+                            inter := IDATA(6 downto 0) & '0';
+                            COUT <= IDATA(7);
+                        when "101" =>   -- SRA
+                            inter := IDATA(7) & IDATA(7 downto 1);
+                            COUT <= IDATA(0);
+                        when "111" =>   -- SRL
+                            inter := '0' & IDATA(7 downto 1);
+                            COUT <= IDATA(0);
+                        when "110" =>   -- SWAP
+                            inter := IDATA(3 downto 0) & IDATA(7 downto 4);
+                            COUT <= '0';
+                        when others =>
+                            inter := X"00";
+                            COUT <= '0';
+                    end case;
+                    ODATA <= inter;
+                    if inter = X"00" then
+                        ZOUT <= '1';
+                    else
+                        ZOUT <= '0';
+                    end if;
                 else    -- Single bit operation
                     for I in 0 to 7 loop
                         if I = CMD(5 downto 3) then
