@@ -23,65 +23,62 @@
    <WVObjectSize size="13" />
    <wave_markers>
       <marker time="100000000" label="" />
-      <marker time="180000000" label="" />
+      <marker time="220000000" label="" />
       <marker time="260000000" label="" />
-      <marker time="900000000" label="" />
-      <marker time="980000000" label="" />
-      <marker time="1060000000" label="" />
-      <marker time="1140000000" label="" />
-      <marker time="1260000000" label="" />
-      <marker time="1420000000" label="" />
-      <marker time="1540000000" label="" />
-      <marker time="1580000000" label="" />
-      <marker time="1700000000" label="" />
-      <marker time="1780000000" label="" />
-      <marker time="1860000000" label="" />
-      <marker time="1940000000" label="" />
-      <marker time="2020000000" label="" />
-      <marker time="2100000000" label="" />
-      <marker time="500000000" label="" />
-      <marker time="540000000" label="" />
-      <marker time="340000000" label="" />
+      <marker time="380000000" label="" />
       <marker time="460000000" label="" />
-      <marker time="420000000" label="" />
-      <marker time="580000000" label="" />
-      <marker time="620000000" label="" />
-      <marker time="660000000" label="" />
-      <marker time="700000000" label="" />
-      <marker time="1966460100000" label="" />
-      <marker time="1966580100000" label="" />
+      <marker time="540000000" label="" />
+      <marker time="1966460000000" label="" />
+      <marker time="1966580000000" label="" />
       <marker time="1966660000000" label="" />
       <marker time="1966740000000" label="" />
       <marker time="1966820000000" label="" />
-      <marker time="1966820000000" label="" />
       <marker time="1966900000000" label="" />
-      <marker time="1967380000000" label="" />
-      <marker time="1967300000000" label="" />
-      <marker time="1967220000000" label="" />
-      <marker time="1967500000000" label="" />
-      <marker time="1967620000000" label="" />
       <marker time="1966980000000" label="" />
       <marker time="1967060000000" label="" />
       <marker time="1967140000000" label="" />
-      <marker time="1967700000000" label="" />
+      <marker time="1967220000000" label="" />
+      <marker time="1967300000000" label="" />
+      <marker time="1967420000000" label="" />
+      <marker time="1967540000000" label="" />
+      <marker time="1967660000000" label="" />
+      <marker time="1967740000000" label="" />
       <marker time="1967860000000" label="" />
       <marker time="1967900000000" label="" />
       <marker time="1967980000000" label="" />
       <marker time="1968140000000" label="" />
       <marker time="1968220000000" label="" />
-      <marker time="1968290000000" label="" />
-      <marker time="1968410000000" label="" />
-      <marker time="1968490000000" label="" />
-      <marker time="1968560000000" label="" />
-      <marker time="1968600000000" label="" />
-      <marker time="1968680000000" label="" />
+      <marker time="1968260000000" label="" />
+      <marker time="1968380000000" label="" />
+      <marker time="1968460000000" label="" />
+      <marker time="1968500000000" label="" />
+      <marker time="1968540000000" label="" />
+      <marker time="1968620000000" label="" />
+      <marker time="1970540000000" label="" />
+      <marker time="1969900000000" label="" />
+      <marker time="1969260000000" label="" />
+      <marker time="1970620000000" label="" />
       <marker time="1970700000000" label="" />
       <marker time="1970780000000" label="" />
       <marker time="1970860000000" label="" />
       <marker time="1970940000000" label="" />
-      <marker time="1971020000000" label="" />
-      <marker time="1971100000000" label="" />
-      <marker time="1974840000000" label="" />
+      <marker time="1971060000000" label="" />
+      <marker time="1974100000000" label="" />
+      <marker time="1974180000000" label="" />
+      <marker time="1974220000000" label="" />
+      <marker time="1974300000000" label="" />
+      <marker time="1974380000000" label="" />
+      <marker time="2290220000000" label="" />
+      <marker time="2290340000000" label="" />
+      <marker time="2290420000000" label="" />
+      <marker time="2290500000000" label="" />
+      <marker time="2290580000000" label="" />
+      <marker time="2290660000000" label="" />
+      <marker time="2290740000000" label="" />
+      <marker time="2290780000000" label="" />
+      <marker time="2290860000000" label="" />
+      <marker time="2293940000000" label="" />
+      <marker time="2294020000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
@@ -530,12 +527,6 @@
          <obj_property name="ElementShortName">tics[4:0]</obj_property>
          <obj_property name="ObjectShortName">tics[4:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="CustomSignalColor">#808000</obj_property>
-      </wvobject>
-      <wvobject fp_name="/falledge_tb/uut/w_en" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">w_en</obj_property>
-         <obj_property name="ObjectShortName">w_en</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#808000</obj_property>
       </wvobject>

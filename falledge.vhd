@@ -30,7 +30,6 @@ architecture FSM of falledge is
     signal CS, NS: STATE_TYPE;
 
     -- For wait cycles
-    signal w_en  : STD_LOGIC;
     signal waits : STD_LOGIC_VECTOR(4 downto 0);
     signal tics  : STD_LOGIC_VECTOR(4 downto 0);
 
@@ -172,22 +171,25 @@ begin
         end if;
     end process;
 
+    wait_proc : process(CLK, RST)
+    begin
+        if rst = '1' then
+            waits <= "00000";
+        elsif falling_edge(clk) then
+            if CS = FETCH then
+                waits <= tics;
+            else
+                waits <= waits - "00001";
+            end if;
+        end if;
+    end process;
+
     SYNC_PROC: process (clk, rst)
     begin
         if (rst = '1') then
             CS <= RESET;
-            waits <= "00000";
         elsif (falling_edge(clk)) then
             CS <= NS;
-            if w_en = '0' then
-                waits <= "00000";
-            elsif w_en = '1' then
-                if CS = wai then -- waiting
-                    waits <= waits - "00001";
-                else    -- preparing to wait
-                    waits <= tics;
-                end if;
-            end if;
         end if;
     end process; --End SYNC_PROC
 
@@ -204,7 +206,6 @@ begin
         rf_amux <= "11";    -- rf operand '+1'
         rf_ce <= "00";      -- No change to register file
 
-        w_en <= '0';
         tics <= "00000";
 
         CMD_CE <= '0';  -- Preserve CMD
@@ -236,41 +237,87 @@ begin
                 rf_ce <= "11";  -- Save incremented PC
                 CMD_CE <= '1';  -- Save the command at the end of the state
 
-                if ( DBUS = "00000000" ) then               -- 00h NOP
+                if ( DBUS = "00000000" ) then                                           -- 00h NOP
                     NS <= WAI;
-                    tics <= "00010";                        -- 3 tics
-                    w_en <= '1';
-                elsif DBUS = X"18" or DBUS = X"20" then     -- Relative jumps
+                    tics <= "00010";                                                    -- 4 tics
+                elsif DBUS = X"18"                                                      -- JR
+                    or ( DBUS(7 downto 5) = "001" and DBUS(2 downto 0) = "000" ) then   -- Conditional JR
                     NS <= JR;
-                elsif ( DBUS = "11000011" ) then            -- C3h JMP nn
+                    tics <= "00110";    -- 8 tics
+                elsif DBUS = X"C3" then                                                 -- C3h JMP nn
                     NS <= READ;
-                elsif ( DBUS = "01110110" ) then            -- 76h HALT
+                    tics <= "01010";    -- 12 tics
+                elsif DBUS = X"76" then                                                 -- 76h HALT
                     NS <= ERR;
-                elsif DBUS = X"CB" then                     -- Bit Manipulations
+                elsif DBUS = X"CB" then                                                 -- Bit Manipulations
                     NS <= BITFETCH;
-                elsif DBUS(7 downto 5) = "000" and DBUS(2 downto 0) = "111" then   -- RLCA, RLA, RRCA, RRA
+                    if DBUS(2 downto 0) = "110" then    -- src/target is (HL)
+                        tics <= "01110";    -- 16 tics
+                    else
+                        tics <= "00110";    -- 8 tics
+                    end if;
+                elsif DBUS(7 downto 5) = "000" and DBUS(2 downto 0) = "111" then        -- RLCA, RLA, RRCA, RRA
                     NS <= BITMANIP;
-                elsif DBUS(7 downto 6) = "01" then          -- 8-bit loads 40h-7Fh
+                    tics <= "00010";    -- 4 tics
+                elsif DBUS(7 downto 6) = "01" then                                      -- 8-bit loads 40h-7Fh
                     NS <= LD8;
-                elsif DBUS(7 downto 6) = "10"               -- 8-bit alu ops 80h-BFh
-                    or ( DBUS(7 downto 6) = "11" and DBUS(2 downto 0) = "110" ) then  -- 8-bit alu ops with immediate
+                    if DBUS(2 downto 0) = "110" then    -- source is (HL)
+                        tics <= "00110";    -- 8 tics
+                    elsif DBUS(5 downto 3) = "110" then  -- target is (HL)
+                        tics <= "00110";    -- 8 tics
+                    else
+                        tics <= "00010";    -- 4 tics
+                    end if;
+                elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 0) = "110" then         -- 8-bit immediate loads
+                    NS <= LD8;
+                    if DBUS(5 downto 3) = "110" then    -- target is (HL)
+                        tics <= "01010";    -- 12 tics
+                    else
+                        tics <= "00110";    -- 8 tics
+                    end if;
+                elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 0) = "010" then         -- 8-bit memory loads
+                    NS <= LD8;
+                    tics <= "00110";    -- 8 tics
+                elsif DBUS(7 downto 5) = "111" and DBUS(3 downto 2) = "00" and DBUS(0) = '0' then   -- 8-bit loads from 8-bit addresses
+                    NS <= LDSADDR1;
+                    if DBUS(1) = '0' then   -- immediate address
+                        tics <= "01010";    -- 12 tics
+                    else                    -- register address
+                        tics <= "00110";    -- 8 tics
+                    end if;
+                elsif DBUS(7 downto 6) = "10"                                           -- 8-bit alu ops 80h-BFh
+                    or ( DBUS(7 downto 6) = "11" and DBUS(2 downto 0) = "110" ) then    -- 8-bit alu ops with immediate
                     NS <= ALU8;
+                    if DBUS(2 downto 0) = "110" then    -- source is (HL) or (PC)
+                        tics <= "00110";    -- 8 tics
+                    else
+                        tics <= "00010";    -- 4 tics
+                    end if;
                 elsif DBUS = X"CD" then                     -- CALL
                     NS <= CALL1;
+                    tics <= "01010";    -- 12 tics
                 elsif DBUS = X"C9" then                     -- RET
                     NS <= RET1;
-                elsif DBUS(7 downto 5) = "111" and DBUS(3 downto 2) = "00" and DBUS(0) = '0' then   -- LD (FF+.),A
-                    NS <= LDSADDR1;
+                    tics <= "00110";    -- 8 tics
                 elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 1) = "10" then  -- Inc & Dec
                     NS <= INCDEC8;
+                    if DBUS(5 downto 3) = "110" then    -- target is (HL)
+                        tics <= "01010";    -- 12 tics
+                    else
+                        tics <= "00010";    -- 4 tics
+                    end if;
                 elsif DBUS(7 downto 6) = "00"
-                    and ( DBUS(3 downto 0) = "1001" or DBUS(2 downto 0) = "011" ) then  -- 16-bit Ops
+                    and ( DBUS(3 downto 0) = "1001" or DBUS(2 downto 0) = "011" ) then  -- 16-bit alu ops (ADD, INC, DEC)
                     NS <= OP16;
-                elsif DBUS(3 downto 0) = "0001"
-                    or (DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11") then     -- 16-bit loads, pops & pushes
+                    tics <= "00110";    -- 8 tics
+                elsif DBUS(3 downto 0) = "0001" then        -- 16-bit lodds and pops
                     NS <= LD16_A;
-                elsif (DBUS(1 downto 0) = "10" ) then       -- 8-bit ops
-                    NS <= LD8;
+                    tics <= "01010";    -- 12 tics
+                elsif DBUS(3 downto 0) = "0101" and DBUS(7 downto 6) = "11" then     -- 16-bit pushes
+                    NS <= LD16_A;
+                    tics <= "01110";    -- 16 tics
+--              elsif (DBUS(1 downto 0) = "10" ) then       -- 8-bit ops
+--                  NS <= LD8;
                 else
                     ns <= ERR;
                 end if;
@@ -290,7 +337,6 @@ begin
                         DMUX <= RAMDATA;
                         RAM_OE <= '1';
                         rf_omux <= "010";   -- HL
-                        tics <= "01100";    -- 13 tics
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
                     when others =>  -- Source is rf
@@ -302,8 +348,6 @@ begin
 
             when BITSAVE =>
                 NS <= WAI;
-                tics <= "00011";    -- 4 tics
-                w_en <= '1';
 
                 DMUX <= ALUDATA;
 
@@ -318,7 +362,6 @@ begin
                     when "101" => rf_ce <= "01";
                     when "110" =>   -- Dest. is (HL)
                         rf_omux <= "010";   -- HL
-                        tics <= "01100";    -- 13 tics
                         WR_EN <= '1';
                     when "111" => acc_ce <= '1';
                     when others =>
@@ -332,8 +375,6 @@ begin
 
             when OP16 =>
                 NS <= WAI;
-                tics <= "00101";    -- 6 tics
-                w_en <= '1';
 
                 if CMD(1) = '1' then    -- INC or DEC
                     rf_amux <= '1' & not CMD(3);
@@ -439,8 +480,6 @@ begin
 
             when LD16_C =>
                 NS <= WAI;
-                tics <= "00101";    -- 6 tics
-                w_en <= '1';
 
                 rf_ce   <= "11";    -- 16-bit update
                 if CMD(7 downto 6) = "11" and CMD(3 downto 2) = "00" then    -- POP
@@ -448,14 +487,10 @@ begin
                     rf_imux <= "011";
                 elsif CMD(7 downto 6) = "11" and CMD(3 downto 2) = "01" then -- PUSH
                     rf_ce   <= "00";    -- No update needed
-                    tics <= "01001";    -- 10 tics
-                    w_en <= '1';
                 end if; -- Otherwise, PC must be incremented
 
             when LD8 =>
                 NS <= WAI;
-                tics <= "00001";    -- 2 tics
-                w_en <= '1';
 
                 -- Destination register
                 rf_imux <= '0' & CMD(5 downto 4);
@@ -477,8 +512,6 @@ begin
                     elsif CMD(3) = '0' then
                         WR_EN <= '1';
                     end if;
-                    tics <= "00101";    -- 6 tics
-                    w_en <= '1';
                 elsif CMD(5 downto 4) = "11" then   -- LD (HL),r or LD A,r
                     if CMD(3) = '1' then
                         acc_ce <= '1';
@@ -486,8 +519,6 @@ begin
                         rf_omux <= "010";   -- HL
                         WR_EN <= '1';
                     end if;
-                    tics <= "00101";    -- 6 tics
-                    w_en <= '1';
                 else    -- target is in rf
                     rf_ce(1) <= not CMD(3);
                     rf_ce(0) <= CMD(3);
@@ -503,7 +534,6 @@ begin
                                     when '1' => DMUX <= RAMDATA;
                                     when others => DMUX <= ACCDATA;
                                 end case;
-                                tics <= "00101";    -- 6 tics
                             when others =>
                                 DMUX <= RFDATA;
                         end case;
@@ -512,13 +542,10 @@ begin
                         RAM_OE <= '1';
                         if ( (CMD(7) xor CMD(6)) = '1' ) then
                             rf_omux <= "010";   -- HL as rf_addr
-                            tics <= "00101";    -- 6 tics
                         else
                             rf_omux <= "100";   -- PC as rf_addr
                             NS <= INCPC;
-                            tics <= "00100";    -- 5 tics
                         end if;
-                        w_en <= '1';
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
                     when others =>  -- Source is rf
@@ -527,8 +554,6 @@ begin
 
             when ALU8 =>
                 NS <= LOADACC;
-                tics <= "00001";    -- 2 tics
-                w_en <= '1';
 
                 -- Destination register
                 ALU_CE <= '1';
@@ -542,13 +567,10 @@ begin
                         RAM_OE <= '1';
                         if CMD(7 downto 6) = "10" then
                             rf_omux <= "010";   -- HL as rf_addr
-                            tics <= "00101";    -- 6 tics
                         else
                             rf_omux <= "100";   -- PC as rf_addr
                             rf_ce <= "11";      -- 16-bit update
-                            tics <= "00100";    -- 5 tics
                         end if;
-                        w_en <= '1';
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
                     when others =>  -- Source is rf
@@ -577,8 +599,6 @@ begin
 
             when LSADDR2 =>
                 NS <= WAI;
-                tics <= "00100";    -- 5 tics
-                w_en <= '1';
 
                 AMUX <= TMPADDR;
 
@@ -641,8 +661,6 @@ begin
                 rf_ce   <= "11";    -- 16-bit update
                 if waits /= "00000" then
                     NS <= WAI;
-                    tics <= waits;
-                    w_en <= '1';
                 else
                     NS <= FETCH;
                 end if;
@@ -657,12 +675,11 @@ begin
                 rf_amux <= "00";    -- PC + n
 
                 -- Update is conditional
-                if CMD = X"18" or (CMD = X"20" and zflag = '0') then
+                if CMD = X"18"                                      -- JR
+                    or ( CMD(4) = '0' and zflag = CMD(3) )          -- JRNZ, JRZ
+                    or ( CMD(4) = '1' and cflag = CMD(3) ) then     -- JRNC, JRC
                     rf_ce   <= "11";    -- 16-bit update
                 end if;
-
-                tics <= "00100";    -- 5 tics
-                w_en <= '1';
 
             when RET1 =>
                 NS <= RET2;
@@ -687,8 +704,6 @@ begin
 
             when RET4 =>
                 NS <= WAI;
-                tics <= "00101";    -- 6 tics
-                w_en <= '1';
 
                 rf_ce   <= "11";    -- 16-bit update
                 rf_omux <= "011";   -- SP
@@ -754,8 +769,6 @@ begin
 
             when JMP_LO =>
                 NS <= WAI;
-                tics <= "00111";    -- 8 tics
-                w_en <= '1';
 
                 DMUX <= TMPDATA;
                 rf_ce <= "01";  -- Update lsB from DBUS (linked to tmp)
@@ -763,11 +776,8 @@ begin
             when WAI =>
                 NS <= WAI;
 
-                w_en <= '1';    -- Continue waiting
-
                 if waits = "00000" then
                     NS <= FETCH;
-                    w_en <= '0';
                 end if;
 
             when ERR =>
