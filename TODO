@@ -1,0 +1,4 @@
+* Finish implementing opcodes
+* Deal with the monster that is the LD8 state
+* Replace the frankenfsm with a microcode processor
+* De-optimize where possible, saving hardware at the cost of wait states

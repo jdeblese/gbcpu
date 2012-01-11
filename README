@@ -1,0 +1,5 @@
+An implementation of the Nintendo Gameboy (TM) instruction set based on information in
+the "Gameboy (TM) CPU Manual" and various other sources. Accurately modeling the
+behaviour -- speed, operations, etc -- rather than duplicating the actual hardware
+is the goal. The design centers on an 8-bit ALU and a 16-bit register file with minimal
+arithmetic functionality.
