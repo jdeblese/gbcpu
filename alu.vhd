@@ -6,12 +6,31 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+-- Supported operations:
+--  ADD, ADC, SUB, SBC, CP
+--  AND, OR, XOR
+--  INC, DEC
+--  RLC, RL, RRC, RR
+--  SLA, SRA, SRL, SWAP
+--  BIT, SET, RES
+
+-- Possible reduced opcode map:
+--     000  001  010  011  100  101  110  111
+-- 000 ADD  ADC  SUB  SBC  AND  XOR   OR   CP
+-- 001 INC  DEC   -    -    -    -    -    -
+-- 010 RLC   RL  RRC   RR  SLA  SRA  SRL  SWP
+-- 011  -    -    -    -    -    -    -    -
+-- 100 BIT0 BIT1 BIT2 BIT3 BIT4 BIT5 BIT6 BIT7
+-- 101 SET0 SET1 SET2 SET3 SET4 SET5 SET6 SET7
+-- 110 RES0 RES1 RES2 RES3 RES4 RES5 RES6 RES7
+-- 111  -    -    -    -    -    -    -    -
+
 entity alu is
-    Port (  IDATA   : in std_logic_vector(7 downto 0);
-            ACC     : in std_logic_vector(7 downto 0);
-            ODATA   : out std_logic_vector(7 downto 0);
-            CE      : in std_logic;
-            CMD     : in std_logic_vector(8 downto 0);
+    Port (  IDATA   : in std_logic_vector(7 downto 0);          -- First operand
+            ACC     : in std_logic_vector(7 downto 0);          -- Second operand
+            ODATA   : out std_logic_vector(7 downto 0);         -- Result
+            CE      : in std_logic;                             -- Output latch clock enable
+            CMD     : in std_logic_vector(8 downto 0);          -- CMD = X"CB"  &  CMD
             ZIN     : in std_logic;
             CIN     : in std_logic;
             HIN     : in std_logic;
@@ -26,21 +45,19 @@ end alu;
 
 architecture Behaviour of alu is
 
-    signal neg : std_logic_vector(7 downto 0);
-    signal addsub : std_logic;
-    signal muxed : std_logic_vector(7 downto 0);
-    signal accmux : std_logic_vector(1 downto 0);
-    signal adata : std_logic_vector(7 downto 0);
+    -- Control signals
+    signal addsub : std_logic;                      -- Addition (0) or subtraction (1) operation
+    signal cen : std_logic;                         -- Enable or disable carry usage
+    signal accmux : std_logic_vector(1 downto 0);   -- Select second ALU operand (ACC, -1, +1, 0)
 
-    signal carry : std_logic;
-    signal cen : std_logic;
-
-    signal niblo, nibhi : std_logic_vector(4 downto 0);
-    signal arith : std_logic_vector(7 downto 0);
-    signal logic : std_logic_vector(7 downto 0);
-
-    signal oper : std_logic_vector(3 downto 0);
-    signal half : std_logic_vector(4 downto 0);
+    -- Intermediate values
+    signal neg : std_logic_vector(7 downto 0);                  -- 2s complement IDATA
+    signal muxed : std_logic_vector(7 downto 0);                -- +IDATA or -IDATA
+    signal carry : std_logic;                                   -- CIN or '0'
+    signal adata : std_logic_vector(7 downto 0);                -- ACC, -1, +1 or 0
+    signal niblo, nibhi : std_logic_vector(4 downto 0);         -- Nibbles of adata + muxed
+    signal arith : std_logic_vector(7 downto 0);                -- concatenation of nibbles
+    signal logic : std_logic_vector(7 downto 0);                -- ACC and/or/xor IDATA
 
 begin
 

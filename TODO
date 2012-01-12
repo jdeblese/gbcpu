@@ -1,4 +1,6 @@
+* Implement 16-bit flags
 * Finish implementing opcodes
+* Stretch memory access time to 4 clock cycles for compatibility with cartridges
 * Deal with the monster that is the LD8 state
 * Replace the frankenfsm with a microcode processor
 * De-optimize where possible, saving hardware at the cost of wait states
