@@ -22,10 +22,12 @@ architecture FSM of falledge is
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
                         CALL1, CALL2, CALL3, CALL4, CALL5, CALL6, RET1, RET2, RET3, RET4,
-                        OP16, LD8, LDSADDR1, LSADDR2, ALU8, LOADACC, INCDEC8, LOADRF,
+                        OP16, LD8,
+                        LDSADDR0, LDSADDR1, LSADDR2,
+                        ALU8, LOADACC, INCDEC8, LOADRF,
                         BITFETCH, BITMANIP, BITSAVE);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, ZERODATA);
-    type ABUS_SRC is (RFADDR, RF8ADDR, TMPADDR);
+    type ABUS_SRC is (RFADDR, RF8ADDR, TMP8ADDR, TMP16ADDR);
 
     signal CS, NS: STATE_TYPE;
 
@@ -113,7 +115,8 @@ begin
         port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
 
     ABUS <= rf_addr when AMUX = RFADDR else
-            X"FF" & tmp when AMUX = TMPADDR else
+            X"FF" & tmp when AMUX = TMP8ADDR else
+            tmp & unq when AMUX = TMP16ADDR else
             X"0000";
 
     DBUS <= rf_odata    when DMUX = RFDATA else
@@ -285,6 +288,9 @@ begin
                     else                    -- register address
                         tics <= "00110";    -- 8 tics
                     end if;
+                elsif DBUS(7 downto 5) = "111" and DBUS(3 downto 0) = "1010" then       -- 8-bit loads from 16-bit addresses
+                    NS <= LDSADDR0;
+                    tics <= "01110";    -- 16 tics
                 elsif DBUS(7 downto 6) = "10"                                           -- 8-bit alu ops 80h-BFh
                     or ( DBUS(7 downto 6) = "11" and DBUS(2 downto 0) = "110" ) then    -- 8-bit alu ops with immediate
                     NS <= ALU8;
@@ -587,20 +593,34 @@ begin
                 nflag <= ALU_NOUT;
                 cflag <= ALU_COUT;
 
+            when LDSADDR0 =>
+                NS <= LDSADDR1;
+
+                -- Store address lsB in unq
+                unq_ce <= '1';
+
+                rf_ce <= "11";  -- Increment PC
+
             when LDSADDR1 =>
                 NS <= LSADDR2;
 
-                -- Store address lsB in tmp
+                -- Store address byte in tmp (lsB for 8-bit addr, msB for 16-bit)
                 tmp_ce <= '1';
-                if CMD(2) = '1' then    -- Address is FFh + C
+                if CMD(3) = '0' and CMD(1) = '1' then   -- Address is FFh + C
                     DMUX <= RFDATA;
-                    rf_omux <= "001";   -- C
+                    rf_dmux <= "0001";  -- C
                 end if;
+
+                rf_ce <= "11";  -- Increment PC
 
             when LSADDR2 =>
                 NS <= WAI;
 
-                AMUX <= TMPADDR;
+                if CMD(3) = '0' then
+                    AMUX <= TMP8ADDR;
+                else
+                    AMUX <= TMP16ADDR;
+                end if;
 
                 -- Destination register
                 -- Source register
@@ -610,8 +630,6 @@ begin
                     WR_EN <= '1';
                     DMUX <= ACCDATA;
                 end if;
-
-                rf_ce <= "11";  -- Increment PC
 
             when INCDEC8 =>
                 NS <= LOADRF;

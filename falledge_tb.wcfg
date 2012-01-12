@@ -79,6 +79,36 @@
       <marker time="2290860000000" label="" />
       <marker time="2293940000000" label="" />
       <marker time="2294020000000" label="" />
+      <marker time="2294180000000" label="" />
+      <marker time="2294300000000" label="" />
+      <marker time="2294380000000" label="" />
+      <marker time="2294420000000" label="" />
+      <marker time="2294500000000" label="" />
+      <marker time="2294580000000" label="" />
+      <marker time="2294620000000" label="" />
+      <marker time="2294700000000" label="" />
+      <marker time="2298140000000" label="" />
+      <marker time="2298220000000" label="" />
+      <marker time="2298300000000" label="" />
+      <marker time="2298380000000" label="" />
+      <marker time="2298460000000" label="" />
+      <marker time="2302220000000" label="" />
+      <marker time="2302300000000" label="" />
+      <marker time="2302380000000" label="" />
+      <marker time="2302460000000" label="" />
+      <marker time="2302540000000" label="" />
+      <marker time="2302580000000" label="" />
+      <marker time="2302660000000" label="" />
+      <marker time="2302700000000" label="" />
+      <marker time="2302780000000" label="" />
+      <marker time="2302820000000" label="" />
+      <marker time="2302940000000" label="" />
+      <marker time="2303020000000" label="" />
+      <marker time="2303140000000" label="" />
+      <marker time="2303180000000" label="" />
+      <marker time="2303260000000" label="" />
+      <marker time="2303340000000" label="" />
+      <marker time="2303460000000" label="" />
    </wave_markers>
    <wvobject fp_name="/falledge_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
@@ -113,7 +143,7 @@
    <wvobject fp_name="/falledge_tb/uut/cmd" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">cmd[7:0]</obj_property>
       <obj_property name="ObjectShortName">cmd[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="CustomSignalColor">#800000</obj_property>
    </wvobject>
@@ -400,6 +430,7 @@
       <wvobject fp_name="vbus95" type="vbus" db_ref_id="1">
          <obj_property name="label">ABUS[15:11]</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
          <wvobject fp_name="/falledge_tb/abus[15]" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">[15]</obj_property>
             <obj_property name="ObjectShortName">abus[15]</obj_property>
@@ -472,6 +503,17 @@
             <obj_property name="ObjectShortName">addra[3]</obj_property>
          </wvobject>
       </wvobject>
+      <wvobject fp_name="/falledge_tb/wr_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">wr_d[7:0]</obj_property>
+         <obj_property name="ObjectShortName">wr_d[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/wr_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">wr_en</obj_property>
+         <obj_property name="ObjectShortName">wr_en</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
       <wvobject fp_name="/falledge_tb/wcart_en" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">wcart_en</obj_property>
          <obj_property name="ObjectShortName">wcart_en</obj_property>
@@ -493,17 +535,6 @@
       <wvobject fp_name="/falledge_tb/wtop_en" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">wtop_en</obj_property>
          <obj_property name="ObjectShortName">wtop_en</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="CustomSignalColor">#808000</obj_property>
-      </wvobject>
-      <wvobject fp_name="/falledge_tb/wr_d" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_d[7:0]</obj_property>
-         <obj_property name="ObjectShortName">wr_d[7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/falledge_tb/wr_en" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_en</obj_property>
-         <obj_property name="ObjectShortName">wr_en</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#808000</obj_property>
       </wvobject>
