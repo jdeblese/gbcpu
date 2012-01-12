@@ -609,9 +609,9 @@ begin
                 if CMD(3) = '0' and CMD(1) = '1' then   -- Address is FFh + C
                     DMUX <= RFDATA;
                     rf_dmux <= "0001";  -- C
+                else
+                    rf_ce <= "11";  -- Increment PC
                 end if;
-
-                rf_ce <= "11";  -- Increment PC
 
             when LSADDR2 =>
                 NS <= WAI;
