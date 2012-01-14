@@ -26,7 +26,7 @@ architecture FSM of falledge is
                         LDSADDR0, LDSADDR1, LSADDR2,
                         ALU8, LOADACC, INCDEC8, LOADRF,
                         BITFETCH, BITMANIP, BITSAVE);
-    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, ZERODATA);
+    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, FSMDATA);
     type ABUS_SRC is (RFADDR, RF8ADDR, TMP8ADDR, TMP16ADDR);
 
     signal CS, NS: STATE_TYPE;
@@ -37,6 +37,7 @@ architecture FSM of falledge is
 
     signal DMUX : DBUS_SRC;
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
+    signal FIXED : STD_LOGIC_VECTOR(7 downto 0);
 
     signal AMUX : ABUS_SRC;
 
@@ -142,6 +143,7 @@ begin
             unq         when DMUX = UNQDATA else
             RAM         when DMUX = RAMDATA else
             ALU_ODATA   when DMUX = ALUDATA else
+            FIXED       when DMUX = FSMDATA else
             X"00";
 
     rf_idata <= DBUS;
@@ -240,11 +242,13 @@ begin
 
         NS <= ERR;
 
+        FIXED <= X"00";
+
         case CS is
             when RESET =>
                 if RST = '0' then
                     NS <= FETCH;
-                    DMUX <= ZERODATA;
+                    DMUX <= FSMDATA;    -- zero into dbus
                     rf_omux <= "111";   -- X"0000"
                     rf_amux <= "00";    -- + dbus
                     rf_ce   <= "11";    -- 16-bit update
@@ -319,6 +323,9 @@ begin
                 elsif DBUS = X"CD" then                     -- CALL
                     NS <= CALL1;
                     tics <= "01010";    -- 12 tics
+                elsif DBUS(7 downto 6) = "11" and DBUS(2 downto 0) = "111" then         -- RST
+                    NS <= CALL1;
+                    tics <= "01110";     -- 16 tics
                 elsif DBUS = X"C9" then                     -- RET
                     NS <= RET1;
                     tics <= "00110";    -- 8 tics
@@ -753,14 +760,23 @@ begin
             when CALL1 =>   -- tmp <= (PC++)
                 NS <= CALL2;
 
+                if CMD(2 downto 0) = "111" then     -- RST
+                    DMUX <= FSMDATA;
+                    FIXED <= "00" & CMD(5 downto 3) & "000";
+                else                                -- CALL
+                    rf_ce <= "11";  -- 16-bit update
+                end if;
                 tmp_ce <= '1';  -- Store lsB in tmp
-                rf_ce <= "11";  -- 16-bit update
 
             when CALL2 =>   -- unq <= (PC++)
                 NS <= CALL3;
 
+                if CMD(2 downto 0) = "111" then     -- RST
+                    DMUX <= FSMDATA;
+                else                                -- CALL
+                    rf_ce <= "11";  -- 16-bit update
+                end if;
                 unq_ce <= '1';  -- Store msB in unq
-                rf_ce <= "11";  -- Update msB from DBUS (linked to RAM)
 
             when CALL3 =>   -- SP--
                 NS <= CALL4;
