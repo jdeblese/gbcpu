@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="13" />
+   <WVObjectSize size="15" />
    <wave_markers>
       <marker time="3808460000000" label="" />
    </wave_markers>
@@ -339,6 +339,10 @@
          <obj_property name="ObjectShortName">cflag</obj_property>
       </wvobject>
    </wvobject>
+   <wvobject fp_name="/falledge_tb/uut/wr_en" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_en</obj_property>
+      <obj_property name="ObjectShortName">wr_en</obj_property>
+   </wvobject>
    <wvobject fp_name="group60" type="group">
       <obj_property name="label">RAM</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -423,12 +427,6 @@
          <obj_property name="ObjectShortName">wr_d[7:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/falledge_tb/wr_en" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_en</obj_property>
-         <obj_property name="ObjectShortName">wr_en</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="CustomSignalColor">#808000</obj_property>
-      </wvobject>
       <wvobject fp_name="/falledge_tb/wcart_en" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">wcart_en</obj_property>
          <obj_property name="ObjectShortName">wcart_en</obj_property>
@@ -463,6 +461,50 @@
          <obj_property name="Radix">HEXRADIX</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#800000</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group94" type="group">
+      <obj_property name="label">Timer</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/utimer/div" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">div[7:0]</obj_property>
+         <obj_property name="ObjectShortName">div[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/tima" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tima[7:0]</obj_property>
+         <obj_property name="ObjectShortName">tima[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/tma" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tma[7:0]</obj_property>
+         <obj_property name="ObjectShortName">tma[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/tac" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tac[7:0]</obj_property>
+         <obj_property name="ObjectShortName">tac[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/int" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">int</obj_property>
+         <obj_property name="ObjectShortName">int</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/clkgen[3]" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">clkgen[3]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/clkgen[5]" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">clkgen[5]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/clkgen[7]" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">clkgen[7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/uut/utimer/clkgen[9]" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">clkgen[9]</obj_property>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group33" type="group">

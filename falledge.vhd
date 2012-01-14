@@ -7,11 +7,11 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity falledge is
-    Port (  ABUS : out STD_LOGIC_VECTOR(15 downto 0);
+    Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
             RAM : in STD_LOGIC_VECTOR(7 downto 0);
             RAM_OE : out STD_LOGIC;
             WR_D : out STD_LOGIC_VECTOR(7 downto 0);
-            WR_EN : out STD_LOGIC;
+            RAM_WR : out STD_LOGIC;
             CLK : IN STD_LOGIC;
             RST : IN STD_LOGIC );
 end falledge;
@@ -39,6 +39,8 @@ architecture FSM of falledge is
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
 
     signal AMUX : ABUS_SRC;
+
+    signal WR_EN : STD_LOGIC;
 
     signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
     signal CMD_CE : STD_LOGIC;
@@ -106,13 +108,28 @@ architecture FSM of falledge is
     signal ALU_HOUT    : std_logic;
     signal ALU_NOUT    : std_logic;
 
+    component timer
+        Port (  DBUS    : inout std_logic_vector(7 downto 0);
+                ABUS    : in std_logic_vector(15 downto 0);
+                WR_EN   : in std_logic;
+                INT     : out std_logic;
+                CLK     : in std_logic;
+                RST     : in std_logic );
+    end component;
+
+    signal timer_int : std_logic;
 begin
+
+    RAM_WR <= WR_EN;
 
     urf : regfile16bit
         port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, CLK, RST);
 
     ualu : alu
         port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
+
+    utimer : timer
+        port map (DBUS, ABUS, WR_EN, timer_int, CLK, RST);
 
     ABUS <= rf_addr when AMUX = RFADDR else
             X"FF" & tmp when AMUX = TMP8ADDR else
