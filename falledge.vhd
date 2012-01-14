@@ -22,7 +22,7 @@ architecture FSM of falledge is
                         READ, JR, JMP_HI, JMP_LO,
                         LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
                         CALL1, CALL2, CALL3, CALL4, CALL5, CALL6, RET1, RET2, RET3, RET4,
-                        OP16, LD8,
+                        OP16, LD8, ST8,
                         LDSADDR0, LDSADDR1, LSADDR2,
                         ALU8, LOADACC, INCDEC8, LOADRF,
                         BITFETCH, BITMANIP, BITSAVE);
@@ -496,39 +496,10 @@ begin
                 end if; -- Otherwise, PC must be incremented
 
             when LD8 =>
-                NS <= WAI;
+                NS <= ST8;
 
                 -- Destination register
-                rf_imux <= '0' & CMD(5 downto 4);
-                if CMD(7 downto 6) = "10" then  -- ALU Operation, destination is ACC
-                    NS <= LOADACC;
-                    ALU_CE <= '1';
-                    ALU_CMD <= '0' & CMD;
-                elsif CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
-                    if CMD(5) = '0' then
-                        rf_omux <= "00" & CMD(4);
-                    elsif CMD(5) = '1' then    -- Set up incrementing or decrementing HL
-                        rf_omux <= "010";   -- HL
-                        rf_imux <= "010";
-                        rf_amux <= '1' & not CMD(4);    -- INC or DEC HL
-                        rf_ce <= "11";
-                    end if;
-                    if CMD(3) = '1' then
-                        acc_ce <= '1';
-                    elsif CMD(3) = '0' then
-                        WR_EN <= '1';
-                    end if;
-                elsif CMD(5 downto 4) = "11" then   -- LD (HL),r or LD A,r
-                    if CMD(3) = '1' then
-                        acc_ce <= '1';
-                    else
-                        rf_omux <= "010";   -- HL
-                        WR_EN <= '1';
-                    end if;
-                else    -- target is in rf
-                    rf_ce(1) <= not CMD(3);
-                    rf_ce(0) <= CMD(3);
-                end if;
+                tmp_ce <= '1';
 
                 -- Source register
                 rf_dmux <= '0' & CMD(2 downto 0);
@@ -549,14 +520,49 @@ begin
                         if ( (CMD(7) xor CMD(6)) = '1' ) then
                             rf_omux <= "010";   -- HL as rf_addr
                         else
-                            rf_omux <= "100";   -- PC as rf_addr
-                            NS <= INCPC;
+                            rf_ce   <= "11";    -- 16-bit update
                         end if;
                     when "111" =>   -- Source is accumulator
                         DMUX <= ACCDATA;
                     when others =>  -- Source is rf
                         DMUX <= RFDATA;
                 end case;
+
+            when ST8 =>
+                NS <= WAI;
+
+                -- Source register
+                DMUX <= TMPDATA;
+
+                -- Destination register
+                rf_imux <= '0' & CMD(5 downto 4);
+                if CMD(2 downto 0) = "010" then -- LD A,(..) or LD (..),A
+                    -- Set the address
+                    if CMD(5) = '0' then
+                        rf_omux <= "00" & CMD(4);
+                    elsif CMD(5) = '1' then    -- Set up incrementing or decrementing HL
+                        rf_omux <= "010";   -- HL
+                        rf_imux <= "010";
+                        rf_amux <= '1' & not CMD(4);    -- INC or DEC HL
+                        rf_ce <= "11";
+                    end if;
+                    -- Set the target
+                    if CMD(3) = '1' then
+                        acc_ce <= '1';
+                    elsif CMD(3) = '0' then
+                        WR_EN <= '1';
+                    end if;
+                elsif CMD(5 downto 4) = "11" then   -- LD (HL),r or LD A,r
+                    if CMD(3) = '1' then
+                        acc_ce <= '1';
+                    else
+                        rf_omux <= "010";   -- HL
+                        WR_EN <= '1';
+                    end if;
+                else    -- target is in rf
+                    rf_ce(1) <= not CMD(3);
+                    rf_ce(0) <= CMD(3);
+                end if;
 
             when ALU8 =>
                 NS <= LOADACC;
