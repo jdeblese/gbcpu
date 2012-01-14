@@ -24,7 +24,7 @@ architecture FSM of falledge is
                         CALL1, CALL2, CALL3, CALL4, CALL5, CALL6, RET1, RET2, RET3, RET4,
                         OP16, LD8, ST8,
                         LDSADDR0, LDSADDR1, LSADDR2,
-                        ALU8, LOADACC, INCDEC8, LOADRF,
+                        ALU8, LOADACC, INCDEC8, LOADRF, CARRY,
                         BITFETCH, BITMANIP, BITSAVE);
     type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, FSMDATA);
     type ABUS_SRC is (RFADDR, RF8ADDR, TMP8ADDR, TMP16ADDR);
@@ -320,6 +320,9 @@ begin
                     else
                         tics <= "00010";    -- 4 tics
                     end if;
+                elsif DBUS(7 downto 4) = X"3" and DBUS(2 downto 0) = "111" then         -- SCF & CCF
+                    NS <= CARRY
+                    tics <= "00010";    -- 4 tics
                 elsif DBUS = X"CD" then                     -- CALL
                     NS <= CALL1;
                     tics <= "01010";    -- 12 tics
@@ -351,6 +354,12 @@ begin
                 else
                     ns <= ERR;
                 end if;
+
+            when CARRY =>
+                NS <= WAI;
+                nflag <= '0';
+                hflag <= '0';
+                cflag <= not CMD(3) or not cflag;
 
             when BITFETCH =>
                 NS <= BITMANIP;
