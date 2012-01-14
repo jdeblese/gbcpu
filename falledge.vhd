@@ -261,9 +261,10 @@ begin
                 rf_ce <= "11";  -- Save incremented PC
                 CMD_CE <= '1';  -- Save the command at the end of the state
 
+                tics <= "00010";    -- 4 tics by default
+
                 if ( DBUS = "00000000" ) then                                           -- 00h NOP
                     NS <= WAI;
-                    tics <= "00010";                                                    -- 4 tics
                 elsif DBUS = X"18"                                                      -- JR
                     or ( DBUS(7 downto 5) = "001" and DBUS(2 downto 0) = "000" ) then   -- Conditional JR
                     NS <= JR;
@@ -282,15 +283,12 @@ begin
                     end if;
                 elsif DBUS(7 downto 5) = "000" and DBUS(2 downto 0) = "111" then        -- RLCA, RLA, RRCA, RRA
                     NS <= BITMANIP;
-                    tics <= "00010";    -- 4 tics
                 elsif DBUS(7 downto 6) = "01" then                                      -- 8-bit loads 40h-7Fh
                     NS <= LD8;
                     if DBUS(2 downto 0) = "110" then    -- source is (HL)
                         tics <= "00110";    -- 8 tics
                     elsif DBUS(5 downto 3) = "110" then  -- target is (HL)
                         tics <= "00110";    -- 8 tics
-                    else
-                        tics <= "00010";    -- 4 tics
                     end if;
                 elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 0) = "110" then         -- 8-bit immediate loads
                     NS <= LD8;
@@ -317,8 +315,13 @@ begin
                     NS <= ALU8;
                     if DBUS(2 downto 0) = "110" then    -- source is (HL) or (PC)
                         tics <= "00110";    -- 8 tics
-                    else
-                        tics <= "00010";    -- 4 tics
+                    end if;
+                elsif DBUS = X"2F" then                                                 -- CPL
+                    NS <= ALU8;
+                elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 1) = "10" then  -- Inc & Dec
+                    NS <= INCDEC8;
+                    if DBUS(5 downto 3) = "110" then    -- target is (HL)
+                        tics <= "01010";    -- 12 tics
                     end if;
                 elsif DBUS(7 downto 4) = X"3" and DBUS(2 downto 0) = "111" then         -- SCF & CCF
                     NS <= CARRY;
@@ -332,13 +335,6 @@ begin
                 elsif DBUS = X"C9" then                     -- RET
                     NS <= RET1;
                     tics <= "00110";    -- 8 tics
-                elsif DBUS(7 downto 6) = "00" and DBUS(2 downto 1) = "10" then  -- Inc & Dec
-                    NS <= INCDEC8;
-                    if DBUS(5 downto 3) = "110" then    -- target is (HL)
-                        tics <= "01010";    -- 12 tics
-                    else
-                        tics <= "00010";    -- 4 tics
-                    end if;
                 elsif DBUS(7 downto 6) = "00"
                     and ( DBUS(3 downto 0) = "1001" or DBUS(2 downto 0) = "011" ) then  -- 16-bit alu ops (ADD, INC, DEC)
                     NS <= OP16;
@@ -621,6 +617,9 @@ begin
                     when others =>  -- Source is rf
                         DMUX <= RFDATA;
                 end case;
+                if CMD = X"2F" then -- CPL, source is ACC
+                    DMUX <= ACCDATA;
+                end if;
 
             when LOADACC =>
                 DMUX <= ALUDATA;

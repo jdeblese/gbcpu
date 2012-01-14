@@ -59,6 +59,8 @@ architecture Behaviour of alu is
     signal arith : std_logic_vector(7 downto 0);                -- concatenation of nibbles
     signal logic : std_logic_vector(7 downto 0);                -- ACC and/or/xor IDATA
 
+    signal z_en : std_logic;
+
 begin
 
     neg <= not IDATA + X"01";
@@ -95,8 +97,13 @@ begin
         cen <= '0';
 
         if CMD(8) = '0' then
-            if CMD(7 downto 6) = "00" then -- INC, DEC
-                accmux <= CMD(1 downto 0);
+            if CMD(7 downto 6) = "00" then
+                if CMD(5 downto 0) = "101111" then  -- CPL as "2cpl(ACC) - 1"
+                    accmux <= "01";
+                    addsub <= '1';
+                else                                -- INC, DEC
+                    accmux <= CMD(1 downto 0);
+                end if;
             elsif CMD(5 downto 4) = "00" then    -- ADD, ADC
                 cen <= cmd(3);
             elsif CMD(5 downto 4) = "01" then -- SUB, SBC
@@ -114,6 +121,7 @@ begin
         if RST = '1' then
             ODATA <= X"EE";
         elsif falling_edge(CLK) and CE = '1' then
+            z_en <= '1';
             ZOUT <= ZIN;
             NOUT <= NIN;
             HOUT <= HIN;
@@ -131,9 +139,16 @@ begin
                 end if;
                 NOUT <= '0';
 
-                if CMD(7 downto 6) = "00" then -- INC, DEC
-                    COUT <= CIN;
-                    NOUT <= CMD(0);
+                if CMD(7 downto 6) = "00" then
+                    if CMD(5 downto 0) = "101111" then  -- CPL
+                        COUT <= CIN;
+                        NOUT <= '1';
+                        HOUT <= '1';
+                        z_en <= '0';
+                    else                                -- INC, DEC
+                        COUT <= CIN;
+                        NOUT <= CMD(0);
+                    end if;
                 elsif CMD(5 downto 4) = "01" then -- SUB, SBC
                     NOUT <= '1';
                 elsif CMD(5 downto 3) = "111" then -- CP
@@ -150,10 +165,12 @@ begin
                 end if;     -- Nothing special for ADD, ADC
 
                 ODATA <= inter;
-                if inter = X"00" then
-                    ZOUT <= '1';
-                else
-                    ZOUT <= '0';
+                if z_en = '1' then
+                    if inter = X"00" then
+                        ZOUT <= '1';
+                    else
+                        ZOUT <= '0';
+                    end if;
                 end if;
 
             else    -- CB (bitwise) operation
@@ -191,10 +208,12 @@ begin
                             COUT <= '0';
                     end case;
                     ODATA <= inter;
-                    if inter = X"00" then
-                        ZOUT <= '1';
-                    else
-                        ZOUT <= '0';
+                    if z_en = '1' then
+                        if inter = X"00" then
+                            ZOUT <= '1';
+                        else
+                            ZOUT <= '0';
+                        end if;
                     end if;
                 else    -- Single bit operation
                     for I in 0 to 7 loop
