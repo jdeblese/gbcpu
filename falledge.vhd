@@ -321,7 +321,7 @@ begin
                         tics <= "00010";    -- 4 tics
                     end if;
                 elsif DBUS(7 downto 4) = X"3" and DBUS(2 downto 0) = "111" then         -- SCF & CCF
-                    NS <= CARRY
+                    NS <= CARRY;
                     tics <= "00010";    -- 4 tics
                 elsif DBUS = X"CD" then                     -- CALL
                     NS <= CALL1;

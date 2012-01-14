@@ -120,7 +120,7 @@ begin
             COUT <= CIN;
 
             if CMD(8) = '0' then
-                ODATA <= arith;
+                inter := arith;
 
                 if addsub = '0' then
                     COUT <= nibhi(4);
@@ -130,12 +130,6 @@ begin
                     HOUT <= not niblo(4);
                 end if;
                 NOUT <= '0';
-
-                if arith = X"00" then
-                    ZOUT <= '1';
-                else
-                    ZOUT <= '0';
-                end if;
 
                 if CMD(7 downto 6) = "00" then -- INC, DEC
                     COUT <= CIN;
@@ -148,12 +142,19 @@ begin
                 elsif CMD(5 downto 4) = "10" then -- AND, XOR
                     HOUT <= not CMD(3); -- set for AND, reset for XOR
                     COUT <= '0';
-                    ODATA <= logic;
+                    inter := logic;
                 elsif CMD(5 downto 3) = "110" then -- OR
                     HOUT <= '0';
                     COUT <= '0';
-                    ODATA <= logic;
+                    inter := logic;
                 end if;     -- Nothing special for ADD, ADC
+
+                ODATA <= inter;
+                if inter = X"00" then
+                    ZOUT <= '1';
+                else
+                    ZOUT <= '0';
+                end if;
 
             else    -- CB (bitwise) operation
                 ODATA <= IDATA;
