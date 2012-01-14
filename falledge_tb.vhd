@@ -20,6 +20,10 @@ ARCHITECTURE behavior OF falledge_tb IS
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
+    signal DOA_BOOT   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
+    signal WBOOT_EN : STD_LOGIC;
+    signal BOOTRAM_VIS : STD_LOGIC;
+
     signal DOA_CART   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
     signal WCART_EN : STD_LOGIC;
 
@@ -58,7 +62,8 @@ BEGIN
     ADDRA(13 downto 3) <= ABUS(10 downto 0);
     ADDRA(2 downto 0) <= "000";
 
-    RAM <= DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
+    RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
+           DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
            DOA_VID(7 downto 0)  WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            DOA_INT(7 downto 0)  WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
            DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else    -- F800-FFFF
@@ -68,6 +73,17 @@ BEGIN
     WVID_EN <= WR_EN WHEN ABUS(15 downto 13) = "100" ELSE '0';
     WINT_EN <= WR_EN WHEN ABUS(15 downto 13) = "110" ELSE '0';
     WTOP_EN <= WR_EN WHEN ABUS(15 downto 11) = "11111" else '0';
+
+    process(CLK, RST)
+    begin
+        if RST = '1' then
+            BOOTRAM_VIS <= '1';
+        elsif rising_edge(CLK) then
+            if ABUS = X"FF50" and WR_EN = '1' and WR_D = X"01" then
+                BOOTRAM_VIS <= '0';
+            end if;
+        end if;
+    end process;
 
     -- Component Instantiation
     uut: falledge PORT MAP(
@@ -83,6 +99,52 @@ BEGIN
     -- RAMB16BWER: 16k-bit Data and 2k-bit Parity Configurable Synchronous Dual Port Block RAM with Optional Output Registers
     --             Spartan-6
     -- Xilinx HDL Language Template, version 13.3
+
+    bootram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 9,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+        INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
+        INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
+        INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
+        INIT_04 => X"1711cbc11711cbc504064fcb1820164f2005d2201542e09042f0e2873e0ce27b",
+        INIT_05 => X"0e0089881f1108000d000c00830073030b000dcc6666edcec923222322f52005", -- 00A0
+        INIT_06 => X"3c42a5b9a5b9423c3e33b9bb9f99dcddccec0e6e6367bbbb99d9dddde66eccdc", -- 00C0
+        INIT_07 => X"50e0013efe2086fb20052386781906f52034fe7d23fe20be131a00a811010421",
+        INIT_FILE => "NONE",
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6"
+    )
+    port map (
+        -- Port A
+        DOA => DOA_BOOT,  -- 32-bit output: A port data output
+        ADDRA => ADDRA,   -- 14-bit input: A port address input
+        CLKA => CLK,      -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"00000000", -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B
+        ADDRB => ADDRB,   -- 14-bit input: B port address input
+        CLKB => '0',      -- 1-bit input: B port clock input
+        ENB => '0',       -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
+    );
 
     cartram : RAMB16BWER
     generic map (
@@ -105,19 +167,15 @@ BEGIN
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         -- INIT_00 to INIT_3F: Initial memory contents.
-
-        -- GB Bootstrap Rom
-        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
-        INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
-        INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
-        INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
-        INIT_04 => X"1711cbc11711cbc504064fcb1820164f2005d2201542e09042f0e2873e0ce27b",
-        INIT_05 => X"0e0089881f1108000d000c00830073030b000dcc6666edcec923222322f52005", -- 00A0
-        INIT_06 => X"3c42a5b9a5b9423c3e33b9bb9f99dcddccec0e6e6367bbbb99d9dddde66eccdc", -- 00C0
-        INIT_07 => X"50e0013efe2086fb20052386781906f52034fe7d23fe20be131a00a811010421",
-
-        -- Boot logo and cartridge information
-        INIT_08 => X"E66ECCDC0E0089881F1108000D000C00830073030B000DCC6666EDCE00000000", -- 0100
+        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_04 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_05 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_08 => X"E66ECCDC0E0089881F1108000D000C00830073030B000DCC6666EDCE000000C3", -- 0100
         INIT_09 => X"0000000000000000000000003E33B9BB9F99DCDDCCEC0E6E6367BBBB99D9DDDD", -- 0120
         INIT_0A => X"000000000000000000000000000000000000B400330000000000000000000000", -- 0140
         INIT_0B => X"0000000000000000000000000000000000000000000000000000000000000000",

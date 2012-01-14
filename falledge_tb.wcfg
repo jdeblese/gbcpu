@@ -207,43 +207,43 @@
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="vbus43" type="vbus" db_ref_id="1">
-         <obj_property name="label">ZCHN_in</obj_property>
+         <obj_property name="label">ZNHC_in</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/falledge_tb/uut/alu_zin" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">alu_zin</obj_property>
             <obj_property name="ObjectShortName">alu_zin</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/uut/alu_cin" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">alu_cin</obj_property>
-            <obj_property name="ObjectShortName">alu_cin</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_nin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_nin</obj_property>
+            <obj_property name="ObjectShortName">alu_nin</obj_property>
          </wvobject>
          <wvobject fp_name="/falledge_tb/uut/alu_hin" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">alu_hin</obj_property>
             <obj_property name="ObjectShortName">alu_hin</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/uut/alu_nin" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">alu_nin</obj_property>
-            <obj_property name="ObjectShortName">alu_nin</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_cin" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_cin</obj_property>
+            <obj_property name="ObjectShortName">alu_cin</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="vbus44" type="vbus" db_ref_id="1">
-         <obj_property name="label">ZCHN_out</obj_property>
+         <obj_property name="label">ZNHC_out</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/falledge_tb/uut/alu_zout" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">alu_zout</obj_property>
             <obj_property name="ObjectShortName">alu_zout</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/uut/alu_cout" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">alu_cout</obj_property>
-            <obj_property name="ObjectShortName">alu_cout</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_nout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_nout</obj_property>
+            <obj_property name="ObjectShortName">alu_nout</obj_property>
          </wvobject>
          <wvobject fp_name="/falledge_tb/uut/alu_hout" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">alu_hout</obj_property>
             <obj_property name="ObjectShortName">alu_hout</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/uut/alu_nout" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">alu_nout</obj_property>
-            <obj_property name="ObjectShortName">alu_nout</obj_property>
+         <wvobject fp_name="/falledge_tb/uut/alu_cout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">alu_cout</obj_property>
+            <obj_property name="ObjectShortName">alu_cout</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="group45" type="group">
@@ -319,23 +319,24 @@
       </wvobject>
    </wvobject>
    <wvobject fp_name="vbus44" type="vbus" db_ref_id="1">
-      <obj_property name="label">ZCHN</obj_property>
+      <obj_property name="label">ZNHC</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
       <wvobject fp_name="/falledge_tb/uut/zflag" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">zflag</obj_property>
          <obj_property name="ObjectShortName">zflag</obj_property>
       </wvobject>
-      <wvobject fp_name="/falledge_tb/uut/cflag" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">cflag</obj_property>
-         <obj_property name="ObjectShortName">cflag</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/nflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">nflag</obj_property>
+         <obj_property name="ObjectShortName">nflag</obj_property>
       </wvobject>
       <wvobject fp_name="/falledge_tb/uut/hflag" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">hflag</obj_property>
          <obj_property name="ObjectShortName">hflag</obj_property>
       </wvobject>
-      <wvobject fp_name="/falledge_tb/uut/nflag" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">nflag</obj_property>
-         <obj_property name="ObjectShortName">nflag</obj_property>
+      <wvobject fp_name="/falledge_tb/uut/cflag" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cflag</obj_property>
+         <obj_property name="ObjectShortName">cflag</obj_property>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group60" type="group">
@@ -451,6 +452,10 @@
          <obj_property name="ObjectShortName">wtop_en</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/bootram_vis" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">bootram_vis</obj_property>
+         <obj_property name="ObjectShortName">bootram_vis</obj_property>
       </wvobject>
       <wvobject fp_name="/falledge_tb/ram" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram[7:0]</obj_property>
