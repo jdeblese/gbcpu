@@ -20,6 +20,17 @@ ARCHITECTURE behavior OF falledge_tb IS
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
+    component video is
+        Port (  DIN     : in std_logic_vector(7 downto 0);
+                DOUT    : out std_logic_vector(7 downto 0);
+                ABUS    : in std_logic_vector(15 downto 0);
+                WR_EN   : in std_logic;
+                CLK     : in std_logic;
+                RST     : in std_logic );
+    end component;
+
+    signal gpu_dout : std_logic_vector(7 downto 0);
+
     signal DOA_BOOT   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
     signal WBOOT_EN : STD_LOGIC;
     signal BOOTRAM_VIS : STD_LOGIC;
@@ -96,6 +107,15 @@ BEGIN
         RST => RST
     );
 
+    ugpu : video port map(
+        DIN => WR_D,
+        DOUT => gpu_dout,
+        ABUS => ABUS,
+        WR_EN => WR_EN,
+        CLK => CLK,
+        RST => RST );
+
+
     -- RAMB16BWER: 16k-bit Data and 2k-bit Parity Configurable Synchronous Dual Port Block RAM with Optional Output Registers
     --             Spartan-6
     -- Xilinx HDL Language Template, version 13.3
@@ -167,7 +187,7 @@ BEGIN
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         -- INIT_00 to INIT_3F: Initial memory contents.
-        INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff072100000000000000cf",
+        INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff0721000000cf40e0803e",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",

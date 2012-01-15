@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="15" />
+   <WVObjectSize size="16" />
    <wave_markers>
       <marker time="3808460000000" label="" />
    </wave_markers>
@@ -505,6 +505,96 @@
       <wvobject fp_name="/falledge_tb/uut/utimer/clkgen[9]" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">[9]</obj_property>
          <obj_property name="ObjectShortName">clkgen[9]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group99" type="group">
+      <obj_property name="label">GPU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/falledge_tb/ugpu/lcdc" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">lcdc[7:0]</obj_property>
+         <obj_property name="ObjectShortName">lcdc[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/scy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">scy[7:0]</obj_property>
+         <obj_property name="ObjectShortName">scy[7:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/ly" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ly[7:0]</obj_property>
+         <obj_property name="ObjectShortName">ly[7:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="vbus115" type="vbus" db_ref_id="1">
+         <obj_property name="label">Tile Row</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         <wvobject fp_name="/falledge_tb/ugpu/ly[7]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">ly[7]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/ly[6]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">ly[6]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/ly[5]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">ly[5]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/ly[4]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">ly[4]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/ly[3]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">ly[3]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group103" type="group">
+         <obj_property name="label">Internal</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/falledge_tb/ugpu/cs" type="other" db_ref_id="1">
+            <obj_property name="ElementShortName">cs</obj_property>
+            <obj_property name="ObjectShortName">cs</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/ns" type="other" db_ref_id="1">
+            <obj_property name="ElementShortName">ns</obj_property>
+            <obj_property name="ObjectShortName">ns</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/lx" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">lx[4:0]</obj_property>
+            <obj_property name="ObjectShortName">lx[4:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/count" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">count[8:0]</obj_property>
+            <obj_property name="ObjectShortName">count[8:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/bgshift" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">bgshift[7:0]</obj_property>
+            <obj_property name="ObjectShortName">bgshift[7:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/mapaddr" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">mapaddr[9:0]</obj_property>
+            <obj_property name="ObjectShortName">mapaddr[9:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/dataddr" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">dataddr[11:0]</obj_property>
+            <obj_property name="ObjectShortName">dataddr[11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/tileidx" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">tileidx[7:0]</obj_property>
+            <obj_property name="ObjectShortName">tileidx[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group33" type="group">
