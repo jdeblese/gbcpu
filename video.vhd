@@ -28,17 +28,57 @@ architecture Behaviour of video is
     signal count : std_logic_vector(8 downto 0);
 
     signal bgshift : std_logic_vector(7 downto 0);  -- ly - scy
-    signal mapaddr : std_logic_vector(9 downto 0);  -- Address within tile map (000h -- 3FFh)
-    signal dataddr : std_logic_vector(11 downto 0); -- Address in tile data table (16-bit words)
+    signal dataddr : std_logic_vector(9 downto 0); -- Address in tile data table (16-bit words)
     signal tilerow : std_logic_vector(15 downto 0); -- one row of 2-bit values, 8 lsbits then 8 msbits
     signal tileidx : std_logic_vector(7 downto 0);  -- active tile
 
     type STATE_TYPE is (RESET, OAMSCAN, MAPREAD, TILEREAD, WAI, HBLANK, VBLANK);
     signal CS, NS: STATE_TYPE;
 
+    signal map_doa : std_logic_vector(31 downto 0);
+    signal map_dob : std_logic_vector(31 downto 0);
+    signal map_en : std_logic;
+    signal map_sel : std_logic;
+    signal map_addr : std_logic_vector(9 downto 0);  -- Address within tile map (000h -- 3FFh)
+
+    signal lo_doa : std_logic_vector(31 downto 0);
+    signal lo_dob : std_logic_vector(31 downto 0);
+    signal lo_en : std_logic;
+
+    signal mid_doa : std_logic_vector(31 downto 0);
+    signal mid_dob : std_logic_vector(31 downto 0);
+    signal mid_en : std_logic;
+
+    signal hi_doa : std_logic_vector(31 downto 0);
+    signal hi_dob : std_logic_vector(31 downto 0);
+    signal hi_en : std_logic;
+
+    signal internal_en : std_logic;
 begin
 
-    DOUT <= lcdc when ABUS = "1111111101000000" else     -- FF41
+    lo_en  <= WR_EN when ABUS(15 downto 11) = "10000" else '0';  -- 8000h -- 87FFh
+    mid_en <= WR_EN when ABUS(15 downto 11) = "10001" else '0';  -- 8800h -- 8FFFh
+    hi_en  <= WR_EN when ABUS(15 downto 11) = "10010" else '0';  -- 9000h -- 97FFh
+    map_en <= WR_EN when ABUS(15 downto 11) = "10011" else '0';  -- 9800h -- 9FFFh
+
+    bgshift <= ly + scy;
+
+    map_sel <= lcdc(3);  -- This depends on whether background or window is being drawn
+    map_addr <= bgshift(7 downto 3) & lx;    -- top five bits is tile row, bottom is tile column
+    tileidx <= map_dob(7 downto 0);
+
+    dataddr(9 downto 3) <= tileidx(6 downto 0);     -- which tile to be read determined by tile map
+    dataddr(2 downto 0) <= bgshift(2 downto 0);     -- row of tile to be read determined by ly and scy
+
+    tilerow <= mid_dob(15 downto 0) when tileidx(7) = '1' else
+               lo_dob(15 downto 0) when lcdc(4) = '1' else      -- actually dependent on if reading BG & Window data or Sprite data
+               hi_dob(15 downto 0);
+
+    DOUT <= lo_doa(7 downto 0)  when ABUS(15 downto 11) = "10000" else  -- 8000h -- 87FFh
+            mid_doa(7 downto 0) when ABUS(15 downto 11) = "10001" else  -- 8800h -- 8FFFh
+            hi_doa(7 downto 0)  when ABUS(15 downto 11) = "10010" else  -- 9000h -- 97FFh
+            map_doa(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
+            lcdc when ABUS = "1111111101000000" else     -- FF41
             "000000" & mode when ABUS = "1111111101000001" else     -- FF41
             scy  when ABUS = "1111111101000010" else
             scx  when ABUS = "1111111101000011" else
@@ -51,15 +91,6 @@ begin
             wy   when ABUS = "1111111101001010" else
             wx   when ABUS = "1111111101001011" else
             "ZZZZZZZZ";
-
-    bgshift <= ly + not scy + "1";
-    mapaddr <= bgshift(7 downto 3) & lx;
-
-    tileidx <= "00000000";                      -- Read from tile map
-
-    dataddr(11) <= lcdc(3);                     -- This depends on whether background or window is being drawn
-    dataddr(10 downto 3) <= tileidx;
-    dataddr(2 downto 0) <= bgshift(2 downto 0);
 
     inproc : process(CLK, RST)
     begin
@@ -145,31 +176,39 @@ begin
     COMB_PROC: process (RST, CS, lcdc, lx, ly, count)
     begin
 
+        internal_en <= '0';     -- Disable internal RAM port when not in use to avoid collisions
+
         case CS is
             when RESET =>
                 NS <= RESET;
                 if lcdc(7) = '1' then
                     NS <= OAMSCAN;
+                    internal_en <= '1';
                 end if;
 
             when OAMSCAN =>
                 NS <= OAMSCAN;
+                internal_en <= '1';
                 if count = "001001111" then -- 79 (4Fh)
                     NS <= MAPREAD;
                 end if;
 
             when MAPREAD =>
                 NS <= TILEREAD;
+                internal_en <= '1';
 
             when TILEREAD =>
                 NS <= MAPREAD;
+                internal_en <= '1';
                 if lx = "10011" then    -- 19 (13h)
                     NS <= WAI;
                 end if;
 
             when WAI =>
                 NS <= WAI;
+                internal_en <= '1';
                 if count = "011111011" then -- 251 (FBh)
+                    internal_en <= '0';
                     NS <= HBLANK;
                 end if;
 
@@ -193,5 +232,162 @@ begin
                 NS <= RESET;
         end case;
     end process;
+
+    loram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 18,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6",
+        WRITE_MODE_A => "READ_FIRST"    -- Averts collisions when reading an address just written to
+    )
+    port map (
+        -- Port A: data from CPU
+        DOA => lo_doa,   -- 32-bit output: A port data output
+        ADDRA => ABUS(10 downto 0) & "000", -- 14-bit input: A port address input: 8-bit output -> 11-bit address
+        CLKA => CLK,      -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "000" & lo_en,   -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"000000" & DIN, -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B: data to output
+        DOB => lo_dob,   -- 32-bit output: B port data output
+        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        CLKB => CLK,      -- 1-bit input: B port clock input
+        ENB => internal_en, -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
+    );
+
+    medram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 18,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6",
+        WRITE_MODE_A => "READ_FIRST"    -- Averts collisions when reading an address just written to
+    )
+    port map (
+        -- Port A: data from CPU
+        DOA => mid_doa,   -- 32-bit output: A port data output
+        ADDRA => ABUS(10 downto 0) & "000", -- 14-bit input: A port address input: 8-bit output -> 11-bit address
+        CLKA => CLK,      -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "000" & mid_en,   -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"000000" & DIN, -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B: data to output
+        DOB => mid_dob,   -- 32-bit output: B port data output
+        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        CLKB => CLK,      -- 1-bit input: B port clock input
+        ENB => internal_en, -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
+    );
+
+    hiram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 18,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6",
+        WRITE_MODE_A => "READ_FIRST"    -- Averts collisions when reading an address just written to
+    )
+    port map (
+        -- Port A: data from CPU
+        DOA => hi_doa,   -- 32-bit output: A port data output
+        ADDRA => ABUS(10 downto 0) & "000", -- 14-bit input: A port address input: 8-bit output -> 11-bit address
+        CLKA => CLK,      -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "000" & hi_en,   -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"000000" & DIN, -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B: data to output
+        DOB => hi_dob,   -- 32-bit output: B port data output
+        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        CLKB => CLK,      -- 1-bit input: B port clock input
+        ENB => internal_en, -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
+    );
+
+    mapram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 9,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6",
+        WRITE_MODE_A => "READ_FIRST"    -- Averts collisions when reading an address just written to
+    )
+    port map (
+        -- Port A: data from CPU
+        DOA => map_doa,   -- 32-bit output: A port data output
+        ADDRA => ABUS(10 downto 0) & "000", -- 14-bit input: A port address input: 8-bit output -> 11-bit address
+        CLKA => CLK,      -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "000" & map_en,   -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"000000" & DIN, -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B: data to internal bus
+        DOB => map_dob,   -- 32-bit output: B port data output
+        ADDRB => map_sel & map_addr & "000", -- 14-bit input: B port address input: 8-bit output -> 11-bit address
+        CLKB => CLK,      -- 1-bit input: B port clock input
+        ENB => internal_en, -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
+    );
+
 
 end Behaviour;

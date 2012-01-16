@@ -514,16 +514,36 @@
          <obj_property name="ElementShortName">lcdc[7:0]</obj_property>
          <obj_property name="ObjectShortName">lcdc[7:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
       </wvobject>
       <wvobject fp_name="/falledge_tb/ugpu/scy" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">scy[7:0]</obj_property>
          <obj_property name="ObjectShortName">scy[7:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
       </wvobject>
       <wvobject fp_name="/falledge_tb/ugpu/ly" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ly[7:0]</obj_property>
          <obj_property name="ObjectShortName">ly[7:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/lx" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">lx[4:0]</obj_property>
+         <obj_property name="ObjectShortName">lx[4:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/bgshift" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">bgshift[7:0]</obj_property>
+         <obj_property name="ObjectShortName">bgshift[7:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/cs" type="other" db_ref_id="1">
+         <obj_property name="ElementShortName">cs</obj_property>
+         <obj_property name="ObjectShortName">cs</obj_property>
       </wvobject>
       <wvobject fp_name="vbus115" type="vbus" db_ref_id="1">
          <obj_property name="label">Tile Row</obj_property>
@@ -553,47 +573,229 @@
       <wvobject fp_name="group103" type="group">
          <obj_property name="label">Internal</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <wvobject fp_name="/falledge_tb/ugpu/cs" type="other" db_ref_id="1">
-            <obj_property name="ElementShortName">cs</obj_property>
-            <obj_property name="ObjectShortName">cs</obj_property>
-         </wvobject>
          <wvobject fp_name="/falledge_tb/ugpu/ns" type="other" db_ref_id="1">
             <obj_property name="ElementShortName">ns</obj_property>
             <obj_property name="ObjectShortName">ns</obj_property>
-         </wvobject>
-         <wvobject fp_name="/falledge_tb/ugpu/lx" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">lx[4:0]</obj_property>
-            <obj_property name="ObjectShortName">lx[4:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/falledge_tb/ugpu/count" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">count[8:0]</obj_property>
             <obj_property name="ObjectShortName">count[8:0]</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/ugpu/bgshift" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">bgshift[7:0]</obj_property>
-            <obj_property name="ObjectShortName">bgshift[7:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/falledge_tb/ugpu/internal_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">internal_en</obj_property>
+         <obj_property name="ObjectShortName">internal_en</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="CustomSignalColor">#808000</obj_property>
+      </wvobject>
+      <wvobject fp_name="group159" type="group">
+         <obj_property name="label">&lt;-&gt; CPU</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="vbus146" type="vbus" db_ref_id="1">
+            <obj_property name="label">addr</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <wvobject fp_name="/falledge_tb/abus[10]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[10]</obj_property>
+               <obj_property name="ObjectShortName">abus[10]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[9]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[9]</obj_property>
+               <obj_property name="ObjectShortName">abus[9]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[8]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[8]</obj_property>
+               <obj_property name="ObjectShortName">abus[8]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[7]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">abus[7]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[6]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">abus[6]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[5]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">abus[5]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[4]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">abus[4]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[3]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">abus[3]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[2]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">abus[2]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[1]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">abus[1]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/abus[0]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">abus[0]</obj_property>
+            </wvobject>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/ugpu/mapaddr" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">mapaddr[9:0]</obj_property>
-            <obj_property name="ObjectShortName">mapaddr[9:0]</obj_property>
+         <wvobject fp_name="/falledge_tb/ugpu/din" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">din[7:0]</obj_property>
+            <obj_property name="ObjectShortName">din[7:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="CustomSignalColor">#800000</obj_property>
          </wvobject>
-         <wvobject fp_name="/falledge_tb/ugpu/dataddr" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">dataddr[11:0]</obj_property>
-            <obj_property name="ObjectShortName">dataddr[11:0]</obj_property>
+         <wvobject fp_name="vbus189" type="vbus" db_ref_id="1">
+            <obj_property name="label">doa</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[7]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[7]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[6]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[6]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[5]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[5]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[4]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[4]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[3]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[3]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[2]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[2]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[1]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[1]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_doa[0]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">map_doa[0]</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group118" type="group">
+         <obj_property name="label">mapram</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="vbus190" type="vbus" db_ref_id="1">
+            <obj_property name="label">map_dob</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[7]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[7]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[6]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[6]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[5]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[5]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[4]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[4]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[3]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[3]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[2]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[2]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[1]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[1]</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_dob[0]" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">map_dob[0]</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/map_en" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">map_en</obj_property>
+            <obj_property name="ObjectShortName">map_en</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#808000</obj_property>
+         </wvobject>
+         <wvobject fp_name="vbus207" type="vbus" db_ref_id="1">
+            <obj_property name="label">map_addr</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <wvobject fp_name="/falledge_tb/ugpu/map_sel" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">map_sel</obj_property>
+               <obj_property name="ObjectShortName">map_sel</obj_property>
+            </wvobject>
+            <wvobject fp_name="/falledge_tb/ugpu/map_addr" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">map_addr[9:0]</obj_property>
+               <obj_property name="ObjectShortName">map_addr[9:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
          </wvobject>
          <wvobject fp_name="/falledge_tb/ugpu/tileidx" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">tileidx[7:0]</obj_property>
             <obj_property name="ObjectShortName">tileidx[7:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group215" type="group">
+         <obj_property name="label">datram</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/falledge_tb/ugpu/lo_en" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">lo_en</obj_property>
+            <obj_property name="ObjectShortName">lo_en</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#808000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/mid_en" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">mid_en</obj_property>
+            <obj_property name="ObjectShortName">mid_en</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#808000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/hi_en" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">hi_en</obj_property>
+            <obj_property name="ObjectShortName">hi_en</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#808000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/dataddr" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">dataddr[9:0]</obj_property>
+            <obj_property name="ObjectShortName">dataddr[9:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+         </wvobject>
+         <wvobject fp_name="/falledge_tb/ugpu/tilerow" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">tilerow[15:0]</obj_property>
+            <obj_property name="ObjectShortName">tilerow[15:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
          </wvobject>
       </wvobject>
    </wvobject>
