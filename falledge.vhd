@@ -536,6 +536,12 @@ begin
                     when "010" =>   -- Source is RAM or ACC if left column op, otherwise rf
                         case CMD(7 downto 6) is
                             when "00" =>
+                                -- Set the address
+                                if CMD(5) = '0' then
+                                    rf_omux <= "00" & CMD(4);   -- BC or DE
+                                elsif CMD(5) = '1' then             -- Set up incrementing or decrementing HL
+                                    rf_omux <= "010";   -- HL
+                                end if;
                                 case CMD(3) is
                                     when '1' => DMUX <= RAMDATA;
                                     when others => DMUX <= ACCDATA;
