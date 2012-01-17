@@ -61,7 +61,11 @@ begin
     begin
         if (RST = '1') then
             for I in rfile'range loop
-                rfile(I) <= X"DEAD";            -- Initialize registers nonzero, as in reality
+                if I = 4 then
+                    rfile(4) <= X"0000";
+                else
+                    rfile(I) <= X"DEAD";            -- Initialize registers nonzero, as in reality
+                end if;
             end loop;
         elsif (falling_edge(CLK)) then
             for I in rfile'range loop
