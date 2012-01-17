@@ -17,6 +17,7 @@ ARCHITECTURE behavior OF cpu_tb IS
                 WR_D : out std_logic_vector(7 downto 0);
                 RAM_WR : out std_logic;
                 CLK : IN STD_LOGIC;
+                CLK90 : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
@@ -45,6 +46,7 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal ADDRB  : STD_LOGIC_VECTOR(13 downto 0);  -- B port address input
 
     signal CLK : STD_LOGIC;
+    signal CLK90 : STD_LOGIC;
     signal RST : STD_LOGIC;
     signal RAM_OE : STD_LOGIC;
 
@@ -80,7 +82,7 @@ BEGIN
     process(CLK, RST)
     begin
         if RST = '1' then
-            BOOTRAM_VIS <= '1';
+            BOOTRAM_VIS <= '0';
         elsif rising_edge(CLK) then
             if ABUS = X"FF50" and WR_EN = '1' and WR_D = X"01" then
                 BOOTRAM_VIS <= '0';
@@ -96,6 +98,7 @@ BEGIN
         WR_D => WR_D,
         RAM_WR => WR_EN,
         CLK => CLK,
+        CLK90 => CLK90,
         RST => RST
     );
 
@@ -170,7 +173,8 @@ BEGIN
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         -- INIT_00 to INIT_3F: Initial memory contents.
-        INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff0721000000cf40e0913e",
+--      INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff0721000000cf40e0913e",
+        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000002c00",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -260,7 +264,7 @@ BEGIN
         DOA => DOA_CART,  -- 32-bit output: A port data output
 --      DOPA => DOPA,     -- 4-bit output: A port parity output
         ADDRA => ADDRA,   -- 14-bit input: A port address input
-        CLKA => CLK,      -- 1-bit input: A port clock input
+        CLKA => CLK90,    -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input
@@ -679,9 +683,13 @@ BEGIN
     clk_process : process
     begin
         clk <= '0';
-        wait for clk_period/2;
+        wait for clk_period/4;
+        clk90 <= '1';
+        wait for clk_period/4;
         clk <= '1';
-        wait for clk_period/2;
+        wait for clk_period/4;
+        clk90 <= '0';
+        wait for clk_period/4;
     end process;
 
 

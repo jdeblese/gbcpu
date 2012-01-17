@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="18" />
+   <WVObjectSize size="20" />
    <wave_markers>
       <marker time="3808460000000" label="" />
    </wave_markers>
@@ -33,6 +33,14 @@
    <wvobject fp_name="/cpu_tb/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="CustomSignalColor">#ffffff</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cpu_tb/uut/clk90" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk90</obj_property>
+      <obj_property name="ObjectShortName">clk90</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="CustomSignalColor">#ffffff</obj_property>
    </wvobject>
    <wvobject fp_name="/cpu_tb/uut/mcmd" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">mcmd[51:0]</obj_property>
@@ -47,6 +55,19 @@
       <obj_property name="Radix">HEXRADIX</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="CustomSignalColor">#ffa500</obj_property>
+   </wvobject>
+   <wvobject fp_name="vbus188" type="vbus" db_ref_id="1">
+      <obj_property name="label">mc_data[35:0]</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/cpu_tb/uut/mc_par" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">mc_par[3:0]</obj_property>
+         <obj_property name="ObjectShortName">mc_par[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/cpu_tb/uut/mc_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">mc_data[31:0]</obj_property>
+         <obj_property name="ObjectShortName">mc_data[31:0]</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="/cpu_tb/uut/amux" type="other" db_ref_id="1">
       <obj_property name="ElementShortName">amux</obj_property>
