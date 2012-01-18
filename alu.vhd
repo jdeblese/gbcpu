@@ -120,7 +120,7 @@ begin
     begin
         if RST = '1' then
             ODATA <= X"EE";
-        elsif falling_edge(CLK) and CE = '1' then
+        elsif rising_edge(CLK) and CE = '1' then
             z_en <= '1';
             ZOUT <= ZIN;
             NOUT <= NIN;

@@ -67,7 +67,7 @@ begin
                     rfile(I) <= X"DEAD";            -- Initialize registers nonzero, as in reality
                 end if;
             end loop;
-        elsif (falling_edge(CLK)) then
+        elsif rising_edge(CLK) then
             for I in rfile'range loop
                 if ( imux = I ) then
                     case ce is

@@ -149,7 +149,7 @@ begin
     begin
         if RST = '1' then
             acc <= X"EE";
-        elsif falling_edge(CLK) then
+        elsif rising_edge(CLK) then
             if acc_ce = '1' then
                 acc <= DBUS;
             end if;
@@ -160,7 +160,7 @@ begin
     begin
         if (RST = '1') then
             tmp <= "00000000";
-        elsif (falling_edge(CLK)) then
+        elsif (rising_edge(CLK)) then
             if (tmp_ce = '1') then
                 tmp <= DBUS;
             end if;
@@ -171,7 +171,7 @@ begin
     begin
         if (RST = '1') then
             unq <= "00000000";
-        elsif (falling_edge(CLK)) then
+        elsif (rising_edge(CLK)) then
             if (unq_ce = '1') then
                 unq <= DBUS;
             end if;
@@ -182,21 +182,22 @@ begin
     begin
         if (RST = '1') then
             CMD <= "00000000";
-        elsif (falling_edge(CLK)) then
+        elsif (rising_edge(CLK)) then
             if (CMD_CE = '1') then
                 CMD <= DBUS;
             end if;
         end if;
     end process;
 
-    mcmd_proc : process(CLK, RST)
-    begin
-        if RST = '1' then
-            mcmd <= "000000000000000000000000000000000000000000000000000000000000000111111111"; -- JMP FF micro-op
-        elsif falling_edge(CLK) then
-            mcmd <= mc_par2 & mc_data2 & mc_par1 & mc_data1; -- mbus
-        end if;
-    end process;
+--  mcmd_proc : process(CLK, RST)
+--  begin
+--      if RST = '1' then
+--          mcmd <= "000000000000000000000000000000000000000000000000000000000000000111111111"; -- JMP FF micro-op
+--      elsif rising_edge(CLK) then
+--          mcmd <= mc_par2 & mc_data2 & mc_par1 & mc_data1; -- mbus
+--      end if;
+--  end process;
+    mcmd <= mc_par2 & mc_data2 & mc_par1 & mc_data1;
 
     -- Signal Routing --
 
@@ -209,26 +210,24 @@ begin
             tmp & unq when AMUX = TMP16ADDR else
             X"0000";
 
-    DBUS <= rf_odata    when DMUX = "001" else
+    DBUS <= RAM         when DMUX = "000" else
+            rf_odata    when DMUX = "001" else
             acc         when DMUX = "010" else
+            ALU_ODATA   when DMUX = "011" else
             tmp         when DMUX = "100" else
             unq         when DMUX = "101" else
-            RAM         when DMUX = "000" else
-            ALU_ODATA   when DMUX = "011" else
             FIXED       when DMUX = "110" else
             X"00";
 
-    caddr <= X"40" when dbus(7 downto 5) = "010" else
-             X"40" when dbus(7 downto 4) = "0110" else
-             X"80" when dbus(7 downto 5) = "100" else
-             X"80" when dbus(7 downto 4) = "1010" else
-             dbus;
+    caddr <= X"40" when cmd(7 downto 5) = "010" else
+             X"40" when cmd(7 downto 4) = "0110" else
+             X"80" when cmd(7 downto 5) = "100" else
+             X"80" when cmd(7 downto 4) = "1010" else
+             cmd;
 
     mc_addr(8) <= mcmd(8);
-    mc_addr(7 downto 0) <= mcmd(7 downto 0) when mcmd(10 downto 9) = "00" else
-                           zflag & cflag & mcmd(5 downto 0) when mcmd(10 downto 9) = "01" else
-                           caddr when mcmd(10 downto 9) = "10" else
-                           X"00";
+    mc_addr(7 downto 0) <= mcmd(7 downto 0) when mcmd(10) = '0' else
+                           caddr;
 
     rf_omux <= mcmd(13 downto 11);
 
@@ -279,15 +278,15 @@ begin
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         --           |------||------||------||------||------||------||------||------|
-        INIT_00 => X"00000000000000000000000000000000000000000000000000000000000001fd",
+        INIT_00 => X"00000000000000000000000000000000000000000000000000000000000021fd",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_04 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_05 => X"0000000000000000000000008b00004000000000000000000000000000000000",
+        INIT_05 => X"0000000000000000000000008b00204000000000000000000000000000000000",
         INIT_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_08 => X"00000000000000000000000000000000000000000000000000000000001101fe", -- 040h
+        INIT_08 => X"00000000000000000000000000000000000000000000000000000000001061fe", -- 040h
         INIT_09 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_0A => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_0B => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -342,7 +341,9 @@ begin
         INIT_3C => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_3D => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_3E => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_3F => X"007e2400000001ff000001fe000001fd000001fc000001fb000001fa000001f9",
+        INIT_3F => X"003e2400000021ff000021fe000001fd000001fc000001fb000001fa000001f9",
+        --           |------||------||------||------||------||------||------||------|
+        SRVAL_A => X"000000000",  -- Initial instruction is 'JMP 000'
         INIT_FILE => "NONE",
         RSTTYPE => "SYNC",
         RST_PRIORITY_A => "CE",
@@ -358,7 +359,7 @@ begin
         CLKA => CLK,      -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
-        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        RSTA => RST,      -- 1-bit input: A port register set/reset input
         WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
         DIA => X"00000000", -- 32-bit input: A port data input
         DIPA => "0000",   -- 4-bit input: A port parity input
@@ -390,7 +391,7 @@ begin
         INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         --           |------||------||------||------||------||------||------||------|
-        INIT_00 => X"00000000000000000000000000000000000000000000000000000000000001fd",
+        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -453,7 +454,8 @@ begin
         INIT_3C => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_3D => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_3E => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_3F => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_3F => X"0000000000000001000000000000000000000000000000000000000000000000",
+        --           |------||------||------||------||------||------||------||------|
         INIT_FILE => "NONE",
         RSTTYPE => "SYNC",
         RST_PRIORITY_A => "CE",
@@ -469,7 +471,7 @@ begin
         CLKA => CLK,      -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
-        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        RSTA => RST,      -- 1-bit input: A port register set/reset input
         WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
         DIA => X"00000000", -- 32-bit input: A port data input
         DIPA => "0000",   -- 4-bit input: A port parity input

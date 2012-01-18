@@ -174,7 +174,7 @@ BEGIN
         INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
         -- INIT_00 to INIT_3F: Initial memory contents.
 --      INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff0721000000cf40e0913e",
-        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000002c00",
+        INIT_00 => X"00000000000000000000000000000000000000000000000000000000002c2c00",
         INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -264,7 +264,7 @@ BEGIN
         DOA => DOA_CART,  -- 32-bit output: A port data output
 --      DOPA => DOPA,     -- 4-bit output: A port parity output
         ADDRA => ADDRA,   -- 14-bit input: A port address input
-        CLKA => CLK90,    -- 1-bit input: A port clock input
+        CLKA => CLK,      -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input
