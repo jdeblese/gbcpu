@@ -250,21 +250,6 @@ begin
     acc_ce <= mcmd(39);
     DMUX <= mcmd(42 downto 40);
 
-    -- Delay Timing --
-
-    wait_proc : process(CLK, RST)
-    begin
-        if rst = '1' then
-            waits <= "00000";
-        elsif falling_edge(clk) then
-            if CS = RUN then
-                waits <= tics;
-            else
-                waits <= waits - "00001";
-            end if;
-        end if;
-    end process;
-
     -- Defaults --
 
     AMUX <= RFADDR;     -- Address from rf
