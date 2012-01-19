@@ -2,6 +2,9 @@
 
 import sys,re
 
+start = re.compile("([0-9a-fA-F]+)[ \t]+(.*)$")
+set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][ \t]*([,;]?))[ \t]*(.*)$")
+  
 maxnib = 64 * 64
 maxpar = 64 * 8
 
@@ -24,27 +27,49 @@ bank = {"next" : (0, 10),
 data = [0] * (maxnib / nnib)
 parity = [0] * maxpar
 
-line = '  10 next <= X"3ff", cmdjmp <= \'1\', test <= "101";  \n'
+fd = open(sys.argv[1])
+line = fd.readline()
+linecount = 1
+# print line
+while len(line) > 0 :
+  line = line.strip() 
+  loc,rest = start.match(line).groups()
+# print loc
+  setcount = 0;
+  while rest != '' :
+    setcount += 1;
+    try :
+      all,key,ty,val,delim,rest = set.match(rest).groups()
+    except AttributeError :
+      raise RuntimeError("Syntax error on line %d, value %d"%(linecount, setcount))
+#   sys.stdout.write( "  %s = %s%s (%s)"%(key,val,delim,ty) )
+    if ty == '' :
+      val = int(val, 2)
+    else :
+      val = int(val, 16)
+    val *= 2**bank[key][0]
+    dval = val % maxdval
+    pval = val / maxdval
+    addr = int(loc,16)
+    if addr >= maxnib / nnib :
+      raise RuntimeError("Address exceeds bit range, maximum is %x"%(maxnib/nnib-1,))
+    data[addr] += dval;
+    parity[addr * npar / 4] += pval;
+#   sys.stdout.write( "  ->  %1.1x"%parity[addr * npar / 4] )
+#   sys.stdout.write( (" %%%d.%dx"%(nnib,nnib))%data[addr] + '\n' )
+  # print data[char:char+nnib]
+ 
+  line = fd.readline()
+  linecount += 1
+  if line == '\n' :
+    line = fd.readline()
+    linecount += 1
+# print line
 
-start = re.compile("([0-9]+)[ \t]+(.*)$")
-set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][ \t]*([,;]?))[ \t]*(.*)$")
-
-line = line.strip()
-loc,rest = start.match(line).groups()
-print loc
-while rest != '' :
-  all,key,ty,val,delim,rest = set.match(rest).groups()
-  sys.stdout.write( "  %s = %s%s (%s)"%(key,val,delim,ty) )
-  char = int(loc) * 64
-  if ty == '' :
-    val = int(val, 2)
+for l in range(0, 64) :
+  if l == 0 :
+    out = data[64/nnib-1::-1]
   else :
-    val = int(val, 16)
-  val *= 2**bank[key][0]
-  dval = val % maxdval
-  pval = val / maxdval
-  data[int(loc,16)] += dval;
-  parity[int(loc,16) * npar / 4] += pval;
-  sys.stdout.write( "  ->  %1.1x"%parity[int(loc,16) * npar / 4] )
-  sys.stdout.write( (" %%%d.%dx"%(nnib,nnib))%data[int(loc,16)] + '\n' )
-# print data[char:char+nnib]
+    out = data[(l+1)*64/nnib-1:l*64/nnib-1:-1]
+
+  print ''.join(map(lambda n: ("%%%d.%dx"%(nnib,nnib))%n, out))
