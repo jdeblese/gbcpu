@@ -4,7 +4,7 @@ import sys,re
 
 start = re.compile("([0-9a-fA-F]+)[ \t]+(.*)$")
 set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][ \t]*([,;]?))[ \t]*(.*)$")
-  
+
 maxnib = 64 * 64
 maxpar = 64 * 8
 
@@ -42,7 +42,7 @@ while line != '' and (line == '\n' or line[0] == ';') :
   linecount += 1
 
 while len(line) > 0 :
-  line = line.strip() 
+  line = line.strip()
   loc,rest = start.match(line).groups()
   setcount = 0;
   while rest != '' :
