@@ -104,12 +104,14 @@ architecture Behaviour of alu is
     signal arith : std_logic_vector(7 downto 0);                -- concatenation of nibbles
     signal logic : std_logic_vector(7 downto 0);                -- ACC and/or/xor IDATA
     signal shifted : std_logic_vector(7 downto 0);
+    signal bitmod : std_logic_vector(7 downto 0);
 
     signal z_en : std_logic;
 
     signal targetbit : std_logic;
     signal zflag : std_logic;
     signal cflag, hflag : std_logic;
+    signal cbit : std_logic;
 
 begin
 
@@ -117,18 +119,20 @@ begin
     process(CMD)
         variable int : std_logic_vector(7 downto 0);
     begin
-        with CMD(5 downto 3) select
-            int := arith when "000",
-                   arith when "001",
-                   logic when "010",      -- AND OR XOR CPL
-                   shifted when "100",    -- Shifts
-                   bitmod when "110",     -- RES
-                   bitmod when "111",     -- SET
-                   IDATA when others;     -- passthrough fallback
+        case CMD(5 downto 3) is
+            when "000" => int := arith;
+            when "001" => int := arith;
+            when "010" => int := logic;
+            when "100" => int := shifted;
+            when "110" => int := bitmod;
+            when "111" => int := bitmod;
+            when others => int := IDATA;
+        end case;
 
-        with int select
-            zflag <= '1' when X"00",
-                     '0' when others;
+        case int is
+            when X"00" => zflag <= '1';
+            when others => zflag <= '0';
+        end case;
 
         ODATA <= int;
     end process;
@@ -216,7 +220,7 @@ begin
 
     process(CMD)
     begin
-        if CMD(5 downto 4) == "00" and CMD(2 downto 1) /= "00" then
+        if CMD(5 downto 4) = "00" and CMD(2 downto 1) /= "00" then
             NOUT <= '1';
         elsif CMD = "010011" then
             NOUT <= '1';
@@ -233,7 +237,7 @@ begin
     begin
         if CMD(5 downto 3) = "000" then
             HOUT <= hflag;
-        if CMD(5 downto 3) = "101" then
+        elsif CMD(5 downto 3) = "101" then
             HOUT <= '1';
         elsif CMD = "010000" or CMD = "010011" then
             HOUT <= '1';

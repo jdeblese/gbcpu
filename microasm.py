@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys,re
+from copy import copy
 
 start = re.compile("([0-9a-fA-F]+)[ \t]+(.*)$")
 set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][ \t]*([,;]?))[ \t]*(.*)$")
@@ -8,7 +9,7 @@ set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][
 maxnib = 64 * 64
 maxpar = 64 * 8
 
-nbits = 36;
+nbits = 18;
 
 if nbits == 36 :
   nnib = 8
@@ -20,19 +21,29 @@ else :
 
 maxdval = 2**(nnib * 4)
 
-bank = {"next" : (0, 9),
-        "cmdjmp" : (10, 1),
-        "rf_omux" : (11, 3),
-        "rf_imuxsel" : (14, 1),
-        "rf_imux" : (15, 3),
-        "rf_amux" : (18, 2),
-        "rf_ce" : (20, 2),
-        "alu_cmd" : (22, 9),
-        "alu_ce" : (31, 1),
-        "rf_dmux" : (32, 4) }
+bank = {"next" : (0, 10, 0),
+        "cmdjmp" : (10, 1, 0),
+        "rf_dmux" : (0, 4, 1),
+        "rf_imux" : (4, 3, 1),
+        "rf_imuxsel" : (7, 1, 1),
+        "rf_ce" : (8, 2, 1),
+        "rf_amux" : (10, 2, 1),
+        "rf_omux" : (12, 3, 1),
+        "rf_omuxsel" : (15, 1, 1),
+        "alu_cmd" : (0, 6, 2),
+        "alu_ce" : (6, 1, 2),
+        "cmd_ce" : (8, 1, 2),
+        "acc_ce" : (9, 1, 2),
+        "tmp_ce" : (10, 1, 2),
+        "unq_ce" : (11, 1, 2),
+        "wr_en" : (12, 1, 2),
+        "dmux" : (13, 3, 2),
+        "amux" : (16, 2, 2) }
 
 data = [0] * (maxnib / nnib)
+data = (data, copy(data), copy(data))
 parity = [0] * maxpar
+parity = (parity, copy(parity), copy(parity))
 
 fd = open(sys.argv[1])
 line = fd.readline()
@@ -61,8 +72,8 @@ while len(line) > 0 :
     addr = int(loc,16)
     if addr >= maxnib / nnib :
       raise RuntimeError("Address exceeds bit range, maximum is %x"%(maxnib/nnib-1,))
-    data[addr] += dval;
-    parity[addr * npar / 4] += pval;
+    data[bank[key][2]][addr] += dval;
+    parity[bank[key][2]][addr * npar / 4] += pval;
 
   line = fd.readline()
   linecount += 1
@@ -70,18 +81,23 @@ while len(line) > 0 :
     line = fd.readline()
     linecount += 1
 
-for l in range(0, 64) :
-  if l == 0 :
-    out = data[64/nnib-1::-1]
-  else :
-    out = data[(l+1)*64/nnib-1:l*64/nnib-1:-1]
 
-  print 'INIT_%2.2X => X"'%l + ''.join(map(lambda n: ("%%%d.%dx"%(nnib,nnib))%n, out)) + '"'
+for b in range(0, 3) :
+  print "---------- BANK %d ----------"%(b,)
+  print "--- Signals: " + ', '.join( filter(lambda k: bank[k][2] == b, bank.keys()) )
+  for l in range(0, 8) :
+    if l == 0 :
+      out = parity[b][63::-1]
+    else :
+      out = parity[b][(l+1)*64-1:l*64-1:-1]
 
-for l in range(0, 8) :
-  if l == 0 :
-    out = parity[63::-1]
-  else :
-    out = parity[(l+1)*64-1:l*64-1:-1]
+    print '        INITP_%2.2X => X"'%l + ''.join(map(lambda n: "%1.1x"%n, out)) + '", -- %2.2xh'%(l*64*npar/4,)
+  for l in range(0, 64) :
+    if l == 0 :
+      out = data[b][64/nnib-1::-1]
+    else :
+      out = data[b][(l+1)*64/nnib-1:l*64/nnib-1:-1]
 
-  print 'INITP_%2.2X => X"'%l + ''.join(map(lambda n: "%1.1x"%n, out)) + '"'
+    print '        INIT_%2.2X => X"'%l + ''.join(map(lambda n: ("%%%d.%dx"%(nnib,nnib))%n, out)) + '", -- %3.3xh'%(l*64/nnib,)
+
+  print "----------------------------"
