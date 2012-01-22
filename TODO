@@ -1,3 +1,4 @@
+* Reimplement 8-bit flags
 * Add a RD_EN output for accessing cartridge ram
 * Implement 16-bit flags
 * Finish implementing opcodes
