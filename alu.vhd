@@ -18,7 +18,7 @@ use UNISIM.VComponents.all;
 -- Reduced opcode map:
 --      000  001  010  011  100  101  110  111
 -- 000  ADD  ADC  SUB  SBC             CP
--- 001  INC                           DEC
+-- 001  INC                 DEC
 -- 010  AND   OR  XOR  CPL
 -- 011  DAA       SCF  CCF
 -- 100  RLC   RL  RRC   RR  SLA  SRA  SRL  SWP
@@ -29,7 +29,7 @@ use UNISIM.VComponents.all;
 -- Zero flag map:
 --      000  001  010  011  100  101  110  111
 -- 000   z    z    z    z              z
--- 001   z                             z
+-- 001   z                   z
 -- 010   z    z    z    -
 -- 011   z         -    -
 -- 100   z    z    z    z    z    z    z    z
@@ -40,7 +40,7 @@ use UNISIM.VComponents.all;
 -- Negative flag map:
 --      000  001  010  011  100  101  110  111
 -- 000   0    0    1    1              1
--- 001   0                             1
+-- 001   0                   1
 -- 010   0    0    0    1
 -- 011   -         0    0
 -- 100   0    0    0    0    0    0    0    0
@@ -51,7 +51,7 @@ use UNISIM.VComponents.all;
 -- Half flag map:
 --      000  001  010  011  100  101  110  111
 -- 000   h    h    h    h              h
--- 001   h                             h
+-- 001   h                   h
 -- 010   1    0    0    1
 -- 011   0         0    0
 -- 100   0    0    0    0    0    0    0    0
@@ -62,7 +62,7 @@ use UNISIM.VComponents.all;
 -- Carry flag map:
 --      000  001  010  011  100  101  110  111
 -- 000   c    c    c    c              c
--- 001   -                             -
+-- 001   -                   -
 -- 010   0    0    0    -
 -- 011   c         1    ~
 -- 100   b    b    b    b    b    b    b    0
@@ -247,7 +247,7 @@ begin
         if RST = '1' then
             HOUT <= '0';
         elsif rising_edge(CLK) and CE = '1' then
-            if CMD(5 downto 3) = "000" then
+            if CMD(5 downto 4) = "00" then
                 HOUT <= hflag;
             elsif CMD(5 downto 3) = "101" then
                 HOUT <= '1';

@@ -3,3 +3,4 @@
 * Implement 16-bit flags
 * Finish implementing opcodes
 * De-optimize where possible, saving hardware at the cost of wait states
+* Modify microcompiler to check for duplicate micro-ops

@@ -25,6 +25,8 @@ bank = {"next" : (0, 10, 0),
         "cmdjmp" : (10, 1, 0),
         "flsel" : (12, 1, 0),
         "fljmp" : (13, 1, 0),
+        "flagsrc" : (11, 1, 0),
+        "znhc" : (14, 4, 0),
         "rf_dmux" : (0, 4, 1),
         "rf_imux" : (4, 3, 1),
         "rf_imuxsel" : (7, 1, 1),
@@ -69,13 +71,17 @@ while len(line) > 0 :
     else :
       val = int(val, 16)
     val *= 2**bank[key][0]
-    dval = val % maxdval
-    pval = val / maxdval
+
     addr = int(loc,16)
+    dval = val % maxdval
+
+    paddr = addr * npar / 4
+    pval = val / maxdval * 2**(2*(addr%2))
+
     if addr >= maxnib / nnib :
       raise RuntimeError("Address exceeds bit range, maximum is %x"%(maxnib/nnib-1,))
     data[bank[key][2]][addr] += dval;
-    parity[bank[key][2]][addr * npar / 4] += pval;
+    parity[bank[key][2]][paddr] += pval;
 
   line = fd.readline()
   linecount += 1
@@ -93,7 +99,7 @@ for b in range(0, 3) :
     else :
       out = parity[b][(l+1)*64-1:l*64-1:-1]
 
-    print '        INITP_%2.2X => X"'%l + ''.join(map(lambda n: "%1.1x"%n, out)) + '", -- %2.2xh'%(l*64*npar/4,)
+    print '        INITP_%2.2X => X"'%l + ''.join(map(lambda n: "%1.1x"%n, out)) + '", -- %2.2xh'%(l*64*4/npar,)
   for l in range(0, 64) :
     if l == 0 :
       out = data[b][64/nnib-1::-1]

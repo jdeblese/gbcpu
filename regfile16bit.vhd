@@ -15,6 +15,10 @@ entity regfile16bit is
             dmux : in std_logic_vector(3 downto 0);     -- Source 8-bit register selector to odata
             amux : in std_logic_vector(1 downto 0);     -- Second operand selector (Sign extended idata, HL, -1, +1, 0...)
             ce : in std_logic_vector(1 downto 0);       -- Clock enable and 8/16-bit selector for register input (-, lsB, msB, 16-bit)
+            zout : out std_logic;
+            nout : out std_logic;
+            hout : out std_logic;
+            cout : out std_logic;
             CLK : IN STD_LOGIC;
             RST : IN STD_LOGIC );
 end regfile16bit;
@@ -26,7 +30,13 @@ architecture Behaviour of regfile16bit is
 
     signal obus, abus : std_logic_vector(15 downto 0);
 
+    signal sum : std_logic_vector(15 downto 0);
+
 begin
+
+    -- Flags Z and N are either reset or left unchanged
+    ZOUT <= '0';
+    NOUT <= '0';
 
     with omux select
         obus <= rfile(0) when "000",    -- BC
@@ -58,6 +68,8 @@ begin
     addr <= obus;
 
     REGFILE_IN : process(CLK, RST, ce)
+        variable lo : std_logic_vector(12 downto 0);
+        variable hi : std_logic_vector(4 downto 0);
     begin
         if (RST = '1') then
             for I in rfile'range loop
@@ -71,7 +83,12 @@ begin
             for I in rfile'range loop
                 if ( imux = I ) then
                     case ce is
-                        when "11" => rfile(I) <= obus + abus;           -- 16-bit path into 16-bit register
+                        when "11" =>                                    -- 16-bit path into 16-bit register
+                            lo := ('0' & obus(11 downto 0)) + ('0' & abus(11 downto 0));                        -- lower 3 nibbles
+                            hi := ('0' & obus(15 downto 12)) + ('0' & abus(15 downto 12)) + ("0000" & lo(12));  -- high nibble
+                            rfile(I) <= hi(3 downto 0) & lo(11 downto 0);
+                            HOUT <= lo(12);
+                            COUT <= hi(4);
                         when "10" => rfile(I)(15 downto 8) <= idata;    -- IDATA into msB
                         when "01" => rfile(I)(7 downto 0) <= idata;     -- IDATA into lsB
                         when others => null;                            -- NOP

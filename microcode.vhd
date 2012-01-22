@@ -52,7 +52,8 @@ architecture FSM of microcode is
     signal acc_ce : std_logic;
 
     signal cflag, zflag, hflag, nflag : std_logic;
-    signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
+    signal cf_en, zf_en, hf_en, nf_en : std_logic;
+    signal flagsrc : std_logic;
 
     signal caddr : std_logic_vector(7 downto 0);
 
@@ -72,6 +73,10 @@ architecture FSM of microcode is
     signal rf_dmux : std_logic_vector(3 downto 0);
     signal rf_amux : std_logic_vector(1 downto 0);
     signal rf_ce : std_logic_vector(1 downto 0);
+    signal rf_zout : std_logic;
+    signal rf_nout : std_logic;
+    signal rf_hout : std_logic;
+    signal rf_cout : std_logic;
 
     signal ALU_ODATA   : std_logic_vector(7 downto 0);
     signal ALU_CE      : std_logic;
@@ -96,6 +101,10 @@ architecture FSM of microcode is
                 dmux : in std_logic_vector(3 downto 0);
                 amux : in std_logic_vector(1 downto 0);
                 ce : in std_logic_vector(1 downto 0);
+                zout : out std_logic;
+                nout : out std_logic;
+                hout : out std_logic;
+                cout : out std_logic;
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     end component;
@@ -132,7 +141,7 @@ begin
     -- Internal Blocks --
 
     urf : regfile16bit
-        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, CLK, RST);
+        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, rf_zout, rf_nout, rf_hout, rf_cout, CLK, RST);
 
     ualu : alu
         port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
@@ -186,6 +195,44 @@ begin
         end if;
     end process;
 
+    process(CLK, RST)
+    begin
+        if (RST = '1') then
+            zflag <= '0';
+            nflag <= '0';
+            hflag <= '0';
+            cflag <= '0';
+        elsif rising_edge(CLK) then
+            if flagsrc = '0' then
+                if zf_en = '1' then
+                    zflag <= alu_zout;
+                end if;
+                if nf_en = '1' then
+                    nflag <= alu_nout;
+                end if;
+                if hf_en = '1' then
+                    hflag <= alu_hout;
+                end if;
+                if cf_en = '1' then
+                    cflag <= alu_cout;
+                end if;
+            else
+                if zf_en = '1' then
+                    zflag <= rf_zout;
+                end if;
+                if nf_en = '1' then
+                    nflag <= rf_nout;
+                end if;
+                if hf_en = '1' then
+                    hflag <= rf_hout;
+                end if;
+                if cf_en = '1' then
+                    cflag <= rf_cout;
+                end if;
+            end if;
+        end if;
+    end process;
+
     -- Signal Routing --
 
     rf_idata <= DBUS;
@@ -222,6 +269,12 @@ begin
                       zflag when "11",
                       mc_data0(8) when others;
 
+    flagsrc <= mc_data0(11);
+    zf_en <= mc_par0(1);
+    nf_en <= mc_par0(0);
+    hf_en <= mc_data0(15);
+    cf_en <= mc_data0(14);
+
     -- Bank 1
     rf_dmux <= mc_data1(3 downto 0);
     rf_imux <= mc_data1(6 downto 4) when mc_data1(7) = '0' else
@@ -233,7 +286,7 @@ begin
 
     -- Bank 2
     alu_cmd <= mc_data2(5 downto 0);
-    alu_ce <= mc_data2(7);
+    alu_ce <= mc_data2(6);
     cmd_ce <= mc_data2(8);
     acc_ce <= mc_data2(9);
     tmp_ce <= mc_data2(10);
@@ -248,11 +301,6 @@ begin
     RAM_OE <= '1';      -- RAM on DBUS
 
     FIXED <= X"00";
-
-    cflag <= '0';
-    hflag <= '0';
-    zflag <= '0';
-    nflag <= '0';
 
     -- Microcode Memory --
     umicro0 : RAMB16BWER
