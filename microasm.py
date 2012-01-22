@@ -61,7 +61,7 @@ while len(line) > 0 :
     try :
       all,key,ty,val,delim,rest = set.match(rest).groups()
     except AttributeError :
-      raise RuntimeError("Syntax error on line %d, value %d"%(linecount, setcount))
+      raise RuntimeError('Syntax error on line %d, value %d, rest was "%s"'%(linecount, setcount, rest))
     if ty == '' :
       val = int(val, 2)
     else :
