@@ -32,10 +32,6 @@ architecture FSM of microcode is
 
     signal CS, NS: STATE_TYPE;
 
-    -- For wait cycles
-    signal waits : STD_LOGIC_VECTOR(4 downto 0);
-    signal tics  : STD_LOGIC_VECTOR(4 downto 0);
-
     signal DMUX : std_logic_vector(2 downto 0);
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
     signal FIXED : STD_LOGIC_VECTOR(7 downto 0);
@@ -58,7 +54,6 @@ architecture FSM of microcode is
     signal cflag, zflag, hflag, nflag : std_logic;
     signal cf_ce, zf_ce, hf_ce, nf_ce : std_logic;
 
-    signal mcmd : std_logic_vector(71 downto 0);
     signal caddr : std_logic_vector(7 downto 0);
 
     signal mc_addr : std_logic_vector(9 downto 0);
@@ -191,16 +186,6 @@ begin
         end if;
     end process;
 
---  mcmd_proc : process(CLK, RST)
---  begin
---      if RST = '1' then
---          mcmd <= "000000000000000000000000000000000000000000000000000000000000000111111111"; -- JMP FF micro-op
---      elsif rising_edge(CLK) then
---          mcmd <= mc_par2 & mc_data1 & mc_par1 & mc_data0; -- mbus
---      end if;
---  end process;
-    mcmd <= mc_par2 & mc_data1 & mc_par1 & mc_data0;
-
     -- Signal Routing --
 
     rf_idata <= DBUS;
@@ -256,8 +241,6 @@ begin
 
     AMUX <= RFADDR;     -- Address from rf
     RAM_OE <= '1';      -- RAM on DBUS
-
-    tics <= "00000";
 
     FIXED <= X"00";
 

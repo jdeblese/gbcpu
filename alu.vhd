@@ -116,25 +116,30 @@ architecture Behaviour of alu is
 begin
 
     -- Primary routing
-    process(CMD)
+    process(RST, CLK, CE)
         variable int : std_logic_vector(7 downto 0);
     begin
-        case CMD(5 downto 3) is
-            when "000" => int := arith;
-            when "001" => int := arith;
-            when "010" => int := logic;
-            when "100" => int := shifted;
-            when "110" => int := bitmod;
-            when "111" => int := bitmod;
-            when others => int := IDATA;
-        end case;
+        if RST = '1' then
+            ODATA <= X"00";
+            zflag <= '0';
+        elsif rising_edge(CLK) and CE = '1' then
+            case CMD(5 downto 3) is
+                when "000" => int := arith;
+                when "001" => int := arith;
+                when "010" => int := logic;
+                when "100" => int := shifted;
+                when "110" => int := bitmod;
+                when "111" => int := bitmod;
+                when others => int := X"00";
+            end case;
 
-        case int is
-            when X"00" => zflag <= '1';
-            when others => zflag <= '0';
-        end case;
+            case int is
+                when X"00" => zflag <= '1';
+                when others => zflag <= '0';
+            end case;
 
-        ODATA <= int;
+            ODATA <= int;
+        end if;
     end process;
 
 --  with CMD(5 downto 3) select
@@ -218,14 +223,18 @@ begin
         ZOUT <= not targetbit when "100",
                 zflag when others;
 
-    process(CMD)
+    process(RST, CLK, CE)
     begin
-        if CMD(5 downto 4) = "00" and CMD(2 downto 1) /= "00" then
-            NOUT <= '1';
-        elsif CMD = "010011" then
-            NOUT <= '1';
-        else
+        if RST = '1' then
             NOUT <= '0';
+        elsif rising_edge(CLK) and CE = '1' then
+            if CMD(5 downto 4) = "00" and CMD(2 downto 1) /= "00" then
+                NOUT <= '1';
+            elsif CMD = "010011" then
+                NOUT <= '1';
+            else
+                NOUT <= '0';
+            end if;
         end if;
     end process;
 
@@ -233,16 +242,20 @@ begin
         hflag <= niblo(4) when '0',
                  not niblo(4) when others;
 
-    process(CMD)
+    process(RST, CLK, CE)
     begin
-        if CMD(5 downto 3) = "000" then
-            HOUT <= hflag;
-        elsif CMD(5 downto 3) = "101" then
-            HOUT <= '1';
-        elsif CMD = "010000" or CMD = "010011" then
-            HOUT <= '1';
-        else
+        if RST = '1' then
             HOUT <= '0';
+        elsif rising_edge(CLK) and CE = '1' then
+            if CMD(5 downto 3) = "000" then
+                HOUT <= hflag;
+            elsif CMD(5 downto 3) = "101" then
+                HOUT <= '1';
+            elsif CMD = "010000" or CMD = "010011" then
+                HOUT <= '1';
+            else
+                HOUT <= '0';
+            end if;
         end if;
     end process;
 
@@ -250,20 +263,24 @@ begin
         cflag <= nibhi(4) when '0',
                  not nibhi(4) when others;
 
-    process(CMD, cbit, CIN)
+    process(RST, CLK, CE)
     begin
-        if CMD(5 downto 3) = "000" then
-            COUT <= cflag;
-        elsif CMD = "011000" then
-            COUT <= cflag;
-        elsif CMD(5 downto 3) = "100" then
-            COUT <= cbit;
-        elsif CMD = "011010" then
-            COUT <= '1';
-        elsif CMD = "011011" then
-            COUT <= not CIN;
-        else
+        if RST = '1' then
             COUT <= '0';
+        elsif rising_edge(CLK) and CE = '1' then
+            if CMD(5 downto 3) = "000" then
+                COUT <= cflag;
+            elsif CMD = "011000" then
+                COUT <= cflag;
+            elsif CMD(5 downto 3) = "100" then
+                COUT <= cbit;
+            elsif CMD = "011010" then
+                COUT <= '1';
+            elsif CMD = "011011" then
+                COUT <= not CIN;
+            else
+                COUT <= '0';
+            end if;
         end if;
     end process;
 
