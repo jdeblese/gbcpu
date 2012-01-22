@@ -23,6 +23,8 @@ maxdval = 2**(nnib * 4)
 
 bank = {"next" : (0, 10, 0),
         "cmdjmp" : (10, 1, 0),
+        "flsel" : (12, 1, 0),
+        "fljmp" : (13, 1, 0),
         "rf_dmux" : (0, 4, 1),
         "rf_imux" : (4, 3, 1),
         "rf_imuxsel" : (7, 1, 1),

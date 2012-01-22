@@ -6,9 +6,25 @@
 
 ; TODO: STOP
 
-; checking of flags is missing from microcpu
-; TODO: JRNZ n
-; TODO: JRNC n
+; JRNZ n
+;   read n (4 cycles)
+020 next <= X"3e4", rf_omux <= "100";
+;   jump depending on zero flag
+120 cmdjmp <= '1', fljmp <= '1', flsel <= '1', next <= X"200", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (6 cycles left)
+220 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is set, so move on to fetch (2 cycles left)
+320 next <= X"3fe", rf_omux <= "100";
+
+; JRNC n
+;   read n (4 cycles)
+030 next <= X"3e4", rf_omux <= "100";
+;   jump depending on carry flag
+130 cmdjmp <= '1', fljmp <= '1', flsel <= '0', next <= X"200", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (6 cycles left)
+230 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is set, so move on to fetch (2 cycles left)
+330 next <= X"3fe", rf_omux <= "100";
 
 ; LD {BC,DE,HL,SP}, nn      12 cycles
 ; first byte in unq into lsB, second in tmp into msB, keeping PC on address bus
@@ -76,9 +92,11 @@
 029 next <= X"3f9", rf_omux <= "010", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 039 next <= X"3f9", rf_omux <= "011", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 
+; Load (PC) into unq, PC++, ...
 3e0 next <= X"3e1", rf_omux <= "100";
 3e1 next <= X"3e2", rf_omux <= "100", unq_ce <= '1';
 3e2 next <= X"3e3", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+; (PC) into tmp, PC++, and jump to "01" & CMD
 3e3 next <= X"3e4", rf_omux <= "100";
 3e4 next <= X"3e5", rf_omux <= "100";
 3e5 next <= X"3e6", rf_omux <= "100", tmp_ce <= '1';

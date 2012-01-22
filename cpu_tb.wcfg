@@ -41,6 +41,7 @@
       <marker time="28440000000" label="" />
       <marker time="29400000000" label="" />
       <marker time="30360000000" label="" />
+      <marker time="33240000000" label="" />
    </wave_markers>
    <wvobject fp_name="/cpu_tb/uut/rst" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rst</obj_property>
@@ -178,26 +179,12 @@
          <obj_property name="CustomSignalColor">#008080</obj_property>
          <obj_property name="label">rf_imux[2:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/cpu_tb/uut/mcmd[14]" type="logic" db_ref_id="1">
-         <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="ElementShortName">[14]</obj_property>
-         <obj_property name="ObjectShortName">mcmd[14]</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="CustomSignalColor">#008080</obj_property>
-         <obj_property name="label">rf_imux_sel</obj_property>
-      </wvobject>
       <wvobject fp_name="/cpu_tb/uut/rf_omux" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">rf_omux[2:0]</obj_property>
          <obj_property name="ObjectShortName">rf_omux[2:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#008080</obj_property>
-      </wvobject>
-      <wvobject fp_name="/cpu_tb/uut/mcmd[10]" type="logic" db_ref_id="1">
-         <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="ElementShortName">[10]</obj_property>
-         <obj_property name="ObjectShortName">mcmd[10]</obj_property>
-         <obj_property name="label">mc_addr_sel</obj_property>
       </wvobject>
       <wvobject fp_name="/cpu_tb/uut/mc_addr[8]" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">[8]</obj_property>
@@ -804,17 +791,5 @@
    <wvobject fp_name="group33" type="group">
       <obj_property name="label">Timing</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/cpu_tb/uut/waits" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">waits[4:0]</obj_property>
-         <obj_property name="ObjectShortName">waits[4:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/cpu_tb/uut/tics" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">tics[4:0]</obj_property>
-         <obj_property name="ObjectShortName">tics[4:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="CustomSignalColor">#808000</obj_property>
-      </wvobject>
    </wvobject>
 </wave_config>
