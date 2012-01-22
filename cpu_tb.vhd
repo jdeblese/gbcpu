@@ -56,7 +56,7 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal WR_D : STD_LOGIC_VECTOR(7 downto 0);
     signal WR_EN : STD_LOGIC;
 
-    constant clk_period : time := 10 ns;
+    constant clk_period : time := 240 ns;   -- 4.1666 MHz, close to actual 2^22 Hz
 
 BEGIN
 
