@@ -34,6 +34,13 @@
       <marker time="15960000000" label="" />
       <marker time="17880000000" label="" />
       <marker time="19800000000" label="" />
+      <marker time="21720000000" label="" />
+      <marker time="23640000000" label="" />
+      <marker time="25560000000" label="" />
+      <marker time="27480000000" label="" />
+      <marker time="28440000000" label="" />
+      <marker time="29400000000" label="" />
+      <marker time="30360000000" label="" />
    </wave_markers>
    <wvobject fp_name="/cpu_tb/uut/rst" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rst</obj_property>

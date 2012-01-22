@@ -14,20 +14,20 @@
 ; first byte in unq into lsB, second in tmp into msB, keeping PC on address bus
 ;   BC,nn
 001 next <= X"3e0", rf_omux <= "100";
-101 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imux <= "000", rf_ce <= "10", rf_omux <= "100";
-201                next <= X"3fe", dmux <= "101", rf_imux <= "000", rf_ce <= "01", rf_omux <= "100";
+101 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+201                next <= X"3fe", dmux <= "101", rf_imuxsel <= '1', rf_ce <= "01", rf_omux <= "100";
 ;   DE,nn
 011 next <= X"3e0", rf_omux <= "100";
-111 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imux <= "001", rf_ce <= "10", rf_omux <= "100";
-211                next <= X"3fe", dmux <= "101", rf_imux <= "001", rf_ce <= "01", rf_omux <= "100";
+111 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+211                next <= X"3fe", dmux <= "101", rf_imuxsel <= '1', rf_ce <= "01", rf_omux <= "100";
 ;   HL,nn
 021 next <= X"3e0", rf_omux <= "100";
-121 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imux <= "010", rf_ce <= "10", rf_omux <= "100";
-221                next <= X"3fe", dmux <= "101", rf_imux <= "010", rf_ce <= "01", rf_omux <= "100";
+121 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+221                next <= X"3fe", dmux <= "101", rf_imuxsel <= '1', rf_ce <= "01", rf_omux <= "100";
 ;   SP,nn
 031 next <= X"3e0", rf_omux <= "100";
-131 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imux <= "011", rf_ce <= "10", rf_omux <= "100";
-231                next <= X"3fe", dmux <= "101", rf_imux <= "011", rf_ce <= "01", rf_omux <= "100";
+131 cmdjmp <= '1', next <= X"200", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+231                next <= X"3fe", dmux <= "101", rf_imuxsel <= '1', rf_ce <= "01", rf_omux <= "100";
 
 ; LD ({BC,DE,HL+,HL-}),A    8 cycles
 ; address and acc on bus for 4 cycles, wr_en, inc/decrement HL at the end of the 4th as with PC
@@ -51,6 +51,20 @@
 132 cmdjmp <= '1', next <= X"200", rf_omux <= "010", dmux <= "010";
 232 cmdjmp <= '1', next <= X"300", rf_omux <= "010", dmux <= "010", wr_en <= '1';
 332 cmdjmp <= '0', next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
+
+; INC {BC,DE,HL,SP}     8 cycles
+003 next <= X"3f9", rf_omux <= "000", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
+013 next <= X"3f9", rf_omux <= "001", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
+023 next <= X"3f9", rf_omux <= "010", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
+033 next <= X"3f9", rf_omux <= "011", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
+
+; INC {B,D,H}           4 cycles
+004 cmdjmp <= '1', next <= X"100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
+104                next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100";
+014 cmdjmp <= '1', next <= X"100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
+114                next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100";
+024 cmdjmp <= '1', next <= X"100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
+124                next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100";
 
 ; INC L         4 cycles    ZNH-
 02c cmdjmp <= '1', next <= X"100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
