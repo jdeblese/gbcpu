@@ -24,14 +24,6 @@ end oledcpu;
 
 architecture Behavioral of oledcpu is
 
-    component debouncer
-        Port (
-            rst : in std_logic;
-            btn : in  STD_LOGIC;
-            clk : in  STD_LOGIC;
-            filtered : out  STD_LOGIC);
-    end component;
-
     signal RAMA : std_logic_vector(31 downto 0);
     signal ADDRA : std_logic_vector(9 downto 0);
     signal RAMB : std_logic_vector(31 downto 0);
@@ -80,6 +72,11 @@ architecture Behavioral of oledcpu is
     signal cpu_mop : std_logic_vector(53 downto 0);
     signal cpu_pc, cpu_sp, cpu_bc, cpu_de, cpu_hl : std_logic_vector(15 downto 0);
 
+    -- Reader
+    signal TDL, TDI, TDO : std_logic;
+    signal bitcount : std_logic_vector(7 downto 0);
+    signal reader : std_logic_vector(15 downto 0);
+
     -- GBCPU
     COMPONENT microcode
         Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
@@ -87,8 +84,11 @@ architecture Behavioral of oledcpu is
                 RAM_OE : out STD_LOGIC;
                 WR_D : out std_logic_vector(7 downto 0);
                 RAM_WR : out std_logic;
+                TCK : IN STD_LOGIC;
+                TDL : IN STD_LOGIC;
+                TDI : IN STD_LOGIC;
+                TDO : OUT STD_LOGIC;
                 CLK : IN STD_LOGIC;
-                CLK90 : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
@@ -97,18 +97,24 @@ architecture Behavioral of oledcpu is
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
     signal DOA_CART   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
 
+
+    -- Debouncer
+    component debouncer
+        Port ( rst : in std_logic;
+               btn : in  STD_LOGIC;
+               clk : in  STD_LOGIC;
+               filtered : out  STD_LOGIC);
+    end component;
+
+    signal bclk : std_logic;
+    ATTRIBUTE buffer_type : string;  --" {bufgdll | ibufg | bufgp | ibuf | bufr | none}";
+    ATTRIBUTE buffer_type OF bclk : SIGNAL IS "BUFG";
+
+
+
 begin
 
-    cpu_addr <= ABUS;
-    cpu_cmd <= X"00";
-    cpu_acc <= X"01";
-    cpu_flag <= X"1";
-    cpu_mop <= "10" & X"0000000000000";
-    cpu_pc <= X"44FD";
-    cpu_sp <= X"8a20";
-    cpu_bc <= X"b00b";
-    cpu_de <= X"b00b";
-    cpu_hl <= X"b00b";
+    u1 : debouncer port map(RST, BTN(0), CLK, bclk);
 
     -- RAMB16BWER: 16k-bit Data and 2k-bit Parity Configurable Synchronous Dual Port Block RAM with Optional Output Registers
     --       Spartan-6
@@ -216,11 +222,12 @@ begin
                     when "01000" => digit <= X"0" & cpu_pc(7 downto 4);
                     when "01001" => digit <= X"0" & cpu_pc(3 downto 0);
                     when "01101" => digit <= X"41";
-                    when "01110" => digit <= X"46";
-                    when "01111" => digit <= X"3a";
-                    when "10000" => digit <= X"0" & cpu_acc(7 downto 4);
-                    when "10001" => digit <= X"0" & cpu_acc(3 downto 0);
-                    when "10011" => digit <= X"0" & cpu_flag(3 downto 0);
+                    when "01110" => digit <= X"3a";
+                    when "01111" => digit <= X"0" & cpu_acc(7 downto 4);
+                    when "10000" => digit <= X"0" & cpu_acc(3 downto 0);
+                    when "10010" => digit <= X"46";
+                    when "10011" => digit <= X"3a";
+                    when "10100" => digit <= X"0" & cpu_flag(3 downto 0);
                     when others => d_en <= '0';
                 end case;
             when "10" =>
@@ -527,6 +534,45 @@ begin
     end process;
 
 
+    -- Reader
+    process(CLK, RST)
+        variable old : std_logic;
+    begin
+        if RST = '1' then
+            reader <= X"0000";
+            bitcount <= X"00";
+            cpu_cmd <= X"00";
+            cpu_acc <= X"00";
+            TDL <= '0';
+        elsif rising_edge(CLK) then
+            if old = '0' and clkdiv = '1' then
+                if bitcount = X"00" then
+                    cpu_cmd <= reader(15 downto 8);
+                    cpu_acc <= reader(7 downto 0);
+                end if;
+                if bitcount = X"0f" then
+                    bitcount <= X"00";
+                    TDL <= '1';
+                else
+                    bitcount <= bitcount + X"01";
+                    TDL <= '0';
+                end if;
+                reader <= reader(14 downto 0) & TDO;
+            end if;
+            old := clkdiv;
+        end if;
+    end process;
+
+
+    cpu_addr <= ABUS;
+    cpu_flag <= X"1";
+    cpu_mop <= "10" & X"0000000000000";
+    cpu_pc <= X"44FD";
+    cpu_sp <= X"8a20";
+    cpu_bc <= X"b00b";
+    cpu_de <= X"b00b";
+    cpu_hl <= X"b00b";
+
     -- GBCPU
 
     ADDRCPU(13 downto 3) <= ABUS(10 downto 0);
@@ -539,8 +585,11 @@ begin
     uut: microcode PORT MAP(
         ABUS => ABUS,
         RAM => RAM,
-        CLK => spol,
-        CLK90 => '0',
+        TCK => clkdiv,
+        TDL => TDL,
+        TDI => '0',
+        TDO => TDO,
+        CLK => bclk,
         RST => RST
     );
 

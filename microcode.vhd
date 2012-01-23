@@ -12,8 +12,11 @@ entity microcode is
             RAM_OE : out STD_LOGIC;
             WR_D : out STD_LOGIC_VECTOR(7 downto 0);
             RAM_WR : out STD_LOGIC;
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
             CLK : IN STD_LOGIC;
-            CLK90 : IN STD_LOGIC;
             RST : IN STD_LOGIC );
 end microcode;
 
@@ -42,6 +45,7 @@ architecture FSM of microcode is
 
     signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
     signal CMD_CE : STD_LOGIC;
+    signal LCMD   : STD_LOGIC_VECTOR(7 downto 0);
 
     signal tmp : std_logic_vector(7 downto 0);
     signal tmp_ce : std_logic;
@@ -50,6 +54,7 @@ architecture FSM of microcode is
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
+    signal lacc: std_logic_vector(7 downto 0);
 
     signal cflag, zflag, hflag, nflag : std_logic;
     signal cf_en, zf_en, hf_en, nf_en : std_logic;
@@ -137,6 +142,26 @@ architecture FSM of microcode is
     end component;
 
 begin
+
+    -- Outshifter --
+
+    process(TCK, RST)
+    begin
+        if RST = '1' then
+            LCMD <= X"00";
+            lacc <= X"00";
+        elsif rising_edge(TCK) then
+            if TDL = '1' then
+                TDO <= CMD(7);
+                LCMD <= CMD(6 downto 0) & acc(7);
+                lacc <= acc(6 downto 0) & TDI;
+            else
+                TDO <= LCMD(7);
+                LCMD <= LCMD(6 downto 0) & lacc(7);
+                lacc <= lacc(6 downto 0) & TDI;
+            end if;
+        end if;
+    end process;
 
     -- Internal Blocks --
 

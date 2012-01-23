@@ -16,8 +16,11 @@ ARCHITECTURE behavior OF cpu_tb IS
                 RAM_OE : out STD_LOGIC;
                 WR_D : out std_logic_vector(7 downto 0);
                 RAM_WR : out std_logic;
+                TCK : IN STD_LOGIC;
+                TDL : IN STD_LOGIC;
+                TDI : IN STD_LOGIC;
+                TDO : OUT STD_LOGIC;
                 CLK : IN STD_LOGIC;
-                CLK90 : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
