@@ -48,6 +48,7 @@ data = [0] * (maxnib / nnib)
 data = (data, copy(data), copy(data))
 parity = [0] * maxpar
 parity = (parity, copy(parity), copy(parity))
+usage = [False] * (maxnib / nnib)
 
 fd = open(sys.argv[1])
 line = fd.readline()
@@ -58,7 +59,16 @@ while line != '' and (line == '\n' or line[0] == ';') :
 
 while len(line) > 0 :
   line = line.strip()
+
   loc,rest = start.match(line).groups()
+  addr = int(loc,16)
+  paddr = addr * npar / 4
+  if addr >= maxnib / nnib :
+    raise RuntimeError("Address exceeds bit range, maximum is %x"%(maxnib/nnib-1,))
+  if usage[addr] :
+    raise RuntimeError("Multiple set of address %x (second on line %d)"%(addr,linecount))
+  usage[addr] = True
+
   setcount = 0;
   while rest != '' :
     setcount += 1;
@@ -72,14 +82,9 @@ while len(line) > 0 :
       val = int(val, 16)
     val *= 2**bank[key][0]
 
-    addr = int(loc,16)
     dval = val % maxdval
-
-    paddr = addr * npar / 4
     pval = val / maxdval * 2**(2*(addr%2))
 
-    if addr >= maxnib / nnib :
-      raise RuntimeError("Address exceeds bit range, maximum is %x"%(maxnib/nnib-1,))
     data[bank[key][2]][addr] += dval;
     parity[bank[key][2]][paddr] += pval;
 
