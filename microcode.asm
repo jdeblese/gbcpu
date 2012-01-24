@@ -10,8 +10,8 @@
 
 ; TODO: STOP
 
-; JRNZ n
-;   read n (4 cycles)
+; JRNZ n        12/8 cycles
+;   read n
 020 next <= X"3e4", rf_omux <= "100";
 ;   jump depending on zero flag
 120 cmdjmp <= '1', fljmp <= '1', flsel <= '1', next <= X"200", rf_omux <= "100";
@@ -20,8 +20,8 @@
 ;   flag is set, so move on to fetch (2 cycles left)
 320 next <= X"3fe", rf_omux <= "100";
 
-; JRNC n
-;   read n (4 cycles)
+; JRNC n        12/8 cycles
+;   read n
 030 next <= X"3e4", rf_omux <= "100";
 ;   jump depending on carry flag
 130 cmdjmp <= '1', fljmp <= '1', flsel <= '0', next <= X"200", rf_omux <= "100";
@@ -29,6 +29,33 @@
 230 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 ;   flag is set, so move on to fetch (2 cycles left)
 330 next <= X"3fe", rf_omux <= "100";
+
+; JR n          12 cycles
+;   read n
+018 next <= X"3e4", rf_omux <= "100";
+;   put n on the databus and update PC (7 cycles left)
+218 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+
+; JRZ n         12/8 cycles
+;   read n
+028 next <= X"3e4", rf_omux <= "100";
+;   jump depending on zero flag
+128 cmdjmp <= '1', fljmp <= '1', flsel <= '1', next <= X"200", rf_omux <= "100";
+;   flag is not set, so move on to fetch (2 cycles left)
+228 next <= X"3fe", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (6 cycles left)
+328 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+
+; JRC n         12/8 cycles
+;   read n
+038 next <= X"3e4", rf_omux <= "100";
+;   jump depending on carry flag
+138 cmdjmp <= '1', fljmp <= '1', flsel <= '0', next <= X"200", rf_omux <= "100";
+;   flag is not set, so move on to fetch (2 cycles left)
+238 next <= X"3fe", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (6 cycles left)
+338 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+
 
 ; LD {BC,DE,HL,SP}, nn      12 cycles
 ; first byte in unq into lsB, second in tmp into msB, keeping PC on address bus
@@ -86,13 +113,17 @@
 31a                next <= X"3fc", rf_omux <= "001";
 
 ; LD A,({HL+,HL-})    8 cycles
-; address on bus for 4 cycles, loading into tmp via subroutine, then jump to delay 4 cycles
+; address on bus for 4 cycles, loading into acc, then jump to delay 4 cycles
 ;   A,(HL+)
-02a next <= X"3e7", rf_omux <= "010";
-12a next <= X"3fc", rf_omux <= "010", rf_amux <= "11", rf_imux <= "010", rf_ce <= "11", dmux <= "100", acc_ce <= '1';
-;   A,(HL+)
-03a next <= X"3e7", rf_omux <= "010";
-13a next <= X"3fc", rf_omux <= "010", rf_amux <= "10", rf_imux <= "010", rf_ce <= "11", dmux <= "100", acc_ce <= '1';
+02a next <= X"12a", rf_omux <= "010";
+12a next <= X"22a", rf_omux <= "010";
+22a next <= X"32a", rf_omux <= "010", acc_ce <= '1';
+32a next <= X"3fc", rf_omux <= "010", rf_amux <= "11", rf_imux <= "010", rf_ce <= "11";
+;   A,(HL-)
+03a next <= X"13a", rf_omux <= "010";
+13a next <= X"23a", rf_omux <= "010";
+23a next <= X"33a", rf_omux <= "010", acc_ce <= '1';
+33a next <= X"3fc", rf_omux <= "010", rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
 
 
 ; INC/DEC {BC,DE,HL,SP}     8 cycles
@@ -121,6 +152,19 @@
 03c cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 13c                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
 
+; INC (HL)          12 cycles, ZNH-
+; recycle unused micro-op memory from INC r8
+;   load (HL) into alu, +1
+034 next <= X"134", rf_omux <= "010";
+134 next <= X"234", rf_omux <= "010";
+234 next <= X"334", rf_omux <= "010", alu_cmd <= "001000", alu_ce <= '1';
+334 next <= X"204", rf_omux <= "010", znhc <= "1110";
+;   store alu into (HL), then jump to fetch
+204 next <= X"304", rf_omux <= "010", dmux <= "011";
+304 next <= X"214", rf_omux <= "010", dmux <= "011";
+214 next <= X"314", rf_omux <= "010", dmux <= "011", wr_en <= '1';
+314 next <= X"3fc", rf_omux <= "010", dmux <= "011", wr_en <= '1';
+
 ; DEC {B,C,D,E,H,L,A}           4 cycles
 005 cmdjmp <= '1', next <= X"100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 105                next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
@@ -136,6 +180,19 @@
 12d                next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
 03d cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 13d                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
+
+; DEC (HL)          12 cycles, ZNH-
+; recycle unused micro-op memory from DEC r8
+;   load (HL) into alu, -1
+035 next <= X"135", rf_omux <= "010";
+135 next <= X"235", rf_omux <= "010";
+235 next <= X"335", rf_omux <= "010", alu_cmd <= "001100", alu_ce <= '1';
+335 next <= X"205", rf_omux <= "010", znhc <= "1110";
+;   store alu into (HL), then jump to fetch
+205 next <= X"305", rf_omux <= "010", dmux <= "011";
+305 next <= X"215", rf_omux <= "010", dmux <= "011";
+215 next <= X"315", rf_omux <= "010", dmux <= "011", wr_en <= '1';
+315 next <= X"3fc", rf_omux <= "010", dmux <= "011", wr_en <= '1';
 
 ; LD {B,C,D,E,H,L,A},n          8 cycles
 ;   load n into register tmp via subroutine, then copy from tmp into the target
@@ -169,9 +226,19 @@
 017 cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "100001", alu_ce <= '1', rf_omux <= "100";
 117                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1111";
 
+; RRCA, RRA     4 cycles    ZNHC
+00f cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "100010", alu_ce <= '1', rf_omux <= "100";
+10f                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1111";
+01f cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "100011", alu_ce <= '1', rf_omux <= "100";
+11f                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1111";
+
 ; DAA     4 cycles    Z-HC
 027 cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "011000", alu_ce <= '1', rf_omux <= "100";
 127                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1011";
+
+; CPL A         4 cycles    -NH-
+02f cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "010011", alu_ce <= '1', rf_omux <= "100";
+12f                next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "0110";
 
 ; SCF, CCF     4 cycles    -NHC
 037 cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "011010", alu_ce <= '1', rf_omux <= "100";
@@ -179,7 +246,12 @@
 03f cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "011011", alu_ce <= '1', rf_omux <= "100";
 13f                next <= X"3fe", dmux <= "011",                                     rf_omux <= "100", znhc <= "0111";
 
-; ADD HL,n      8 cycles    -NHC
+; TODO: Implement LD (nn),SP        20 cycles
+; (nn) can be stored and used in tmp,unc, but not easily incremented
+; (nn) could be put in one of the register file registers and incremented there, but that would block access to SP
+; an addition 16-bit incrementer may be necessary
+
+; ADD HL,r16     8 cycles    -NHC
 009 next <= X"109", rf_omux <= "000", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 019 next <= X"109", rf_omux <= "001", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 029 next <= X"109", rf_omux <= "010", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
@@ -199,10 +271,6 @@
 3e4 next <= X"3e5", rf_omux <= "100";
 3e5 next <= X"3e6", rf_omux <= "100", tmp_ce <= '1';
 3e6 next <= X"100", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
-
-; load (HL) into tmp, middle two cycles, returning to "1" & CMD
-3e7                next <= X"3e8", rf_omux <= "010";
-3e8 cmdjmp <= '1', next <= X"100", rf_omux <= "010", tmp_ce <= '1';
 
 3f0 next <= X"3f1";
 3f1 next <= X"3f2";
