@@ -246,10 +246,35 @@
 03f cmdjmp <= '1', next <= X"100", dmux <= "010", alu_cmd <= "011011", alu_ce <= '1', rf_omux <= "100";
 13f                next <= X"3fe", dmux <= "011",                                     rf_omux <= "100", znhc <= "0111";
 
-; TODO: Implement LD (nn),SP        20 cycles
-; (nn) can be stored and used in tmp,unc, but not easily incremented
-; (nn) could be put in one of the register file registers and incremented there, but that would block access to SP
-; an addition 16-bit incrementer may be necessary
+; LD (nn),SP            20 cycles
+; Load S and P into tmp and unq while loading nn into SP. Write tmp and unq to (SP), then
+; load the next command while restoring tmp and unq to S and P
+;   tmp <= S
+;   S <= (PC++)
+008 next <= X"108", rf_omux <= "100", dmux <= "001", rf_dmux <= X"6", tmp_ce <= '1';
+108 next <= X"208", rf_omux <= "100";
+208 next <= X"308", rf_omux <= "100", rf_imux <= "011", rf_ce <= "10";
+308 next <= X"209", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+;   unq <= P
+;   P <= (PC++)
+209 next <= X"219", rf_omux <= "100", dmux <= "001", rf_dmux <= X"7", unq_ce <= '1';
+219 next <= X"229", rf_omux <= "100";
+229 next <= X"239", rf_omux <= "100", rf_imux <= "011", rf_ce <= "01";
+239 next <= X"309", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+;   (SP++) <= tmp
+309 next <= X"319", rf_omux <= "011", dmux <= "100";
+319 next <= X"329", rf_omux <= "011", dmux <= "100";
+329 next <= X"339", rf_omux <= "011", dmux <= "100", wr_en <= '1';
+339 next <= X"10b", rf_omux <= "011", dmux <= "100", wr_en <= '1', rf_imux <= "011", rf_amux <= "11", rf_ce <= "11";
+;   (SP++) <= unq
+;   P <= unq
+10b next <= X"319", rf_omux <= "011", dmux <= "101";
+11b next <= X"329", rf_omux <= "011", dmux <= "101";
+12b next <= X"339", rf_omux <= "011", dmux <= "101", wr_en <= '1';
+13b next <= X"119", rf_omux <= "011", dmux <= "101", wr_en <= '1', rf_imux <= "011", rf_ce <= "01";
+;   S <= tmp
+;   FETCH
+119 next <= X"3fd", rf_omux <= "100", dmux <= "100", rf_imux <= "011", rf_ce <= "10";
 
 ; ADD HL,r16     8 cycles    -NHC
 009 next <= X"109", rf_omux <= "000", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
@@ -257,6 +282,154 @@
 029 next <= X"109", rf_omux <= "010", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 039 next <= X"109", rf_omux <= "011", rf_amux <= "01", rf_imux <= "010", rf_ce <= "11";
 109 next <= X"3fa", znhc <= "0111", flagsrc <= '1';
+
+; ***************************************************************************
+; *     Second block instructions: 8-bit loads                              *
+; ***************************************************************************
+
+; LD B,{B,C,D,E,H,L,A}          4 cycles
+040 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "000", rf_ce <= "10";
+041 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "000", rf_ce <= "10";
+042 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "000", rf_ce <= "10";
+043 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "000", rf_ce <= "10";
+044 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "000", rf_ce <= "10";
+045 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "000", rf_ce <= "10";
+047 next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "000", rf_ce <= "10";
+; LD B,(HL)                     8 cycles
+046 next <= X"146", rf_omux <= "010";
+146 next <= X"246", rf_omux <= "010";
+246 next <= X"346", rf_omux <= "010", rf_imux <= "000", rf_ce <= "10";
+346 next <= X"3fc", rf_omux <= "010";
+
+; LD C,{B,C,D,E,H,L,A}          4 cycles
+048 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "000", rf_ce <= "01";
+049 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "000", rf_ce <= "01";
+04a next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "000", rf_ce <= "01";
+04b next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "000", rf_ce <= "01";
+04c next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "000", rf_ce <= "01";
+04d next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "000", rf_ce <= "01";
+04f next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "000", rf_ce <= "01";
+; LD C,(HL)                     8 cycles
+04e next <= X"14e", rf_omux <= "010";
+14e next <= X"24e", rf_omux <= "010";
+24e next <= X"34e", rf_omux <= "010", rf_imux <= "000", rf_ce <= "01";
+34e next <= X"3fc", rf_omux <= "010";
+
+; LD D,{B,C,D,E,H,L,A}          4 cycles
+050 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "001", rf_ce <= "10";
+051 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "001", rf_ce <= "10";
+052 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "001", rf_ce <= "10";
+053 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "001", rf_ce <= "10";
+054 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "001", rf_ce <= "10";
+055 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "001", rf_ce <= "10";
+057 next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "001", rf_ce <= "10";
+; LD D,(HL)                     8 cycles
+056 next <= X"156", rf_omux <= "010";
+156 next <= X"256", rf_omux <= "010";
+256 next <= X"356", rf_omux <= "010", rf_imux <= "001", rf_ce <= "10";
+356 next <= X"3fc", rf_omux <= "010";
+
+; LD E,{B,C,D,E,H,L,A}          4 cycles
+058 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "001", rf_ce <= "01";
+059 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "001", rf_ce <= "01";
+05a next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "001", rf_ce <= "01";
+05b next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "001", rf_ce <= "01";
+05c next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "001", rf_ce <= "01";
+05d next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "001", rf_ce <= "01";
+05f next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "001", rf_ce <= "01";
+; LD E,(HL)                     8 cycles
+05e next <= X"15e", rf_omux <= "010";
+15e next <= X"25e", rf_omux <= "010";
+25e next <= X"35e", rf_omux <= "010", rf_imux <= "001", rf_ce <= "01";
+35e next <= X"3fc", rf_omux <= "010";
+
+; LD H,{B,C,D,E,H,L,A}          4 cycles
+060 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "010", rf_ce <= "10";
+061 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "010", rf_ce <= "10";
+062 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "010", rf_ce <= "10";
+063 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "010", rf_ce <= "10";
+064 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "010", rf_ce <= "10";
+065 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "010", rf_ce <= "10";
+067 next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "010", rf_ce <= "10";
+; LD H,(HL)                     8 cycles
+066 next <= X"166", rf_omux <= "010";
+166 next <= X"266", rf_omux <= "010";
+266 next <= X"366", rf_omux <= "010", rf_imux <= "010", rf_ce <= "10";
+366 next <= X"3fc", rf_omux <= "010";
+
+; LD L,{B,C,D,E,H,L,A}          4 cycles
+068 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "010", rf_ce <= "01";
+069 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", rf_imux <= "010", rf_ce <= "01";
+06a next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", rf_imux <= "010", rf_ce <= "01";
+06b next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", rf_imux <= "010", rf_ce <= "01";
+06c next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", rf_imux <= "010", rf_ce <= "01";
+06d next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", rf_imux <= "010", rf_ce <= "01";
+06f next <= X"3fd", rf_omux <= "100", dmux <= "010",                  rf_imux <= "010", rf_ce <= "01";
+; LD L,(HL)                     8 cycles
+06e next <= X"16e", rf_omux <= "010";
+16e next <= X"26e", rf_omux <= "010";
+26e next <= X"36e", rf_omux <= "010", rf_imux <= "010", rf_ce <= "01";
+36e next <= X"3fc", rf_omux <= "010";
+
+; LD (HL),B                     8 cycles
+070 next <= X"170", rf_omux <= "010", dmux <= "001", rf_dmux <= X"0";
+170 next <= X"270", rf_omux <= "010", dmux <= "001", rf_dmux <= X"0";
+270 next <= X"370", rf_omux <= "010", dmux <= "001", rf_dmux <= X"0", wr_en <= '1';
+370 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"0", wr_en <= '1';
+; LD (HL),C                     8 cycles
+071 next <= X"171", rf_omux <= "010", dmux <= "001", rf_dmux <= X"1";
+171 next <= X"271", rf_omux <= "010", dmux <= "001", rf_dmux <= X"1";
+271 next <= X"371", rf_omux <= "010", dmux <= "001", rf_dmux <= X"1", wr_en <= '1';
+371 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"1", wr_en <= '1';
+; LD (HL),D                     8 cycles
+072 next <= X"172", rf_omux <= "010", dmux <= "001", rf_dmux <= X"2";
+172 next <= X"272", rf_omux <= "010", dmux <= "001", rf_dmux <= X"2";
+272 next <= X"372", rf_omux <= "010", dmux <= "001", rf_dmux <= X"2", wr_en <= '1';
+372 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"2", wr_en <= '1';
+; LD (HL),E                     8 cycles
+073 next <= X"173", rf_omux <= "010", dmux <= "001", rf_dmux <= X"3";
+173 next <= X"273", rf_omux <= "010", dmux <= "001", rf_dmux <= X"3";
+273 next <= X"373", rf_omux <= "010", dmux <= "001", rf_dmux <= X"3", wr_en <= '1';
+373 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"3", wr_en <= '1';
+; LD (HL),H                     8 cycles
+074 next <= X"174", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4";
+174 next <= X"274", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4";
+274 next <= X"374", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4", wr_en <= '1';
+374 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4", wr_en <= '1';
+; LD (HL),L                     8 cycles
+075 next <= X"175", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5";
+175 next <= X"275", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5";
+275 next <= X"375", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5", wr_en <= '1';
+375 next <= X"3fc", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5", wr_en <= '1';
+; LD (HL),A                     8 cycles
+077 next <= X"177", rf_omux <= "010", dmux <= "010";
+177 next <= X"277", rf_omux <= "010", dmux <= "010";
+277 next <= X"377", rf_omux <= "010", dmux <= "010", wr_en <= '1';
+377 next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1';
+
+; LD A,{B,C,D,E,H,L,A}          4 cycles
+078 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", acc_ce <= '1';
+079 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", acc_ce <= '1';
+07a next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", acc_ce <= '1';
+07b next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", acc_ce <= '1';
+07c next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", acc_ce <= '1';
+07d next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", acc_ce <= '1';
+07f next <= X"3fd", rf_omux <= "100", dmux <= "010",                  acc_ce <= '1';
+; LD A,(HL)                     8 cycles
+07e next <= X"17e", rf_omux <= "010";
+17e next <= X"27e", rf_omux <= "010";
+27e next <= X"37e", rf_omux <= "010", acc_ce <= '1';
+37e next <= X"3fc", rf_omux <= "010";
+
+; TODO: HALT
+
+; ***************************************************************************
+; *     Third block instructions: 8-bit alu ops                             *
+; ***************************************************************************
+
+; ***************************************************************************
+; *     Fourth block instructions (with opcode [c-f]*)                      *
+; ***************************************************************************
 
 ; ***************************************************************************
 ; *     Subroutines                                                         *

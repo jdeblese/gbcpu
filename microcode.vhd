@@ -288,7 +288,7 @@ begin
     mc_addr(9) <= mc_data0(9);
     with mc_data0(10) select    -- addr select
         mc_addr(7 downto 0) <= mc_data0(7 downto 0) when '0',
-                               caddr when others;
+                               cmd when others;
     with mc_data0(13 downto 12) select    -- flag select
         mc_addr(8) <= cflag when "10",
                       zflag when "11",

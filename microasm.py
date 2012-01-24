@@ -114,3 +114,5 @@ for b in range(0, 3) :
     print '        INIT_%2.2X => X"'%l + ''.join(map(lambda n: ("%%%d.%dx"%(nnib,nnib))%n, out)) + '", -- %3.3xh'%(l*64/nnib,)
 
   print "----------------------------"
+
+  print "Memory usage: %d/%d words, %6.2f%%"%(usage.count(True), len(usage), 100.0 * usage.count(True) / len(usage))
