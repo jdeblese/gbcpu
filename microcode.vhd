@@ -276,7 +276,7 @@ begin
             tmp         when DMUX = "100" else
             unq         when DMUX = "101" else
             FIXED       when DMUX = "110" else
-            zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else,
+            zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else
             X"00";
 
     caddr <= X"40" when cmd(7 downto 5) = "010" else
@@ -303,8 +303,12 @@ begin
 
     -- Bank 1
     rf_dmux <= mc_data1(3 downto 0);
-    rf_imux <= mc_data1(6 downto 4) when mc_data1(7) = '0' else
-               '0' & cmd(5 downto 4);
+
+    with mc_par1(1 downto 0) select
+        rf_imux <= mc_data1(6 downto 4) when "00",
+                   '0' & cmd(5 downto 4) when "01",
+                   '0' & cmd(2 downto 1) when others;
+
     rf_ce   <= mc_data1(9 downto 8);
     rf_amux <= mc_data1(11 downto 10);
     rf_omux <= mc_data1(14 downto 12) when mc_data1(15) = '0' else

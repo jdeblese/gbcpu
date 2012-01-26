@@ -219,9 +219,18 @@ begin
                   CMD(3) & IDATA(6 downto 0) when others;
 
     -- Flags
-    with CMD(5 downto 3) select
-        ZOUT <= not targetbit when "100",
-                zflag when others;
+    process(RST, CLK, CE)
+    begin
+        if RST = '1' then
+            ZOUT <= '0';
+        elsif rising_edge(CLK) and CE = '1' then
+            if CMD(5 downto 3) = "101" then
+                ZOUT <= not targetbit;
+            else
+                ZOUT <= zflag;
+            end if;
+        end if;
+    end process;
 
     process(RST, CLK, CE)
     begin

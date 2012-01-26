@@ -100,8 +100,10 @@ BEGIN
         RAM_OE => RAM_OE,
         WR_D => WR_D,
         RAM_WR => WR_EN,
+        TCK => '0',
+        TDL => '0',
+        TDI => '0',
         CLK => CLK,
-        CLK90 => CLK90,
         RST => RST
     );
 

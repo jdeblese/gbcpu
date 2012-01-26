@@ -10,105 +10,123 @@
 
 ; TODO: STOP
 
+; JRNZ/Z helper
+200 next <= X"210", rf_omux <= "100";
+210 next <= X"300", rf_omux <= "100", tmp_ce <= '1';
+;   jump depending on zero flag
+300 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
 ; JRNZ n        12/8 cycles
 ;   read n
-020 next <= X"3e4", rf_omux <= "100";
-;   jump depending on zero flag
-120 cmdjmp <= '1', fljmp <= '1', flsel <= '1', next <= X"200", rf_omux <= "100";
+020 next <= X"200", rf_omux <= "100";
 ;   flag is not set, so put n on the databus and update PC (6 cycles left)
 220 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 ;   flag is set, so move on to fetch (2 cycles left)
 320 next <= X"3fe", rf_omux <= "100";
 
-; JRNC n        12/8 cycles
-;   read n
-030 next <= X"3e4", rf_omux <= "100";
-;   jump depending on carry flag
-130 cmdjmp <= '1', fljmp <= '1', flsel <= '0', next <= X"200", rf_omux <= "100";
-;   flag is not set, so put n on the databus and update PC (6 cycles left)
-230 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-;   flag is set, so move on to fetch (2 cycles left)
-330 next <= X"3fe", rf_omux <= "100";
-
-; JR n          12 cycles
-;   read n
-018 next <= X"3e4", rf_omux <= "100";
-;   put n on the databus and update PC (7 cycles left)
-118 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-
 ; JRZ n         12/8 cycles
 ;   read n
-028 next <= X"3e4", rf_omux <= "100";
-;   jump depending on zero flag
-128 cmdjmp <= '1', fljmp <= '1', flsel <= '1', next <= X"200", rf_omux <= "100";
+028 next <= X"200", rf_omux <= "100";
 ;   flag is not set, so move on to fetch (2 cycles left)
 228 next <= X"3fe", rf_omux <= "100";
 ;   flag is set, so put n on the databus and update PC (6 cycles left)
 328 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 
+; JR n          12/8 cycles
+;   read n
+018 next <= X"200", rf_omux <= "100";
+;   flag doesn't matter - put n on the databus and update PC (6 cycles left)
+218 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+318 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+
+
+; JRNC/C helper
+254 next <= X"255", rf_omux <= "100";
+255 next <= X"256", rf_omux <= "100", tmp_ce <= '1';
+;   jump depending on zero flag
+256 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '0', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
+; JRNC n        12/8 cycles
+;   read n
+030 next <= X"254", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (6 cycles left)
+230 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is set, so move on to fetch (2 cycles left)
+330 next <= X"3fe", rf_omux <= "100";
+
 ; JRC n         12/8 cycles
 ;   read n
-038 next <= X"3e4", rf_omux <= "100";
-;   jump depending on carry flag
-138 cmdjmp <= '1', fljmp <= '1', flsel <= '0', next <= X"200", rf_omux <= "100";
+038 next <= X"254", rf_omux <= "100";
 ;   flag is not set, so move on to fetch (2 cycles left)
 238 next <= X"3fe", rf_omux <= "100";
 ;   flag is set, so put n on the databus and update PC (6 cycles left)
 338 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 
 
+; LD16 helpers
+;   Load (PC) into unq, PC++. Address should already be on bus for 1 cycle
+258 next <= X"259", rf_omux <= "100";
+259 next <= X"25a", rf_omux <= "100", unq_ce <= '1';
+25a next <= X"25b", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+;   (PC) into tmp, PC++, and jump to "10" & CMD
+25b next <= X"25c", rf_omux <= "100";
+25c next <= X"25d", rf_omux <= "100";
+25d next <= X"25e", rf_omux <= "100", tmp_ce <= '1';
+25e next <= X"200", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
 ; LD {BC,DE,HL,SP}, nn      12 cycles
 ; first byte in unq into lsB, second in tmp into msB, keeping PC on address bus
 ;   BC,nn
-001 next <= X"3e0", rf_omux <= "100";
-101 next <= X"311", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+001 next <= X"258", rf_omux <= "100";
+201 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
 ;   DE,nn
-011 next <= X"3e0", rf_omux <= "100";
-111 next <= X"311", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+011 next <= X"258", rf_omux <= "100";
+211 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
 ;   HL,nn
-021 next <= X"3e0", rf_omux <= "100";
-121 next <= X"311", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+021 next <= X"258", rf_omux <= "100";
+221 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
 ;   SP,nn
-031 next <= X"3e0", rf_omux <= "100";
-131 next <= X"311", dmux <= "100", rf_imuxsel <= '1', rf_ce <= "10", rf_omux <= "100";
+031 next <= X"258", rf_omux <= "100";
+231 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
 ;   Add unq into lsB for all
-311 next <= X"3fe", dmux <= "101", rf_imuxsel <= '1', rf_ce <= "01", rf_omux <= "100";
+311 next <= X"3fe", dmux <= "101", rf_imuxsel <= "01", rf_ce <= "01", rf_omux <= "100";
+
 
 ; LD ({BC,DE,HL+,HL-}),A    8 cycles
 ; address and acc on bus for 4 cycles, wr_en, inc/decrement HL at the end of the 4th as with PC
 ;   (BC),A
-002 cmdjmp <= '1', next <= X"100", rf_omux <= "000", dmux <= "010";
-102 cmdjmp <= '1', next <= X"200", rf_omux <= "000", dmux <= "010";
-202 cmdjmp <= '1', next <= X"300", rf_omux <= "000", dmux <= "010", wr_en <= '1';
-302 cmdjmp <= '0', next <= X"3fc", rf_omux <= "000", dmux <= "010", wr_en <= '1';
+002 next <= X"203", rf_omux <= "000", dmux <= "010";
+203 next <= X"202", rf_omux <= "000", dmux <= "010";
+202 next <= X"302", rf_omux <= "000", dmux <= "010", wr_en <= '1';
+302 next <= X"3fc", rf_omux <= "000", dmux <= "010", wr_en <= '1';
 ;   (DE),A
-012 cmdjmp <= '1', next <= X"100", rf_omux <= "001", dmux <= "010";
-112 cmdjmp <= '1', next <= X"200", rf_omux <= "001", dmux <= "010";
-212 cmdjmp <= '1', next <= X"300", rf_omux <= "001", dmux <= "010", wr_en <= '1';
-312 cmdjmp <= '0', next <= X"3fc", rf_omux <= "001", dmux <= "010", wr_en <= '1';
+012 next <= X"213", rf_omux <= "001", dmux <= "010";
+213 next <= X"212", rf_omux <= "001", dmux <= "010";
+212 next <= X"312", rf_omux <= "001", dmux <= "010", wr_en <= '1';
+312 next <= X"3fc", rf_omux <= "001", dmux <= "010", wr_en <= '1';
 ;   (HL+),A
-022 cmdjmp <= '1', next <= X"100", rf_omux <= "010", dmux <= "010";
-122 cmdjmp <= '1', next <= X"200", rf_omux <= "010", dmux <= "010";
-222 cmdjmp <= '1', next <= X"300", rf_omux <= "010", dmux <= "010", wr_en <= '1';
-322 cmdjmp <= '0', next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "11", rf_imux <= "010", rf_ce <= "11";
+022 next <= X"223", rf_omux <= "010", dmux <= "010";
+223 next <= X"222", rf_omux <= "010", dmux <= "010";
+222 next <= X"322", rf_omux <= "010", dmux <= "010", wr_en <= '1';
+322 next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "11", rf_imux <= "010", rf_ce <= "11";
 ;   (HL-),A
-032 cmdjmp <= '1', next <= X"100", rf_omux <= "010", dmux <= "010";
-132 cmdjmp <= '1', next <= X"200", rf_omux <= "010", dmux <= "010";
-232 cmdjmp <= '1', next <= X"300", rf_omux <= "010", dmux <= "010", wr_en <= '1';
-332 cmdjmp <= '0', next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
+032 next <= X"233", rf_omux <= "010", dmux <= "010";
+233 next <= X"232", rf_omux <= "010", dmux <= "010";
+232 next <= X"332", rf_omux <= "010", dmux <= "010", wr_en <= '1';
+332 next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
 
 ; LD A,({BC,DE})    8 cycles
 ; address on bus for 4 cycles, loading into A, then jump to delay 4 cycles
 ;   A,(BC)
-00a cmdjmp <= '1', next <= X"100", rf_omux <= "000";
-10a cmdjmp <= '1', next <= X"200", rf_omux <= "000";
-20a cmdjmp <= '1', next <= X"300", rf_omux <= "000", acc_ce <= '1';
-30a                next <= X"3fc", rf_omux <= "000";
+00a next <= X"208", rf_omux <= "000";
+208 next <= X"20a", rf_omux <= "000";
+20a next <= X"30a", rf_omux <= "000", acc_ce <= '1';
+30a next <= X"3fc", rf_omux <= "000";
 ;   A,(DE)
-01a cmdjmp <= '1', next <= X"100", rf_omux <= "001";
-11a cmdjmp <= '1', next <= X"200", rf_omux <= "001";
-21a cmdjmp <= '1', next <= X"300", rf_omux <= "001", acc_ce <= '1';
-31a                next <= X"3fc", rf_omux <= "001";
+01a next <= X"235", rf_omux <= "001";
+235 next <= X"20a", rf_omux <= "001";
+21a next <= X"30a", rf_omux <= "001", acc_ce <= '1';
+31a next <= X"3fc", rf_omux <= "001";
 
 ; LD A,({HL+,HL-})    8 cycles
 ; address on bus for 4 cycles, loading into acc, then jump to delay 4 cycles
@@ -124,26 +142,26 @@
 
 
 ; INC/DEC {BC,DE,HL,SP}     8 cycles
-003 next <= X"3f9", rf_omux <= "000", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
-013 next <= X"3f9", rf_omux <= "001", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
-023 next <= X"3f9", rf_omux <= "010", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
-033 next <= X"3f9", rf_omux <= "011", rf_amux <= "11", rf_imuxsel <= '1', rf_ce <= "11";
-00b next <= X"3f9", rf_omux <= "000", rf_amux <= "10", rf_imuxsel <= '1', rf_ce <= "11";
-01b next <= X"3f9", rf_omux <= "001", rf_amux <= "10", rf_imuxsel <= '1', rf_ce <= "11";
-02b next <= X"3f9", rf_omux <= "010", rf_amux <= "10", rf_imuxsel <= '1', rf_ce <= "11";
-03b next <= X"3f9", rf_omux <= "011", rf_amux <= "10", rf_imuxsel <= '1', rf_ce <= "11";
+003 next <= X"3f9", rf_omux <= "000", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
+013 next <= X"3f9", rf_omux <= "001", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
+023 next <= X"3f9", rf_omux <= "010", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
+033 next <= X"3f9", rf_omux <= "011", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
+00b next <= X"3f9", rf_omux <= "000", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
+01b next <= X"3f9", rf_omux <= "001", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
+02b next <= X"3f9", rf_omux <= "010", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
+03b next <= X"3f9", rf_omux <= "011", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
 
 
 ; INC {B,D,H}           4 cycles    ZNH-
 004 next <= X"304", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 014 next <= X"304", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 024 next <= X"304", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-304 next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
+304 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
 ; INC {C,E,L}           4 cycles    ZNH-
 00c next <= X"314", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 01c next <= X"314", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 02c next <= X"314", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-314 next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
+314 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
 ; INC A                 4 cycles    ZNH-
 03c next <= X"324", dmux <= "010", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
 324 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
@@ -166,12 +184,12 @@
 005 next <= X"305", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 015 next <= X"305", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 025 next <= X"305", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-305 next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
+305 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
 ; DEC {C,E,L}                   4 cycles
 00d next <= X"315", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 01d next <= X"315", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 02d next <= X"315", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-315 next <= X"3fe", dmux <= "011", rf_imuxsel <= '1', rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
+315 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
 ; DEC A                         4 cycles
 03d next <= X"325", dmux <= "010", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
 325 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
@@ -191,14 +209,14 @@
 016 next <= X"306", rf_omux <= "100";
 026 next <= X"306", rf_omux <= "100";
 306 next <= X"316", rf_omux <= "100";
-316 next <= X"326", rf_omux <= "100", rf_imuxsel <= '1', rf_ce <= "10";
+316 next <= X"326", rf_omux <= "100", rf_imuxsel <= "01", rf_ce <= "10";
 326 next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
 ; LD {C,E,L},n                  8 cycles
 00e next <= X"30e", rf_omux <= "100";
 01e next <= X"30e", rf_omux <= "100";
 02e next <= X"30e", rf_omux <= "100";
 30e next <= X"31e", rf_omux <= "100";
-31e next <= X"32e", rf_omux <= "100", rf_imuxsel <= '1', rf_ce <= "01";
+31e next <= X"32e", rf_omux <= "100", rf_imuxsel <= "01", rf_ce <= "01";
 32e next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
 ; LD A,n                        8 cycles
 03e next <= X"206", rf_omux <= "100";
@@ -289,7 +307,7 @@
 ; LD B,(HL)                     8 cycles
 046 next <= X"340", rf_omux <= "010";
 340 next <= X"341", rf_omux <= "010";
-341 next <= X"342", rf_omux <= "010", rf_imuxsel <= '1', rf_ce <= "10";
+341 next <= X"342", rf_omux <= "010", rf_imuxsel <= "01", rf_ce <= "10";
 342 next <= X"3fc", rf_omux <= "010";
 
 ; LD C,{B,C,D,E,H,L,A}          4 cycles
@@ -303,7 +321,7 @@
 ; LD C,(HL)                     8 cycles
 04e next <= X"343", rf_omux <= "010";
 343 next <= X"344", rf_omux <= "010";
-344 next <= X"342", rf_omux <= "010", rf_imuxsel <= '1', rf_ce <= "01";
+344 next <= X"342", rf_omux <= "010", rf_imuxsel <= "01", rf_ce <= "01";
 
 ; LD D,{B,C,D,E,H,L,A}          4 cycles
 050 next <= X"3fd", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", rf_imux <= "001", rf_ce <= "10";
@@ -649,19 +667,162 @@
 2fe next <= X"28f", rf_omux <= "100", alu_cmd <= "000011", alu_ce <= '1';
 28f next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11", znhc <= "1111";
 
+
+; JNZ nn        16/12 cycles
+
+; JNZ/Z helper
+;   Load (PC) into unq, PC++. Address should already be on bus for 1 cycle
+3a0 next <= X"3a1", rf_omux <= "100";
+3a1 next <= X"3a2", rf_omux <= "100", unq_ce <= '1';
+3a2 next <= X"3a3", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+;   (PC) into tmp, PC++, and jump to "10" & CMD
+3a3 next <= X"3a4", rf_omux <= "100";
+3a4 next <= X"3a5", rf_omux <= "100";
+3a5 next <= X"3a6", rf_omux <= "100", tmp_ce <= '1';
+;   jump depending on zero flag
+3a6 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
+3a7 next <= X"3fa", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
+
+; JNZ nn
+;   read nn
+0c2 next <= X"3a0", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (6 cycles left)
+2c2 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+;   flag is set, so move on to fetch (3 cycles left)
+3c2 next <= X"3fd", rf_omux <= "100";
+
+; JZ nn
+;   read nn
+0ca next <= X"3a0", rf_omux <= "100";
+;   flag is not set, so move on to fetch (3 cycles left)
+2ca next <= X"3fd", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (6 cycles left)
+3ca next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+
+; JP nn
+;   read nn
+0c3 next <= X"3a0", rf_omux <= "100";
+;   flag doesn't matter - put n on the databus and update PC (6 cycles left)
+2c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+3c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+
+
+; JNC nn        16/12 cycles
+
+; JNC/C helper
+;   Load (PC) into unq, PC++. Address should already be on bus for 1 cycle
+3b0 next <= X"3b1", rf_omux <= "100";
+3b1 next <= X"3b2", rf_omux <= "100", unq_ce <= '1';
+3b2 next <= X"3b3", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+;   (PC) into tmp, PC++, and jump to "10" & CMD
+3b3 next <= X"3b4", rf_omux <= "100";
+3b4 next <= X"3b5", rf_omux <= "100";
+3b5 next <= X"3b6", rf_omux <= "100", tmp_ce <= '1';
+;   jump depending on carry flag
+3b6 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '0', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
+3b7 next <= X"3fa", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
+
+; JNC nn
+;   read nn
+0d2 next <= X"3b0", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (6 cycles left)
+2d2 next <= X"3b7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+;   flag is set, so move on to fetch (3 cycles left)
+3d2 next <= X"3fd", rf_omux <= "100";
+
+; JC nn
+;   read nn
+0da next <= X"3b0", rf_omux <= "100";
+;   flag is not set, so move on to fetch (3 cycles left)
+2da next <= X"3fd", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (6 cycles left)
+3da next <= X"3b7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+
+; ***************************************************************************
+; *     CB Prefix Routines (Bit Manipulations)                              *
+; ***************************************************************************
+
+; load the second instruction byte into CMD, then jump to "01" & CMD
+0cb next <= X"2cb", rf_omux <= "100";
+2cb next <= X"2db", rf_omux <= "100";
+2db next <= X"2eb", rf_omux <= "100", cmd_ce <= '1';
+2eb next <= X"100", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+
+; BIT           8 cycles    ZNH-
+310 next <= X"3fe", rf_omux <= "100", znhc <= "1110";
+; BIT b,B
+140 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101000", alu_ce <= '1';
+150 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101010", alu_ce <= '1';
+160 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101100", alu_ce <= '1';
+170 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101110", alu_ce <= '1';
+148 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101001", alu_ce <= '1';
+158 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101011", alu_ce <= '1';
+168 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101101", alu_ce <= '1';
+178 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,C
+141 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101000", alu_ce <= '1';
+151 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101010", alu_ce <= '1';
+161 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101100", alu_ce <= '1';
+171 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101110", alu_ce <= '1';
+149 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101001", alu_ce <= '1';
+159 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101011", alu_ce <= '1';
+169 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101101", alu_ce <= '1';
+179 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,D
+142 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101000", alu_ce <= '1';
+152 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101010", alu_ce <= '1';
+162 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101100", alu_ce <= '1';
+172 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101110", alu_ce <= '1';
+14a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101001", alu_ce <= '1';
+15a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101011", alu_ce <= '1';
+16a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101101", alu_ce <= '1';
+17a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,E
+143 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101000", alu_ce <= '1';
+153 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101010", alu_ce <= '1';
+163 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101100", alu_ce <= '1';
+173 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101110", alu_ce <= '1';
+14b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101001", alu_ce <= '1';
+15b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101011", alu_ce <= '1';
+16b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101101", alu_ce <= '1';
+17b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,H
+144 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101000", alu_ce <= '1';
+154 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101010", alu_ce <= '1';
+164 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101100", alu_ce <= '1';
+174 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101110", alu_ce <= '1';
+14c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101001", alu_ce <= '1';
+15c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101011", alu_ce <= '1';
+16c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101101", alu_ce <= '1';
+17c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,L
+145 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101000", alu_ce <= '1';
+155 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101010", alu_ce <= '1';
+165 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101100", alu_ce <= '1';
+175 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101110", alu_ce <= '1';
+14d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101001", alu_ce <= '1';
+15d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101011", alu_ce <= '1';
+16d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101101", alu_ce <= '1';
+17d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101111", alu_ce <= '1';
+; BIT b,A
+147 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101000", alu_ce <= '1';
+157 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101010", alu_ce <= '1';
+167 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101100", alu_ce <= '1';
+177 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101110", alu_ce <= '1';
+14f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101001", alu_ce <= '1';
+15f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101011", alu_ce <= '1';
+16f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101101", alu_ce <= '1';
+17f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101111", alu_ce <= '1';
+
+; SET/RESET     8 cycles
+25f next <= X"3fe", rf_omux <= "100", dmux <= "011", rf_imuxsel <= "10", rf_ce <= "10";
+26f next <= X"3fe", rf_omux <= "100", dmux <= "011", rf_imuxsel <= "10", rf_ce <= "01";
+27f next <= X"3fe", rf_omux <= "100", dmux <= "011", acc_ce <= '1';
 ; ***************************************************************************
 ; *     Subroutines                                                         *
 ; ***************************************************************************
-
-; Load (PC) into unq, PC++. Address should already be on bus for 1 cycle
-3e0 next <= X"3e1", rf_omux <= "100";
-3e1 next <= X"3e2", rf_omux <= "100", unq_ce <= '1';
-3e2 next <= X"3e3", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
-; (PC) into tmp, PC++, and jump to "01" & CMD
-3e3 next <= X"3e4", rf_omux <= "100";
-3e4 next <= X"3e5", rf_omux <= "100";
-3e5 next <= X"3e6", rf_omux <= "100", tmp_ce <= '1';
-3e6 next <= X"100", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
 
 3f0 next <= X"3f1";
 3f1 next <= X"3f2";
