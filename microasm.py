@@ -60,6 +60,10 @@ while line != '' and (line == '\n' or line[0] == ';') :
 while len(line) > 0 :
   line = line.strip()
 
+  keyhit = copy(bank)
+  for k in keyhit.keys() :
+    keyhit[k] = False;
+
   loc,rest = start.match(line).groups()
   addr = int(loc,16)
   paddr = addr * npar / 4
@@ -76,6 +80,9 @@ while len(line) > 0 :
       all,key,ty,val,delim,rest = set.match(rest).groups()
     except AttributeError :
       raise RuntimeError('Syntax error on line %d, value %d, rest was "%s"'%(linecount, setcount, rest))
+    if keyhit[key] :
+      raise RuntimeError('Duplicate key %s on line %d'%(key,linecount))
+    keyhit[key] = True
     if ty == '' :
       val = int(val, 2)
     else :

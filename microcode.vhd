@@ -276,6 +276,7 @@ begin
             tmp         when DMUX = "100" else
             unq         when DMUX = "101" else
             FIXED       when DMUX = "110" else
+            zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else,
             X"00";
 
     caddr <= X"40" when cmd(7 downto 5) = "010" else
