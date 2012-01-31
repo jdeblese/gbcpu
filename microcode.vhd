@@ -39,7 +39,7 @@ architecture FSM of microcode is
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
     signal FIXED : STD_LOGIC_VECTOR(7 downto 0);
 
-    signal AMUX : ABUS_SRC;
+    signal AMUX : std_logic_vector(1 downto 0);
 
     signal WR_EN : STD_LOGIC;
 
@@ -264,10 +264,10 @@ begin
     WR_D <= DBUS;
     RAM_WR <= WR_EN;
 
-    ABUS <= rf_addr when AMUX = RFADDR else
-            X"FF" & tmp when AMUX = TMP8ADDR else
-            tmp & unq when AMUX = TMP16ADDR else
-            X"0000";
+    ABUS <= rf_addr when AMUX = "00" else
+            X"FF" & tmp when AMUX = "11" else
+            tmp & unq when AMUX = "10" else
+            X"FF" & rf_odata;
 
     DBUS <= RAM         when DMUX = "000" else
             rf_odata    when DMUX = "001" else
@@ -323,7 +323,7 @@ begin
     unq_ce <= mc_data2(11);
     wr_en  <= mc_data2(12);
     DMUX <= mc_data2(15 downto 13);
---  AMUX <= mc_par2(1 downto 0);
+    AMUX <= mc_par2(1 downto 0);
 
     -- Defaults --
 

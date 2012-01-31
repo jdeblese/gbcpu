@@ -1,5 +1,7 @@
 ; DMUX: RAM  RF ACC ALU TMP UNQ FIXED ZNHC
 ;       000 001 010 011 100 101 110   111
+; AMUX: RF16 TMP16 RF8 TMP8
+;       00   01    10  11
 
 ; ***************************************************************************
 ; *     First block instructions (with opcode [0-3]*)                       *
@@ -534,6 +536,44 @@
 ; ***************************************************************************
 ; *     Fourth block instructions (with opcode [c-f]*)                      *
 ; ***************************************************************************
+
+; Fast Loads
+; LD (FF & n), A            12 cycles
+0e0 next <= X"25c", rf_omux <= "100";
+2e0 next <= X"290", amux <= "11", dmux <= "010";
+290 next <= X"291", amux <= "11", dmux <= "010";
+291 next <= X"292", amux <= "11", dmux <= "010", wr_en <= '1';
+292 next <= X"3fc", amux <= "11", dmux <= "010", wr_en <= '1';
+; LD (FF & C), A            8 cycles
+0e2 next <= X"293", rf_dmux <= X"1", amux <= "10", dmux <= "010";
+293 next <= X"294", rf_dmux <= X"1", amux <= "10", dmux <= "010";
+294 next <= X"295", rf_dmux <= X"1", amux <= "10", dmux <= "010", wr_en <= '1';
+295 next <= X"3fc", rf_dmux <= X"1", amux <= "10", dmux <= "010", wr_en <= '1';
+
+; LD A, (FF & n)            12 cycles
+0f0 next <= X"25c", rf_omux <= "100";
+2f0 next <= X"296", amux <= "11";
+296 next <= X"297", amux <= "11";
+297 next <= X"298", amux <= "11", acc_ce <= '1';
+298 next <= X"3fc", amux <= "11";
+; LD A, (FF & C)            8 cycles
+0f2 next <= X"299", rf_dmux <= X"1", amux <= "10";
+299 next <= X"29a", rf_dmux <= X"1", amux <= "10";
+29a next <= X"29b", rf_dmux <= X"1", amux <= "10", acc_ce <= '1';
+29b next <= X"3fc", rf_dmux <= X"1", amux <= "10";
+
+; LD (nn), A                16 cycles
+0ea next <= X"258", rf_omux <= "100";
+2ea next <= X"29c", amux <= "01", dmux <= "010";
+29c next <= X"29d", amux <= "01", dmux <= "010";
+29d next <= X"29e", amux <= "01", dmux <= "010", wr_en <= '1';
+29e next <= X"3fc", amux <= "01", dmux <= "010", wr_en <= '1';
+; LD A, (nn)                16 cycles
+0fa next <= X"258", rf_omux <= "100";
+2fa next <= X"257", amux <= "01";
+257 next <= X"267", amux <= "01";
+267 next <= X"277", amux <= "01", acc_ce <= '1';
+277 next <= X"3fc", amux <= "01";
 
 ; PUSH helper
 ;   (SP) <= tmp
