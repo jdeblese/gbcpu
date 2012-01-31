@@ -126,8 +126,8 @@
 30a next <= X"3fc", rf_omux <= "000";
 ;   A,(DE)
 01a next <= X"235", rf_omux <= "001";
-235 next <= X"20a", rf_omux <= "001";
-21a next <= X"30a", rf_omux <= "001", acc_ce <= '1';
+235 next <= X"21a", rf_omux <= "001";
+21a next <= X"31a", rf_omux <= "001", acc_ce <= '1';
 31a next <= X"3fc", rf_omux <= "001";
 
 ; LD A,({HL+,HL-})    8 cycles

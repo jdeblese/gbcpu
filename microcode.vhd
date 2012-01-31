@@ -265,8 +265,8 @@ begin
     RAM_WR <= WR_EN;
 
     ABUS <= rf_addr when AMUX = "00" else
+            tmp & unq when AMUX = "01" else
             X"FF" & tmp when AMUX = "11" else
-            tmp & unq when AMUX = "10" else
             X"FF" & rf_odata;
 
     DBUS <= RAM         when DMUX = "000" else
@@ -327,7 +327,6 @@ begin
 
     -- Defaults --
 
-    AMUX <= RFADDR;     -- Address from rf
     RAM_OE <= '1';      -- RAM on DBUS
 
     FIXED <= X"00";
