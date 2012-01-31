@@ -64,7 +64,11 @@ while len(line) > 0 :
   for k in keyhit.keys() :
     keyhit[k] = False;
 
-  loc,rest = start.match(line).groups()
+  try :
+    loc,rest = start.match(line).groups()
+  except :
+    raise RuntimeError('Problem parsing string "%s"'%line)
+
   addr = int(loc,16)
   paddr = addr * npar / 4
   if addr >= maxnib / nnib :
