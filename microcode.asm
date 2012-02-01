@@ -21,25 +21,25 @@
 ; JRNZ n        12/8 cycles
 ;   read n
 020 next <= X"200", rf_omux <= "100";
-;   flag is not set, so put n on the databus and update PC (6 cycles left)
-220 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-;   flag is set, so move on to fetch (2 cycles left)
-320 next <= X"3fe", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (8 cycles left)
+220 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is set, so move on to fetch (4 cycles left)
+320 next <= X"3fd", rf_omux <= "100";
 
 ; JRZ n         12/8 cycles
 ;   read n
 028 next <= X"200", rf_omux <= "100";
-;   flag is not set, so move on to fetch (2 cycles left)
-228 next <= X"3fe", rf_omux <= "100";
-;   flag is set, so put n on the databus and update PC (6 cycles left)
-328 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is not set, so move on to fetch (4 cycles left)
+228 next <= X"3fd", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (8 cycles left)
+328 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 
 ; JR n          12/8 cycles
 ;   read n
 018 next <= X"200", rf_omux <= "100";
-;   flag doesn't matter - put n on the databus and update PC (6 cycles left)
-218 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-318 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag doesn't matter - put n on the databus and update PC (8 cycles left)
+218 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+318 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 
 
 ; JRNC/C helper
@@ -51,18 +51,18 @@
 ; JRNC n        12/8 cycles
 ;   read n
 030 next <= X"254", rf_omux <= "100";
-;   flag is not set, so put n on the databus and update PC (6 cycles left)
-230 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-;   flag is set, so move on to fetch (2 cycles left)
-330 next <= X"3fe", rf_omux <= "100";
+;   flag is not set, so put n on the databus and update PC (8 cycles left)
+230 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is set, so move on to fetch (4 cycles left)
+330 next <= X"3fd", rf_omux <= "100";
 
 ; JRC n         12/8 cycles
 ;   read n
 038 next <= X"254", rf_omux <= "100";
-;   flag is not set, so move on to fetch (2 cycles left)
-238 next <= X"3fe", rf_omux <= "100";
-;   flag is set, so put n on the databus and update PC (6 cycles left)
-338 next <= X"3fa", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+;   flag is not set, so move on to fetch (4 cycles left)
+238 next <= X"3fd", rf_omux <= "100";
+;   flag is set, so put n on the databus and update PC (8 cycles left)
+338 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
 
 
 ; LD16 helpers
@@ -628,48 +628,48 @@
 0c1 next <= X"260", rf_omux <= "011";
 260 next <= X"261", rf_omux <= "011";
 261 next <= X"262", rf_omux <= "011",                  rf_imux <= "000", rf_ce <= "01";
-262 next <= X"263", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+262 next <= X"263", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 ;   B <= (SP++)
 263 next <= X"264", rf_omux <= "011";
 264 next <= X"265", rf_omux <= "011";
 265 next <= X"266", rf_omux <= "011",                  rf_imux <= "000", rf_ce <= "10";
-266 next <= X"3fc", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+266 next <= X"3fc", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 
 ; POP DE                            12 cycles
 ;   E <= (SP++)
 0d1 next <= X"268", rf_omux <= "011";
 268 next <= X"269", rf_omux <= "011";
 269 next <= X"26a", rf_omux <= "011",                  rf_imux <= "001", rf_ce <= "01";
-26a next <= X"26b", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+26a next <= X"26b", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 ;   D <= (SP++)
 26b next <= X"26c", rf_omux <= "011";
 26c next <= X"26d", rf_omux <= "011";
 26d next <= X"26e", rf_omux <= "011",                  rf_imux <= "001", rf_ce <= "10";
-26e next <= X"3fc", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+26e next <= X"3fc", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 
 ; POP HL                            12 cycles
 ;   L <= (SP++)
 0e1 next <= X"270", rf_omux <= "011";
 270 next <= X"271", rf_omux <= "011";
 271 next <= X"272", rf_omux <= "011",                  rf_imux <= "010", rf_ce <= "01";
-272 next <= X"273", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+272 next <= X"273", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 ;   H <= (SP++)
 273 next <= X"274", rf_omux <= "011";
 274 next <= X"275", rf_omux <= "011";
 275 next <= X"276", rf_omux <= "011",                  rf_imux <= "010", rf_ce <= "10";
-276 next <= X"3fc", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+276 next <= X"3fc", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 
 ; POP AF                            12 cycles
 ;   TODO: flags <= (SP++)
 0f1 next <= X"278", rf_omux <= "011";
 278 next <= X"279", rf_omux <= "011";
 279 next <= X"27a", rf_omux <= "011";
-27a next <= X"27b", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+27a next <= X"27b", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 ;   A <= (SP++)
 27b next <= X"27c", rf_omux <= "011";
 27c next <= X"27d", rf_omux <= "011";
 27d next <= X"27e", rf_omux <= "011", acc_ce <= '1';
-27e next <= X"3fc", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+27e next <= X"3fc", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
 
 
 ; ADD A,n                           8 cycles
@@ -746,6 +746,28 @@
 ;   flag doesn't matter - put n on the databus and update PC (6 cycles left)
 2c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
 3c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+
+; CALL nn                   24 cycles
+;   read nn
+0cd next <= X"3a0", rf_omux <= "100";
+;   flag doesn't matter
+;   SP--
+2cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+3cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   (SP--) <= msB(PC)
+207 next <= X"217", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+217 next <= X"227", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+227 next <= X"237", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+237 next <= X"209", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1', rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   (SP) <= lsB(PC)
+209 next <= X"219", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+219 next <= X"229", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+229 next <= X"239", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+239 next <= X"321", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+;   Now set PC <= nn        (7 cycles left)
+321 next <= X"331", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+331 next <= X"3fb", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
+
 
 
 ; JNC nn        16/12 cycles

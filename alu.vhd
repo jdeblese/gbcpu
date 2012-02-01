@@ -105,51 +105,41 @@ architecture Behaviour of alu is
     signal logic : std_logic_vector(7 downto 0);                -- ACC and/or/xor IDATA
     signal shifted : std_logic_vector(7 downto 0);
     signal bitmod : std_logic_vector(7 downto 0);
+    signal daa : std_logic_vector(7 downto 0);
+    signal olatch : std_logic_vector(7 downto 0);
 
     signal z_en : std_logic;
 
     signal targetbit : std_logic;
     signal zflag : std_logic;
-    signal cflag, hflag : std_logic;
+    signal acc_c, acc_h : std_logic;
+    signal daa_c, daa_h : std_logic;
     signal cbit : std_logic;
 
 begin
 
     -- Primary routing
     process(RST, CLK, CE)
-        variable int : std_logic_vector(7 downto 0);
     begin
         if RST = '1' then
             ODATA <= X"00";
-            zflag <= '0';
         elsif rising_edge(CLK) and CE = '1' then
-            case CMD(5 downto 3) is
-                when "000" => int := arith;
-                when "001" => int := arith;
-                when "010" => int := logic;
-                when "100" => int := shifted;
-                when "110" => int := bitmod;
-                when "111" => int := bitmod;
-                when others => int := X"00";
-            end case;
-
-            case int is
-                when X"00" => zflag <= '1';
-                when others => zflag <= '0';
-            end case;
-
-            ODATA <= int;
+            ODATA <= olatch;
         end if;
     end process;
 
---  with CMD(5 downto 3) select
---      ODATA <= arith when "000",
---               arith when "001",
---               logic when "010",      -- AND OR XOR CPL
---               shifted when "100",    -- Shifts
---               bitmod when "110",     -- RES
---               bitmod when "111",     -- SET
---               IDATA when others;     -- passthrough fallback
+    with CMD(5 downto 3) select
+        olatch <= arith when "000",
+                  arith when "001",
+                  logic when "010",      -- AND OR XOR CPL
+                  daa when "011",
+                  shifted when "100",    -- Shifts
+                  bitmod when "110",     -- RES
+                  bitmod when "111",     -- SET
+                  X"00" when others;
+    with olatch select
+        zflag <= '1' when X"00",
+                 '0' when others;
 
     -- Arithmetic
     neg <= not IDATA + X"01";
@@ -169,6 +159,41 @@ begin
     niblo <= ('0' & adata(3 downto 0)) + ('0' & muxed(3 downto 0)) + (X"0" & carry);
     nibhi <= ('0' & adata(7 downto 4)) + ('0' & muxed(7 downto 4)) + (X"0" & niblo(4));
     arith <= nibhi(3 downto 0) & niblo(3 downto 0);
+
+    with CMD(1) select
+        acc_c <= nibhi(4) when '0',
+                 not nibhi(4) when others;
+
+    with CMD(1) select
+        acc_h <= niblo(4) when '0',
+                 not niblo(4) when others;
+
+    -- DAA
+    -- TODO: Check documentation to see if h flag is set or not
+    lonibble : process(ACC, CIN, HIN, NIN)
+        variable inter : std_logic_vector(8 downto 0);
+    begin
+        if ACC(3 downto 0) > X"9" or HIN = '1' then
+            if NIN = '0' then
+                inter := ACC + X"06";
+            else
+                inter := ACC - X"06";
+            end if;
+            daa_h <= '1';
+        else
+            daa_h <= '0';
+        end if;
+        if inter(7 downto 4) > X"9" or CIN = '1' or inter(8) = '1' then
+            if NIN = '0' then
+                daa <= inter(7 downto 0) + X"60";
+            else
+                daa <= inter(7 downto 0) - X"60";
+            end if;
+            daa_c <= '1';
+        else
+            daa_c <= '0';
+        end if;
+    end process;
 
     -- Logic
     with CMD(1 downto 0) select
@@ -247,17 +272,13 @@ begin
         end if;
     end process;
 
-    with CMD(1) select
-        hflag <= niblo(4) when '0',
-                 not niblo(4) when others;
-
     process(RST, CLK, CE)
     begin
         if RST = '1' then
             HOUT <= '0';
         elsif rising_edge(CLK) and CE = '1' then
             if CMD(5 downto 4) = "00" then
-                HOUT <= hflag;
+                HOUT <= acc_h;
             elsif CMD(5 downto 3) = "101" then
                 HOUT <= '1';
             elsif CMD = "010000" or CMD = "010011" then
@@ -268,19 +289,15 @@ begin
         end if;
     end process;
 
-    with CMD(1) select
-        cflag <= nibhi(4) when '0',
-                 not nibhi(4) when others;
-
     process(RST, CLK, CE)
     begin
         if RST = '1' then
             COUT <= '0';
         elsif rising_edge(CLK) and CE = '1' then
             if CMD(5 downto 3) = "000" then
-                COUT <= cflag;
+                COUT <= acc_c;
             elsif CMD = "011000" then
-                COUT <= cflag;
+                COUT <= daa_c;
             elsif CMD(5 downto 3) = "100" then
                 COUT <= cbit;
             elsif CMD = "011010" then
