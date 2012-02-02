@@ -704,7 +704,7 @@
 ; CP A,n                            8 cycles
 0fe next <= X"308", rf_omux <= "100";
 308 next <= X"30d", rf_omux <= "100";
-30d next <= X"28f", rf_omux <= "100", alu_cmd <= "000011", alu_ce <= '1';
+30d next <= X"28f", rf_omux <= "100", alu_cmd <= "000110", alu_ce <= '1';
 28f next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11", znhc <= "1111";
 
 
