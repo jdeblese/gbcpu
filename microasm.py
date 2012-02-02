@@ -126,4 +126,4 @@ for b in range(0, 3) :
 
   print "----------------------------"
 
-  print "Memory usage: %d/%d words, %6.2f%%"%(usage.count(True), len(usage), 100.0 * usage.count(True) / len(usage))
+  print "Memory usage: %d/%d words, %6.2f%%, %d left"%(usage.count(True), len(usage), 100.0 * usage.count(True) / len(usage), len(usage) - usage.count(True))

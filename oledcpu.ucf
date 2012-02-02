@@ -8,6 +8,9 @@ Net "clk" LOC=V10 | IOSTANDARD=LVCMOS33;
 Net "clk" TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 100000 kHz;
 
+Net "btn<0>" TNM_NET = cpu_clk_pin;
+TIMESPEC TS_cpu_clk_pin = PERIOD cpu_clk_pin 4194.304 kHz;
+
 ## Leds
 Net "LED<0>" LOC = U16 | IOSTANDARD = LVCMOS33; #Bank = 2, pin name = IO_L2P_CMPCLK, Sch name = LD0
 Net "LED<1>" LOC = V16 |  IOSTANDARD = LVCMOS33; #Bank = 2, pin name = IO_L2N_CMPMOSI, Sch name = LD1

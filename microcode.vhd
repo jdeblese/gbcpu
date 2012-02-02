@@ -37,7 +37,6 @@ architecture FSM of microcode is
 
     signal DMUX : std_logic_vector(2 downto 0);
     signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
-    signal FIXED : STD_LOGIC_VECTOR(7 downto 0);
 
     signal AMUX : std_logic_vector(1 downto 0);
 
@@ -59,8 +58,6 @@ architecture FSM of microcode is
     signal cflag, zflag, hflag, nflag : std_logic;
     signal cf_en, zf_en, hf_en, nf_en : std_logic;
     signal flagsrc : std_logic;
-
-    signal caddr : std_logic_vector(7 downto 0);
 
     signal mc_addr : std_logic_vector(9 downto 0);
     signal mc_data0 : std_logic_vector(31 downto 0);
@@ -279,12 +276,6 @@ begin
             zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else
             X"00";
 
-    caddr <= X"40" when cmd(7 downto 5) = "010" else
-             X"40" when cmd(7 downto 4) = "0110" else
-             X"80" when cmd(7 downto 5) = "100" else
-             X"80" when cmd(7 downto 4) = "1010" else
-             cmd;
-
     -- Bank 0
     mc_addr(9) <= mc_data0(9);
     with mc_data0(10) select    -- addr select
@@ -328,8 +319,6 @@ begin
     -- Defaults --
 
     RAM_OE <= '1';      -- RAM on DBUS
-
-    FIXED <= X"00";
 
     -- Microcode Memory --
     umicro0 : RAMB16BWER

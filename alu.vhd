@@ -175,12 +175,13 @@ begin
     begin
         if ACC(3 downto 0) > X"9" or HIN = '1' then
             if NIN = '0' then
-                inter := ACC + X"06";
+                inter := ACC + "000000110";
             else
-                inter := ACC - X"06";
+                inter := ACC - "000000110";
             end if;
             daa_h <= '1';
         else
+            inter := '0' & ACC;
             daa_h <= '0';
         end if;
         if inter(7 downto 4) > X"9" or CIN = '1' or inter(8) = '1' then
@@ -191,6 +192,7 @@ begin
             end if;
             daa_c <= '1';
         else
+            daa <= inter(7 downto 0);
             daa_c <= '0';
         end if;
     end process;

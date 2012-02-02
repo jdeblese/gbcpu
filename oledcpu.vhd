@@ -205,7 +205,7 @@ begin
                         digit + X"30" when digit < X"a" else
                         digit + X"57";
 
-    process(trow, tchar, cpu_cmd, cpu_mop)
+    process(trow, tchar, cpu_cmd, cpu_mop, cpu_pc, cpu_acc, cpu_flag, cpu_sp, cpu_bc, cpu_de, cpu_hl, cpu_addr)
     begin
         d_en <= '1';
         digit <= X"20";
