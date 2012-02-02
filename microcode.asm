@@ -70,7 +70,7 @@
 258 next <= X"259", rf_omux <= "100";
 259 next <= X"25a", rf_omux <= "100", unq_ce <= '1';
 25a next <= X"25b", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
-;   (PC) into tmp, PC++, and jump to "10" & CMD
+;   (PC) into tmp, PC++, and jump to 200 + CMD
 25b next <= X"25c", rf_omux <= "100";
 25c next <= X"25d", rf_omux <= "100";
 25d next <= X"25e", rf_omux <= "100", tmp_ce <= '1';
@@ -722,6 +722,7 @@
 ;   jump depending on zero flag
 3a6 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
 
+; JNZ/Z final set
 3a7 next <= X"3fa", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
 
 ; JNZ nn
@@ -747,28 +748,6 @@
 2c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
 3c3 next <= X"3a7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
 
-; CALL nn                   24 cycles
-;   read nn
-0cd next <= X"3a0", rf_omux <= "100";
-;   flag doesn't matter
-;   SP--
-2cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
-3cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
-;   (SP--) <= msB(PC)
-207 next <= X"217", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
-217 next <= X"227", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
-227 next <= X"237", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1';
-237 next <= X"209", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1', rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
-;   (SP) <= lsB(PC)
-209 next <= X"219", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
-219 next <= X"229", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
-229 next <= X"239", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
-239 next <= X"321", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
-;   Now set PC <= nn        (7 cycles left)
-321 next <= X"331", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
-331 next <= X"3fb", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
-
-
 
 ; JNC nn        16/12 cycles
 
@@ -784,6 +763,7 @@
 ;   jump depending on carry flag
 3b6 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '0', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
 
+; JC/NC final set (TODO identical to 3a7, neccessary?)
 3b7 next <= X"3fa", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
 
 ; JNC nn
@@ -801,6 +781,193 @@
 2da next <= X"3fd", rf_omux <= "100";
 ;   flag is set, so put n on the databus and update PC (6 cycles left)
 3da next <= X"3b7", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+
+
+; CALL helper
+;   (SP--) <= msB(PC)       (15 cycles left)
+207 next <= X"217", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+217 next <= X"227", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+227 next <= X"237", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+237 next <= X"209", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1', rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   (SP) <= lsB(PC)
+209 next <= X"219", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+219 next <= X"229", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+229 next <= X"239", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+239 next <= X"321", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+;   Now set PC <= nn (in tmp and unq)       (7 cycles left)
+321 next <= X"331", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+331 next <= X"3fb", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
+
+; CALL nn                   24 cycles
+;   read nn, returning on zero flag
+0cd next <= X"3a0", rf_omux <= "100";
+;   flag doesn't matter     (16 cycles left)
+;   SP--
+2cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+3cd next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+
+; CALLNZ nn                 24/12 cycles
+;   read nn, returning on zero flag
+0c4 next <= X"3a0", rf_omux <= "100";
+;   flag is not set, so SP-- and push PC (16 cycles left)
+2c4 next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   flag is set, so move on to fetch (4 cycles left)
+3c4 next <= X"3fd", rf_omux <= "100";
+
+; CALLZ nn                  24 cycles
+;   read nn, returning on zero flag
+0cc next <= X"3a0", rf_omux <= "100";
+;   flag is not set, so move on to fetch (4 cycles left)
+2cc next <= X"3fd", rf_omux <= "100";
+;   flag is set, so SP-- and push PC (16 cycles left)
+3cc next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+
+; CALLNC nn                 24/12 cycles
+;   read nn, returning on carry flag
+0d4 next <= X"3b0", rf_omux <= "100";
+;   flag is not set, so SP-- and push PC (16 cycles left)
+2d4 next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   flag is set, so move on to fetch (4 cycles left)
+3d4 next <= X"3fd", rf_omux <= "100";
+
+; CALLC nn                  24 cycles
+;   read nn, returning on carry flag
+0dc next <= X"3b0", rf_omux <= "100";
+;   flag is not set, so move on to fetch (4 cycles left)
+2dc next <= X"3fd", rf_omux <= "100";
+;   flag is set, so SP-- and push PC (16 cycles left)
+3dc next <= X"207", rf_omux <= "011", rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+
+
+; RST                   16 cycles
+;   TODO 16 or 32 cycles?
+
+; helper
+;   (SP--) <= msB(PC)       (14 cycles left)
+3a8 next <= X"3a9", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+3a9 next <= X"3aa", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011";
+3aa next <= X"3ab", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+3ab next <= X"3ac", rf_dmux <= X"8", dmux <= "001", rf_omux <= "011", wr_en <= '1', rf_amux <= "10", rf_imux <= "011", rf_ce <= "11";
+;   (SP) <= lsB(PC)
+3ac next <= X"3ad", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+3ad next <= X"3ae", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011";
+3ae next <= X"3af", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+3af next <= X"39e", rf_dmux <= X"9", dmux <= "001", rf_omux <= "011", wr_en <= '1';
+;   Now set PC <= nn (in tmp and unq)       (6 cycles left)
+39e next <= X"39f", dmux <= "100", rf_imux <= "100", rf_ce <= "10";
+39f next <= X"3fc", dmux <= "101", rf_imux <= "100", rf_ce <= "01";
+
+; RST 00
+; 00h in tmp and 00h in unq
+0c7 next <= X"2c7", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2c7 next <= X"3a8", dmux <= "110", alu_cmd <= "000000", unq_ce <= '1';
+
+; RST 08
+; 00h in tmp and 08h in unq
+0cf next <= X"2cf", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2cf next <= X"3a8", dmux <= "110", alu_cmd <= "001000", unq_ce <= '1';
+
+; RST 10
+; 00h in tmp and 10h in unq
+0d7 next <= X"2d7", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2d7 next <= X"3a8", dmux <= "110", alu_cmd <= "010000", unq_ce <= '1';
+
+; RST 18
+; 00h in tmp and 18h in unq
+0df next <= X"2df", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2df next <= X"3a8", dmux <= "110", alu_cmd <= "011000", unq_ce <= '1';
+
+; RST 20
+; 00h in tmp and 20h in unq
+0e7 next <= X"2e7", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2e7 next <= X"3a8", dmux <= "110", alu_cmd <= "100000", unq_ce <= '1';
+
+; RST 28
+; 00h in tmp and 28h in unq
+0ef next <= X"2ef", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2ef next <= X"3a8", dmux <= "110", alu_cmd <= "101000", unq_ce <= '1';
+
+; RST 30
+; 00h in tmp and 30h in unq
+0f7 next <= X"2f7", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2f7 next <= X"3a8", dmux <= "110", alu_cmd <= "110000", unq_ce <= '1';
+
+; RST 38
+; 00h in tmp and 38h in unq
+0ff next <= X"2ff", dmux <= "110", alu_cmd <= "000000", tmp_ce <= '1';
+2ff next <= X"3a8", dmux <= "110", alu_cmd <= "111000", unq_ce <= '1';
+
+
+; RET helper
+;   delay line
+39b next <= X"39c";
+39c next <= X"39d";
+39d next <= X"394", rf_omux <= "011";
+;   C <= (SP++)
+394 next <= X"395", rf_omux <= "011";
+395 next <= X"396", rf_omux <= "011",                  rf_imux <= "100", rf_ce <= "01";
+396 next <= X"397", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
+;   P <= (SP++)
+397 next <= X"398", rf_omux <= "011";
+398 next <= X"399", rf_omux <= "011";
+399 next <= X"39a", rf_omux <= "011",                  rf_imux <= "100", rf_ce <= "10";
+39a next <= X"3f8", rf_omux <= "011", rf_amux <= "11", rf_imux <= "011", rf_ce <= "11";
+
+; RET           16 cycles
+0c9 next <= X"394", rf_omux <= "011";
+
+; RETNZ         20/8 cycles
+0c8 next <= X"200", cmdjmp <= '1', fljmp <= '1', flsel <= '1';
+;   flag is not set, so pop into PC (19 cycles left)
+2c8 next <= X"39b";
+;   flag is set, so move on to fetch (7 cycles left)
+3c8 next <= X"3fa";
+
+; RETZ          20/8 cycles
+0c0 next <= X"200", cmdjmp <= '1', fljmp <= '1', flsel <= '1';
+;   flag is not set, so move on to fetch (7 cycles left)
+2c0 next <= X"3fa";
+;   flag is set, so pop into PC (19 cycles left)
+3c0 next <= X"39b";
+
+; RETNC         20/8 cycles
+0d8 next <= X"200", cmdjmp <= '1', fljmp <= '1', flsel <= '0';
+;   flag is not set, so pop into PC (19 cycles left)
+2d8 next <= X"39b";
+;   flag is set, so move on to fetch (7 cycles left)
+3d8 next <= X"3fa";
+
+; RETC          20/8 cycles
+0d0 next <= X"200", cmdjmp <= '1', fljmp <= '1', flsel <= '0';
+;   flag is not set, so move on to fetch (7 cycles left)
+2d0 next <= X"3fa";
+;   flag is set, so pop into PC (19 cycles left)
+3d0 next <= X"39b";
+
+
+; JP HL         4 cycles
+;   HL on address bus, H into P
+0e9 next <= X"2e9", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4", rf_imux <= "100", rf_ce <= "10";
+;   HL on address bus, L into C
+2e9 next <= X"3fe", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5", rf_imux <= "100", rf_ce <= "01";
+
+
+; ADD SP,n      16 cycles
+;   read n
+0e8 next <= X"25c", rf_omux <= "100";
+;   Use internal 16-bit data path, taking flags from RF
+2e8 next <= X"3f5", rf_omux <= "011", rf_amux <= "00", rf_imux <= "011", rf_ce <= "11", znhc <= "1111", flagsrc <= "1";
+
+; LD HL,SP+n    12 cycles
+;   read n
+0f8 next <= X"25c", rf_omux <= "100";
+;   Use internal 16-bit data path, taking flags from RF
+2f8 next <= X"3f9", rf_omux <= "011", rf_amux <= "00", rf_imux <= "010", rf_ce <= "11", znhc <= "1111", flagsrc <= "1";
+
+; LD SP, HL     8 cycles
+;   Use internal 16-bit data path
+0f9 next <= X"3f9", rf_omux <= "010", rf_imux <= "011", rf_ce <= "11";
+
 
 ; ***************************************************************************
 ; *     CB Prefix Routines (Bit Manipulations)                              *

@@ -275,7 +275,7 @@ begin
             ALU_ODATA   when DMUX = "011" else
             tmp         when DMUX = "100" else
             unq         when DMUX = "101" else
-            FIXED       when DMUX = "110" else
+            "00" & alu_cmd when DMUX = "110" else
             zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else
             X"00";
 
