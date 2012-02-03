@@ -75,7 +75,7 @@ architecture Behavioral of oledcpu is
     -- Reader
     signal TDL, TDI, TDO : std_logic;
     signal bitcount : std_logic_vector(7 downto 0);
-    signal reader : std_logic_vector(73 downto 0);
+    signal reader : std_logic_vector(153 downto 0);
 
     -- GBCPU
     COMPONENT microcode
@@ -205,7 +205,7 @@ begin
                         digit + X"30" when digit < X"a" else
                         digit + X"57";
 
-    process(trow, tchar, cpu_cmd, cpu_mop, cpu_pc, cpu_acc, cpu_flag, cpu_sp, cpu_bc, cpu_de, cpu_hl, cpu_addr)
+    process(trow, tchar, cpu_cmd, cpu_mop, cpu_pc, cpu_acc, cpu_flag, cpu_sp, cpu_bc, cpu_de, cpu_hl, cpu_addr, RAM)
     begin
         d_en <= '1';
         digit <= X"20";
@@ -550,19 +550,24 @@ begin
         elsif rising_edge(CLK) then
             if old = '0' and clkdiv = '1' then
                 if bitcount = X"00" then
+                    cpu_pc <= reader(153 downto 138);
+                    cpu_sp <= reader(137 downto 122);
+                    cpu_hl <= reader(121 downto 106);
+                    cpu_de <= reader(105 downto 90);
+                    cpu_bc <= reader(89 downto 74);
                     cpu_mop <= reader(73 downto 20);
                     cpu_cmd <= reader(19 downto 12);
                     cpu_acc <= reader(11 downto 4);
                     cpu_flag <= reader(3 downto 0);
                 end if;
-                if bitcount = X"49" then
+                if bitcount = X"99" then
                     bitcount <= X"00";
                     TDL <= '1';
                 else
                     bitcount <= bitcount + X"01";
                     TDL <= '0';
                 end if;
-                reader <= reader(72 downto 0) & TDO;
+                reader <= reader(152 downto 0) & TDO;
             end if;
             old := clkdiv;
         end if;
@@ -570,11 +575,6 @@ begin
 
 
     cpu_addr <= ABUS;
-    cpu_pc <= X"44FD";
-    cpu_sp <= X"8a20";
-    cpu_bc <= X"b00b";
-    cpu_de <= X"b00b";
-    cpu_hl <= X"b00b";
 
     -- GBCPU
 

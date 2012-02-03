@@ -19,6 +19,10 @@ entity regfile16bit is
             nout : out std_logic;
             hout : out std_logic;
             cout : out std_logic;
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
             CLK : IN STD_LOGIC;
             RST : IN STD_LOGIC );
 end regfile16bit;
@@ -32,7 +36,27 @@ architecture Behaviour of regfile16bit is
 
     signal sum : std_logic_vector(15 downto 0);
 
+    signal bscan : std_logic_vector(79 downto 0);
+
 begin
+
+    -- Outshifter --
+
+    process(TCK, RST)
+    begin
+        if RST = '1' then
+            TDO <= '0';
+            bscan <= (others => '0');
+        elsif rising_edge(TCK) then
+            if TDL = '1' then
+                TDO <= rfile(4)(15);
+                bscan <= rfile(4)(14 downto 0) & rfile(3) & rfile(2) & rfile(1) & rfile(0) & TDI;
+            else
+                TDO <= bscan(79);
+                bscan <= bscan(78 downto 0) & TDI;
+            end if;
+        end if;
+    end process;
 
     -- Flags Z and N are either reset or left unchanged
     ZOUT <= '0';

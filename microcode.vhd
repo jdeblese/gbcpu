@@ -97,6 +97,8 @@ architecture FSM of microcode is
 
     signal timer_int : std_logic;
 
+    signal JTAGLINK : std_logic;
+
     component regfile16bit
         Port (  idata : in std_logic_vector(7 downto 0);
                 odata : out std_logic_vector(7 downto 0);
@@ -110,6 +112,10 @@ architecture FSM of microcode is
                 nout : out std_logic;
                 hout : out std_logic;
                 cout : out std_logic;
+                TCK : IN STD_LOGIC;
+                TDL : IN STD_LOGIC;
+                TDI : IN STD_LOGIC;
+                TDO : OUT STD_LOGIC;
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     end component;
@@ -145,22 +151,27 @@ begin
 
     -- Outshifter --
 
+    with TDL select
+        JTAGLINK <= lcode(53) when '0',
+                    mc_code(53) when others;
+
     process(TCK, RST)
     begin
         if RST = '1' then
+--          JTAGLINK <= '0';
             LCMD <= X"00";
             lacc <= X"00";
             lflags <= X"0";
             lcode <= (others => '0');
         elsif rising_edge(TCK) then
             if TDL = '1' then
-                TDO <= mc_code(53);
+--              JTAGLINK <= mc_code(53);
                 lcode <= mc_code(52 downto 0) & CMD(7);
                 LCMD <= CMD(6 downto 0) & acc(7);
                 lacc <= acc(6 downto 0) & zflag;
                 lflags <= nflag & hflag & cflag & TDI;
             else
-                TDO <= lcode(53);
+--              JTAGLINK <= lcode(53);
                 lcode <= lcode(52 downto 0) & LCMD(7);
                 LCMD <= LCMD(6 downto 0) & lacc(7);
                 lacc <= lacc(6 downto 0) & lflags(3);
@@ -172,7 +183,7 @@ begin
     -- Internal Blocks --
 
     urf : regfile16bit
-        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, rf_zout, rf_nout, rf_hout, rf_cout, CLK, RST);
+        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, rf_zout, rf_nout, rf_hout, rf_cout, TCK, TDL, JTAGLINK, TDO, CLK, RST);
 
     ualu : alu
         port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
