@@ -56,6 +56,7 @@ architecture FSM of microcode is
     signal lacc: std_logic_vector(7 downto 0);
 
     signal cflag, zflag, hflag, nflag : std_logic;
+    signal lflags : std_logic_vector(3 downto 0);
     signal cf_en, zf_en, hf_en, nf_en : std_logic;
     signal flagsrc : std_logic;
 
@@ -66,6 +67,8 @@ architecture FSM of microcode is
     signal mc_par0 : std_logic_vector(3 downto 0);
     signal mc_par1 : std_logic_vector(3 downto 0);
     signal mc_par2 : std_logic_vector(3 downto 0);
+    signal mc_code : std_logic_vector(53 downto 0);
+    signal lcode : std_logic_vector(53 downto 0);
 
     signal rf_idata : std_logic_vector(7 downto 0);
     signal rf_odata : std_logic_vector(7 downto 0);
@@ -147,15 +150,21 @@ begin
         if RST = '1' then
             LCMD <= X"00";
             lacc <= X"00";
+            lflags <= X"0";
+            lcode <= (others => '0');
         elsif rising_edge(TCK) then
             if TDL = '1' then
-                TDO <= CMD(7);
+                TDO <= mc_code(53);
+                lcode <= mc_code(52 downto 0) & CMD(7);
                 LCMD <= CMD(6 downto 0) & acc(7);
-                lacc <= acc(6 downto 0) & TDI;
+                lacc <= acc(6 downto 0) & zflag;
+                lflags <= nflag & hflag & cflag & TDI;
             else
-                TDO <= LCMD(7);
+                TDO <= lcode(53);
+                lcode <= lcode(52 downto 0) & LCMD(7);
                 LCMD <= LCMD(6 downto 0) & lacc(7);
-                lacc <= lacc(6 downto 0) & TDI;
+                lacc <= lacc(6 downto 0) & lflags(3);
+                lflags <= lflags(2 downto 0) & TDI;
             end if;
         end if;
     end process;
@@ -315,6 +324,13 @@ begin
     wr_en  <= mc_data2(12);
     DMUX <= mc_data2(15 downto 13);
     AMUX <= mc_par2(1 downto 0);
+
+    mc_code(53 downto 52) <= mc_par1(1 downto 0);
+    mc_code(51 downto 36) <= mc_data1(15 downto 0);
+    mc_code(35 downto 34) <= mc_par1(1 downto 0);
+    mc_code(33 downto 18) <= mc_data1(15 downto 0);
+    mc_code(17 downto 16) <= mc_par0(1 downto 0);
+    mc_code(15 downto 0) <= mc_data0(15 downto 0);
 
     -- Defaults --
 

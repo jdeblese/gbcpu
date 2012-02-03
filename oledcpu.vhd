@@ -75,7 +75,7 @@ architecture Behavioral of oledcpu is
     -- Reader
     signal TDL, TDI, TDO : std_logic;
     signal bitcount : std_logic_vector(7 downto 0);
-    signal reader : std_logic_vector(15 downto 0);
+    signal reader : std_logic_vector(73 downto 0);
 
     -- GBCPU
     COMPONENT microcode
@@ -260,6 +260,9 @@ begin
                     when "00111" => digit <= X"0" & cpu_addr(11 downto 8);
                     when "01000" => digit <= X"0" & cpu_addr(7 downto 4);
                     when "01001" => digit <= X"0" & cpu_addr(3 downto 0);
+                    when "01010" => digit <= X"7e";
+                    when "01011" => digit <= X"0" & RAM(7 downto 4);
+                    when "01100" => digit <= X"0" & RAM(3 downto 0);
                     when "10001" => digit <= X"0" & cpu_de(15 downto 12);
                     when "10010" => digit <= X"0" & cpu_de(11 downto 8);
                     when "10011" => digit <= X"0" & cpu_de(7 downto 4);
@@ -539,7 +542,7 @@ begin
         variable old : std_logic;
     begin
         if RST = '1' then
-            reader <= X"0000";
+            reader <= (others => '0');
             bitcount <= X"00";
             cpu_cmd <= X"00";
             cpu_acc <= X"00";
@@ -547,17 +550,19 @@ begin
         elsif rising_edge(CLK) then
             if old = '0' and clkdiv = '1' then
                 if bitcount = X"00" then
-                    cpu_cmd <= reader(15 downto 8);
-                    cpu_acc <= reader(7 downto 0);
+                    cpu_mop <= reader(73 downto 20);
+                    cpu_cmd <= reader(19 downto 12);
+                    cpu_acc <= reader(11 downto 4);
+                    cpu_flag <= reader(3 downto 0);
                 end if;
-                if bitcount = X"0f" then
+                if bitcount = X"49" then
                     bitcount <= X"00";
                     TDL <= '1';
                 else
                     bitcount <= bitcount + X"01";
                     TDL <= '0';
                 end if;
-                reader <= reader(14 downto 0) & TDO;
+                reader <= reader(72 downto 0) & TDO;
             end if;
             old := clkdiv;
         end if;
@@ -565,8 +570,6 @@ begin
 
 
     cpu_addr <= ABUS;
-    cpu_flag <= X"1";
-    cpu_mop <= "10" & X"0000000000000";
     cpu_pc <= X"44FD";
     cpu_sp <= X"8a20";
     cpu_bc <= X"b00b";
