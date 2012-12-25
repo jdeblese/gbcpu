@@ -44,7 +44,7 @@ architecture FSM of microcode is
 
     signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
     signal CMD_CE : STD_LOGIC;
-    signal LCMD   : STD_LOGIC_VECTOR(7 downto 0);
+    signal LCMD   : STD_LOGIC_VECTOR(7 downto 0);  -- JTAG: CMD shift register
 
     signal tmp : std_logic_vector(7 downto 0);
     signal tmp_ce : std_logic;
@@ -53,10 +53,10 @@ architecture FSM of microcode is
 
     signal acc : STD_LOGIC_VECTOR(7 downto 0);
     signal acc_ce : std_logic;
-    signal lacc: std_logic_vector(7 downto 0);
+    signal lacc: std_logic_vector(7 downto 0);  -- JTAG: acc shift register
 
     signal cflag, zflag, hflag, nflag : std_logic;
-    signal lflags : std_logic_vector(3 downto 0);
+    signal lflags : std_logic_vector(3 downto 0);  -- JTAG: flags shift register
     signal cf_en, zf_en, hf_en, nf_en : std_logic;
     signal flagsrc : std_logic;
 
@@ -68,7 +68,7 @@ architecture FSM of microcode is
     signal mc_par1 : std_logic_vector(3 downto 0);
     signal mc_par2 : std_logic_vector(3 downto 0);
     signal mc_code : std_logic_vector(53 downto 0);
-    signal lcode : std_logic_vector(53 downto 0);
+    signal lcode : std_logic_vector(53 downto 0);  -- JTAG: mc_code shift register
 
     signal rf_idata : std_logic_vector(7 downto 0);
     signal rf_odata : std_logic_vector(7 downto 0);
@@ -97,7 +97,7 @@ architecture FSM of microcode is
 
     signal timer_int : std_logic;
 
-    signal JTAGLINK : std_logic;
+    signal JTAGLINK : std_logic;  -- JTAG: MSB Out
 
     component regfile16bit
         Port (  idata : in std_logic_vector(7 downto 0);
@@ -149,12 +149,28 @@ architecture FSM of microcode is
 
 begin
 
-    -- Outshifter --
+    -- *****************************************************************
+    -- JTAG Shift Register
 
+    -- Latches data on the rising edge of
+    -- TCK when TDL is high. Values shifted
+    -- out are (MSB first):
+    --   mc_code
+    --   CMD
+    --   acc
+    --   zflag, nflag, hflag, cflag
+
+    -- NOTE: Does TCK need to be resynchronized to this clock domain? Or
+    -- the other values to the TCK domain?
+
+    -- NOTE: Does the following really need to be asynchronous? What's
+    -- the difference timing-wise between placing it here and below in
+    -- the process synchronous to TCK?
     with TDL select
         JTAGLINK <= lcode(53) when '0',
                     mc_code(53) when others;
 
+    -- Data latching and shifting
     process(TCK, RST)
     begin
         if RST = '1' then
@@ -180,6 +196,7 @@ begin
         end if;
     end process;
 
+    -- *****************************************************************
     -- Internal Blocks --
 
     urf : regfile16bit
