@@ -203,13 +203,15 @@ begin
         port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, rf_zout, rf_nout, rf_hout, rf_cout, TCK, TDL, JTAGLINK, TDO, CLK, RST);
 
     ualu : alu
-        port map (DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
+        port map (IDATA => DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
 
 --  utimer : timer
 --      port map (DBUS, ABUS, WR_EN, timer_int, CLK, RST);
 
+    -- *****************************************************************
     -- Internal Registers --
 
+    -- Accumulator, used as second input to ALU
     acc_proc : process(CLK, RST)
     begin
         if RST = '1' then
@@ -221,6 +223,7 @@ begin
         end if;
     end process;
 
+    -- Temporary registers
     tmp_proc : process(CLK, RST)
     begin
         if (RST = '1') then
@@ -243,6 +246,7 @@ begin
         end if;
     end process;
 
+    -- Current command used by ALU
     CMD_PROC : process(CLK, RST)
     begin
         if (RST = '1') then
@@ -254,6 +258,7 @@ begin
         end if;
     end process;
 
+    -- ALU flag registers
     process(CLK, RST)
     begin
         if (RST = '1') then
@@ -292,6 +297,7 @@ begin
         end if;
     end process;
 
+    -- *****************************************************************
     -- Signal Routing --
 
     rf_idata <= DBUS;
@@ -360,11 +366,14 @@ begin
     mc_code(17 downto 16) <= mc_par0(1 downto 0);
     mc_code(15 downto 0) <= mc_data0(15 downto 0);
 
+    -- *****************************************************************
     -- Defaults --
 
     RAM_OE <= '1';      -- RAM on DBUS
 
+    -- *****************************************************************
     -- Microcode Memory --
+
     umicro0 : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 18,
