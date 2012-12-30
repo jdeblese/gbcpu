@@ -17,14 +17,14 @@ use UNISIM.VComponents.all;
 
 -- Reduced opcode map:
 --      000  001  010  011  100  101  110  111
--- 000  ADD  ADC  SUB  SBC             CP
--- 001  INC                 DEC
--- 010  AND   OR  XOR  CPL
--- 011  DAA       SCF  CCF
--- 100  RLC   RL  RRC   RR  SLA  SRA  SRL  SWP
+-- 000  ADD  ADC  SUB  SBC             CP      arith
+-- 001  INC                 DEC                arith
+-- 010  AND   OR  XOR  CPL                     logic
+-- 011  DAA       SCF  CCF                     daa
+-- 100  RLC   RL  RRC   RR  SLA  SRA  SRL  SWP shift
 -- 101 BIT0 BIT1 BIT2 BIT3 BIT4 BIT5 BIT6 BIT7
--- 110 RES0 RES1 RES2 RES3 RES4 RES5 RES6 RES7
--- 111 SET0 SET1 SET2 SET3 SET4 SET5 SET6 SET7
+-- 110 RES0 RES1 RES2 RES3 RES4 RES5 RES6 RES7 bitmod
+-- 111 SET0 SET1 SET2 SET3 SET4 SET5 SET6 SET7 bitmod
 
 -- Zero flag map:
 --      000  001  010  011  100  101  110  111
@@ -101,15 +101,20 @@ architecture Behaviour of alu is
     signal carry : std_logic;                                   -- CIN or '0'
     signal adata : std_logic_vector(7 downto 0);                -- ACC, -1, +1 or 0
     signal niblo, nibhi : std_logic_vector(4 downto 0);         -- Nibbles of adata + muxed
+
+    -- ALU subblock data outputs
     signal arith : std_logic_vector(7 downto 0);                -- concatenation of nibbles
     signal logic : std_logic_vector(7 downto 0);                -- ACC and/or/xor IDATA
+    signal daa : std_logic_vector(7 downto 0);
     signal shifted : std_logic_vector(7 downto 0);
     signal bitmod : std_logic_vector(7 downto 0);
-    signal daa : std_logic_vector(7 downto 0);
+
+    -- Output data latch
     signal olatch : std_logic_vector(7 downto 0);
 
     signal z_en : std_logic;
 
+    -- Output flags
     signal targetbit : std_logic;
     signal zflag : std_logic;
     signal acc_c, acc_h : std_logic;
@@ -118,7 +123,7 @@ architecture Behaviour of alu is
 
 begin
 
-    -- Primary routing
+    -- IO Data Routing
     process(RST, CLK, CE)
     begin
         if RST = '1' then
@@ -137,6 +142,7 @@ begin
                   bitmod when "110",     -- RES
                   bitmod when "111",     -- SET
                   X"00" when others;
+
     with olatch select
         zflag <= '1' when X"00",
                  '0' when others;
