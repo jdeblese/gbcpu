@@ -56,30 +56,22 @@ architecture Behaviour of video is
     signal internal_en : std_logic;
 begin
 
+    -- *********************************************************************************************
+    -- Memory mapping, 8000-9FFF and FF40-FF4B
+
+    -- first three local RAMs are for data tables, last is for background tile maps
+
     lo_en  <= WR_EN when ABUS(15 downto 11) = "10000" else '0';  -- 8000h -- 87FFh
     mid_en <= WR_EN when ABUS(15 downto 11) = "10001" else '0';  -- 8800h -- 8FFFh
     hi_en  <= WR_EN when ABUS(15 downto 11) = "10010" else '0';  -- 9000h -- 97FFh
     map_en <= WR_EN when ABUS(15 downto 11) = "10011" else '0';  -- 9800h -- 9FFFh
 
-    bgshift <= ly + scy;
-
-    map_sel <= lcdc(3);  -- This depends on whether background or window is being drawn
-    map_addr <= bgshift(7 downto 3) & lx;    -- top five bits is tile row, bottom is tile column
-    tileidx <= map_dob(7 downto 0);
-
-    dataddr(9 downto 3) <= tileidx(6 downto 0);     -- which tile to be read determined by tile map
-    dataddr(2 downto 0) <= bgshift(2 downto 0);     -- row of tile to be read determined by ly and scy
-
-    tilerow <= mid_dob(15 downto 0) when tileidx(7) = '1' else
-               lo_dob(15 downto 0) when lcdc(4) = '1' else      -- actually dependent on if reading BG & Window data or Sprite data
-               hi_dob(15 downto 0);
-
     DOUT <= lo_doa(7 downto 0)  when ABUS(15 downto 11) = "10000" else  -- 8000h -- 87FFh
             mid_doa(7 downto 0) when ABUS(15 downto 11) = "10001" else  -- 8800h -- 8FFFh
             hi_doa(7 downto 0)  when ABUS(15 downto 11) = "10010" else  -- 9000h -- 97FFh
             map_doa(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
-            lcdc when ABUS = "1111111101000000" else     -- FF41
-            "000000" & mode when ABUS = "1111111101000001" else     -- FF41
+            lcdc when ABUS = "1111111101000000" else     -- FF40
+            "000000" & mode when ABUS = "1111111101000001" else     -- there's more to this register
             scy  when ABUS = "1111111101000010" else
             scx  when ABUS = "1111111101000011" else
             ly   when ABUS = "1111111101000100" else
@@ -89,8 +81,11 @@ begin
             obp0 when ABUS = "1111111101001000" else
             obp1 when ABUS = "1111111101001001" else
             wy   when ABUS = "1111111101001010" else
-            wx   when ABUS = "1111111101001011" else
+            wx   when ABUS = "1111111101001011" else  -- Last defined register
             "ZZZZZZZZ";
+
+    -- *********************************************************************************************
+    -- Internal registers
 
     inproc : process(CLK, RST)
     begin
@@ -124,6 +119,9 @@ begin
         end if;
     end process;
 
+    -- *********************************************************************************************
+    -- Timing
+
     countproc : process(CLK, RST)
     begin
         if RST = '1' then
@@ -131,7 +129,7 @@ begin
         elsif rising_edge(CLK) then
             if CS = RESET then
                 count <= "000000000";
-            elsif count = "111000111" then
+            elsif count = "111000111" then  -- 455 (1C7h)
                 count <= "000000000";
             else
                 count <= count + "1";
@@ -144,8 +142,8 @@ begin
         if RST = '1' then
             ly <= X"00";
         elsif rising_edge(CLK) then
-            if count = "111000111" then
-                if ly = "10011001" then
+            if count = "111000111" then  -- 455 (1C7h)
+                if ly = "10011001" then  -- 153 (99h)
                     ly <= "00000000";
                 else
                     ly <= ly + "1";
@@ -153,6 +151,9 @@ begin
             end if;
         end if;
     end process;
+
+    -- *********************************************************************************************
+    -- Renderer FSM
 
     SYNC_PROC: process (CLK, RST)
     begin
@@ -207,7 +208,7 @@ begin
             when WAI =>
                 NS <= WAI;
                 internal_en <= '1';
-                if count = "011111011" then -- 251 (FBh)
+                if count = "011111011" then -- 251 (FBh)  Earliest value, may be as late as 377 (179h)
                     internal_en <= '0';
                     NS <= HBLANK;
                 end if;
@@ -232,6 +233,26 @@ begin
                 NS <= RESET;
         end case;
     end process;
+
+    -- *********************************************************************************************
+    -- Local RAM
+
+    -- External access is through port A, according to memory map defined above
+    -- Internal access is through port B, using 'dataddr' / 'map_sel & mapaddr' and '_dob' signals
+
+    bgshift <= ly + scy;
+    tileidx <= map_dob(7 downto 0);
+
+    map_sel <= lcdc(3);  -- This depends on whether background or window is being drawn
+    map_addr <= bgshift(7 downto 3) & lx;    -- top five bits is tile row, bottom is tile column
+
+    dataddr(9 downto 3) <= tileidx(6 downto 0);     -- which tile to be read determined by tile map
+    dataddr(2 downto 0) <= bgshift(2 downto 0);     -- row of tile to be read determined by ly and scy
+
+    tilerow <= mid_dob(15 downto 0) when tileidx(7) = '1' else
+               lo_dob(15 downto 0) when lcdc(4) = '1' else    -- actually dependent on if reading BG & Window data or Sprite data
+               hi_dob(15 downto 0);
+
 
     loram : RAMB16BWER
     generic map (
