@@ -1,0 +1,76 @@
+digraph ALU {
+  NEGATE [shape=box];
+  IDATA -> NEGATE;
+  NEGATE -> MUX_N;
+  IDATA -> MUX_N;
+  MUX_N [shape=invtrapezium];
+
+  x00 -> MUX_OUT;
+  OLATCH -> MUX_OUT;
+  MUX_OUT [shape=invtrapezium];
+  MUX_OUT -> ODATA;
+
+  ADDER -> OLATCH [label="arith"];
+  AND_OR_XOR_NOT -> OLATCH [label="logic"];
+  DAA -> OLATCH [label="daa"];
+  SHIFTER -> OLATCH [label="shifted"];
+  BITSET -> OLATCH [label="bitmod"];
+  OLATCH [shape=invtrapezium];
+
+  OLATCH -> MUX_ZFLAG [label="zflag"];
+  IDATA -> MUX_ZFLAG [label="targetbit"];
+  MUX_ZFLAG [shape=invtrapezium];
+  MUX_ZFLAG -> ZOUT;
+
+  ACC -> MUX_ARITH;
+  x01 -> MUX_ARITH;
+  xFF -> MUX_ARITH;
+  MUX_ARITH [shape=invtrapezium];
+  
+  ADDER [shape=box];
+  MUX_N -> ADDER;
+  MUX_ARITH -> ADDER;
+  CIN -> ADDER;
+
+  ADDER -> MUX_CFLAG [label="acc_c"];
+  MUX_CFLAG [shape=invtrapezium];
+  MUX_CFLAG -> COUT;
+
+  CMD -> MUX_HFLAG;
+  ADDER -> MUX_HFLAG [label="acc_h"];
+  MUX_HFLAG [shape=invtrapezium];
+  MUX_HFLAG -> HOUT;
+
+  AND_OR_XOR_NOT [shape=box];
+  ACC -> AND_OR_XOR_NOT;
+  IDATA -> AND_OR_XOR_NOT;
+
+  SHIFTER [shape=box];
+  IDATA -> SHIFTER;
+  CIN -> SHIFTER;
+
+  BITSET [shape=box];
+  IDATA -> BITSET;
+
+  CMD -> NOUT;
+
+  DAA -> MUX_CFLAG [label="daa_c"];
+  SHIFTER -> MUX_CFLAG [label="cbit"];
+  CMD -> MUX_CFLAG;
+
+  DAA [shape=box];
+  ACC -> DAA;
+  CIN -> DAA;
+  HIN -> DAA;
+  NIN -> DAA;
+  DAA -> "?" [label="daa_h"];
+
+  ZIN;
+
+  {rank=source; ZIN HIN NIN CIN IDATA CMD ACC}
+  {rank=sink; ZOUT HOUT NOUT COUT ODATA}
+
+  {rank=same; MUX_ZFLAG MUX_CFLAG MUX_HFLAG MUX_OUT}
+  {rank=same; ADDER DAA SHIFTER BITSET AND_OR_XOR_NOT}
+
+}
