@@ -25,6 +25,8 @@ architecture Behaviour of video is
     signal lx : std_logic_vector(4 downto 0);
 
     signal mode : std_logic_vector(1 downto 0);
+    signal ly_coinc : std_logic_vector;
+
     signal count : std_logic_vector(8 downto 0);
 
     signal bgshift : std_logic_vector(7 downto 0);  -- ly - scy
@@ -56,6 +58,8 @@ architecture Behaviour of video is
     signal internal_en : std_logic;
 begin
 
+    ly_coinc <= (ly = lyc);
+
     -- *********************************************************************************************
     -- Memory mapping, 8000-9FFF and FF40-FF4B
 
@@ -71,7 +75,7 @@ begin
             hi_doa(7 downto 0)  when ABUS(15 downto 11) = "10010" else  -- 9000h -- 97FFh
             map_doa(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
             lcdc when ABUS = "1111111101000000" else     -- FF40
-            "000000" & mode when ABUS = "1111111101000001" else     -- there's more to this register
+            "00000" & ly_coinc & mode when ABUS = "1111111101000001" else     -- there's more to this register
             scy  when ABUS = "1111111101000010" else
             scx  when ABUS = "1111111101000011" else
             ly   when ABUS = "1111111101000100" else
@@ -111,8 +115,8 @@ begin
                     when "0111" => bgp  <= DIN;
                     when "1000" => obp0 <= DIN;
                     when "1001" => obp1 <= DIN;
-                    when "1010" => wy   <= DIN;
-                    when "1011" => wx   <= DIN;
+                    when "1010" => wy   <= DIN;  -- should only change at the start of a redraw, never during
+                    when "1011" => wx   <= DIN;  -- may be changed during a scan line interrupt to distort graphics
                     when others => null;
                 end case;
             end if;
@@ -178,6 +182,7 @@ begin
     begin
 
         internal_en <= '0';     -- Disable internal RAM port when not in use to avoid collisions
+        mode <= "00";
 
         case CS is
             when RESET =>
@@ -189,6 +194,7 @@ begin
 
             when OAMSCAN =>
                 NS <= OAMSCAN;
+                mode <= "10";
                 internal_en <= '1';
                 if count = "001001111" then -- 79 (4Fh)
                     NS <= MAPREAD;
@@ -196,17 +202,20 @@ begin
 
             when MAPREAD =>
                 NS <= TILEREAD;
+                mode <= "11";
                 internal_en <= '1';
 
             when TILEREAD =>
                 NS <= MAPREAD;
+                mode <= "11";
                 internal_en <= '1';
-                if lx = "10011" then    -- 19 (13h)
+                if lx = "10011" then    -- 19 (13h) If this was column 19 of the display...
                     NS <= WAI;
                 end if;
 
             when WAI =>
                 NS <= WAI;
+                mode <= "11";
                 internal_en <= '1';
                 if count = "011111011" then -- 251 (FBh)  Earliest value, may be as late as 377 (179h)
                     internal_en <= '0';
@@ -215,6 +224,7 @@ begin
 
             when HBLANK =>
                 NS <= HBLANK;
+                mode <= "00";
                 if count = "111000111" then -- 455 (1C7h)
                     if ly = "10001111" then -- 143 (8Fh)
                         NS <= VBLANK;
@@ -225,6 +235,7 @@ begin
 
             when VBLANK =>
                 NS <= VBLANK;
+                mode <= "01";
                 if count = "111000111" and ly = "10011001" then -- 455, 153 (1C7h, 99h)
                     NS <= OAMSCAN;
                 end if;
