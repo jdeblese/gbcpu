@@ -7,11 +7,29 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity microcode is
-    Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
-            RAM : in STD_LOGIC_VECTOR(7 downto 0);
-            RAM_OE : out STD_LOGIC;
-            WR_D : out STD_LOGIC_VECTOR(7 downto 0);
-            RAM_WR : out STD_LOGIC;
+    Port (  ABUSMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+            DBUSMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+            flagsrc : OUT STD_LOGIC;
+            zf_en : OUT STD_LOGIC;
+            nf_en : OUT STD_LOGIC;
+            hf_en : OUT STD_LOGIC;
+            cf_en : OUT STD_LOGIC;
+            RF_DMUX : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
+            RF_IMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+            RF_AMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+            RF_OMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+            RF_CE   : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+            ALU_CMD : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+            ALU_CE  : OUT STD_LOGIC;
+            R_CMDCE : OUT STD_LOGIC;
+            R_ACCCE : OUT STD_LOGIC;
+            R_TMPCE : OUT STD_LOGIC;
+            R_UNQCE : OUT STD_LOGIC;
+            RAM_WREN : OUT STD_LOGIC;
+            RAM_OE   : OUT STD_LOGIC;
+            CMD   : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+            CFLAG : IN STD_LOGIC;
+            ZFLAG : IN STD_LOGIC;
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -21,44 +39,6 @@ entity microcode is
 end microcode;
 
 architecture FSM of microcode is
-
-    type STATE_TYPE is (RESET, RUN, ERR, INCPC, WAI,
-                        READ, JR, JMP_HI, JMP_LO,
-                        LD16_A, LD16_1ST, LD16_B, LD16_2ND, LD16_C,
-                        CALL1, CALL2, CALL3, CALL4, CALL5, CALL6, RET1, RET2, RET3, RET4,
-                        OP16, LD8, ST8,
-                        LDSADDR0, LDSADDR1, LSADDR2,
-                        ALU8, LOADACC, INCDEC8, LOADRF, CARRY,
-                        BITRUN, BITMANIP, BITSAVE);
-    type DBUS_SRC is (RAMDATA, RFDATA, ACCDATA, ALUDATA, TMPDATA, UNQDATA, FSMDATA);
-    type ABUS_SRC is (RFADDR, RF8ADDR, TMP8ADDR, TMP16ADDR);
-
-    signal CS, NS: STATE_TYPE;
-
-    signal DMUX : std_logic_vector(2 downto 0);
-    signal DBUS : STD_LOGIC_VECTOR(7 downto 0);
-
-    signal AMUX : std_logic_vector(1 downto 0);
-
-    signal WR_EN : STD_LOGIC;
-
-    signal CMD    : STD_LOGIC_VECTOR(7 downto 0);
-    signal CMD_CE : STD_LOGIC;
-    signal LCMD   : STD_LOGIC_VECTOR(7 downto 0);  -- JTAG: CMD shift register
-
-    signal tmp : std_logic_vector(7 downto 0);
-    signal tmp_ce : std_logic;
-    signal unq : std_logic_vector(7 downto 0);
-    signal unq_ce : std_logic;
-
-    signal acc : STD_LOGIC_VECTOR(7 downto 0);
-    signal acc_ce : std_logic;
-    signal lacc: std_logic_vector(7 downto 0);  -- JTAG: acc shift register
-
-    signal cflag, zflag, hflag, nflag : std_logic;
-    signal lflags : std_logic_vector(3 downto 0);  -- JTAG: flags shift register
-    signal cf_en, zf_en, hf_en, nf_en : std_logic;
-    signal flagsrc : std_logic;
 
     signal mc_addr : std_logic_vector(9 downto 0);
     signal mc_data0 : std_logic_vector(31 downto 0);
@@ -70,83 +50,6 @@ architecture FSM of microcode is
     signal mc_code : std_logic_vector(53 downto 0);
     signal lcode : std_logic_vector(53 downto 0);  -- JTAG: mc_code shift register
 
-    signal rf_idata : std_logic_vector(7 downto 0);
-    signal rf_odata : std_logic_vector(7 downto 0);
-    signal rf_addr : std_logic_vector(15 downto 0);
-    signal rf_imux : std_logic_vector(2 downto 0);
-    signal rf_omux : std_logic_vector(2 downto 0);
-    signal rf_dmux : std_logic_vector(3 downto 0);
-    signal rf_amux : std_logic_vector(1 downto 0);
-    signal rf_ce : std_logic_vector(1 downto 0);
-    signal rf_zout : std_logic;
-    signal rf_nout : std_logic;
-    signal rf_hout : std_logic;
-    signal rf_cout : std_logic;
-
-    signal ALU_ODATA   : std_logic_vector(7 downto 0);
-    signal ALU_CE      : std_logic;
-    signal ALU_CMD     : std_logic_vector(5 downto 0);
-    signal ALU_ZIN     : std_logic;
-    signal ALU_CIN     : std_logic;
-    signal ALU_HIN     : std_logic;
-    signal ALU_NIN     : std_logic;
-    signal ALU_ZOUT    : std_logic;
-    signal ALU_COUT    : std_logic;
-    signal ALU_HOUT    : std_logic;
-    signal ALU_NOUT    : std_logic;
-
-    signal timer_int : std_logic;
-
-    signal JTAGLINK : std_logic;  -- JTAG: MSB Out
-
-    component regfile16bit
-        Port (  idata : in std_logic_vector(7 downto 0);
-                odata : out std_logic_vector(7 downto 0);
-                addr : out std_logic_vector(15 downto 0);
-                imux : in std_logic_vector(2 downto 0);
-                omux : in std_logic_vector(2 downto 0);
-                dmux : in std_logic_vector(3 downto 0);
-                amux : in std_logic_vector(1 downto 0);
-                ce : in std_logic_vector(1 downto 0);
-                zout : out std_logic;
-                nout : out std_logic;
-                hout : out std_logic;
-                cout : out std_logic;
-                TCK : IN STD_LOGIC;
-                TDL : IN STD_LOGIC;
-                TDI : IN STD_LOGIC;
-                TDO : OUT STD_LOGIC;
-                CLK : IN STD_LOGIC;
-                RST : IN STD_LOGIC );
-    end component;
-
-    component alu
-        Port (  IDATA   : in std_logic_vector(7 downto 0);
-                ACC     : in std_logic_vector(7 downto 0);
-                ODATA   : out std_logic_vector(7 downto 0);
-                CE      : in std_logic;
-                CMD     : in std_logic_vector(5 downto 0);
-                ZIN     : in std_logic;
-                CIN     : in std_logic;
-                HIN     : in std_logic;
-                NIN     : in std_logic;
-                ZOUT    : out std_logic;
-                COUT    : out std_logic;
-                HOUT    : out std_logic;
-                NOUT    : out std_logic;
-                CLK : IN STD_LOGIC;
-                RST : IN STD_LOGIC );
-    end component;
-
-    component timer
-        Port (  DBUS    : inout std_logic_vector(7 downto 0);
-                ABUS    : in std_logic_vector(15 downto 0);
-                WR_EN   : in std_logic;
-                INT     : out std_logic;
-                CLK     : in std_logic;
-                RST     : in std_logic );
-    end component;
-
 begin
 
     -- *****************************************************************
@@ -156,168 +59,29 @@ begin
     -- TCK when TDL is high. Values shifted
     -- out are (MSB first):
     --   mc_code
-    --   CMD
-    --   acc
-    --   zflag, nflag, hflag, cflag
 
     -- NOTE: Does TCK need to be resynchronized to this clock domain? Or
     -- the other values to the TCK domain?
-
-    -- NOTE: Does the following really need to be asynchronous? What's
-    -- the difference timing-wise between placing it here and below in
-    -- the process synchronous to TCK?
-    with TDL select
-        JTAGLINK <= lcode(53) when '0',
-                    mc_code(53) when others;
 
     -- Data latching and shifting
     process(TCK, RST)
     begin
         if RST = '1' then
---          JTAGLINK <= '0';
-            LCMD <= X"00";
-            lacc <= X"00";
-            lflags <= X"0";
+            TDO <= '0';
             lcode <= (others => '0');
         elsif rising_edge(TCK) then
             if TDL = '1' then
---              JTAGLINK <= mc_code(53);
-                lcode <= mc_code(52 downto 0) & CMD(7);
-                LCMD <= CMD(6 downto 0) & acc(7);
-                lacc <= acc(6 downto 0) & zflag;
-                lflags <= nflag & hflag & cflag & TDI;
+                TDO <= mc_code(53);
+                lcode <= mc_code(52 downto 0) & TDI;
             else
---              JTAGLINK <= lcode(53);
-                lcode <= lcode(52 downto 0) & LCMD(7);
-                LCMD <= LCMD(6 downto 0) & lacc(7);
-                lacc <= lacc(6 downto 0) & lflags(3);
-                lflags <= lflags(2 downto 0) & TDI;
-            end if;
-        end if;
-    end process;
-
-    -- *****************************************************************
-    -- Internal Blocks --
-
-    urf : regfile16bit
-        port map (rf_idata, rf_odata, rf_addr, rf_imux, rf_omux, rf_dmux, rf_amux, rf_ce, rf_zout, rf_nout, rf_hout, rf_cout, TCK, TDL, JTAGLINK, TDO, CLK, RST);
-
-    ualu : alu
-        port map (IDATA => DBUS, acc, ALU_ODATA, ALU_CE, ALU_CMD, zflag, cflag, hflag, nflag, ALU_ZOUT, ALU_COUT, ALU_HOUT, ALU_NOUT, CLK, RST);
-
---  utimer : timer
---      port map (DBUS, ABUS, WR_EN, timer_int, CLK, RST);
-
-    -- *****************************************************************
-    -- Internal Registers --
-
-    -- Accumulator, used as second input to ALU
-    acc_proc : process(CLK, RST)
-    begin
-        if RST = '1' then
-            acc <= X"AC";
-        elsif rising_edge(CLK) then
-            if acc_ce = '1' then
-                acc <= DBUS;
-            end if;
-        end if;
-    end process;
-
-    -- Temporary registers
-    tmp_proc : process(CLK, RST)
-    begin
-        if (RST = '1') then
-            tmp <= "00000000";
-        elsif (rising_edge(CLK)) then
-            if (tmp_ce = '1') then
-                tmp <= DBUS;
-            end if;
-        end if;
-    end process;
-
-    unq_proc : process(CLK, RST)
-    begin
-        if (RST = '1') then
-            unq <= "00000000";
-        elsif (rising_edge(CLK)) then
-            if (unq_ce = '1') then
-                unq <= DBUS;
-            end if;
-        end if;
-    end process;
-
-    -- Current command used by ALU
-    CMD_PROC : process(CLK, RST)
-    begin
-        if (RST = '1') then
-            CMD <= "00000000";
-        elsif (rising_edge(CLK)) then
-            if (CMD_CE = '1') then
-                CMD <= DBUS;
-            end if;
-        end if;
-    end process;
-
-    -- ALU flag registers
-    process(CLK, RST)
-    begin
-        if (RST = '1') then
-            zflag <= '0';
-            nflag <= '0';
-            hflag <= '0';
-            cflag <= '0';
-        elsif rising_edge(CLK) then
-            if flagsrc = '0' then
-                if zf_en = '1' then
-                    zflag <= alu_zout;
-                end if;
-                if nf_en = '1' then
-                    nflag <= alu_nout;
-                end if;
-                if hf_en = '1' then
-                    hflag <= alu_hout;
-                end if;
-                if cf_en = '1' then
-                    cflag <= alu_cout;
-                end if;
-            else
-                if zf_en = '1' then
-                    zflag <= rf_zout;
-                end if;
-                if nf_en = '1' then
-                    nflag <= rf_nout;
-                end if;
-                if hf_en = '1' then
-                    hflag <= rf_hout;
-                end if;
-                if cf_en = '1' then
-                    cflag <= rf_cout;
-                end if;
+                TDO <= lcode(53);
+                lcode <= lcode(52 downto 0) & TDI;
             end if;
         end if;
     end process;
 
     -- *****************************************************************
     -- Signal Routing --
-
-    rf_idata <= DBUS;
-    WR_D <= DBUS;
-    RAM_WR <= WR_EN;
-
-    ABUS <= rf_addr when AMUX = "00" else
-            tmp & unq when AMUX = "01" else
-            X"FF" & tmp when AMUX = "11" else
-            X"FF" & rf_odata;
-
-    DBUS <= RAM         when DMUX = "000" else
-            rf_odata    when DMUX = "001" else
-            acc         when DMUX = "010" else
-            ALU_ODATA   when DMUX = "011" else
-            tmp         when DMUX = "100" else
-            unq         when DMUX = "101" else
-            "00" & alu_cmd when DMUX = "110" else
-            zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else
-            X"00";
 
     -- Bank 0
     mc_addr(9) <= mc_data0(9);
@@ -336,28 +100,31 @@ begin
     cf_en <= mc_data0(14);
 
     -- Bank 1
-    rf_dmux <= mc_data1(3 downto 0);
+    RF_DMUX <= mc_data1(3 downto 0);
 
     with mc_par1(1 downto 0) select
-        rf_imux <= mc_data1(6 downto 4) when "00",
+        RF_IMUX <= mc_data1(6 downto 4) when "00",
                    '0' & cmd(5 downto 4) when "01",
                    '0' & cmd(2 downto 1) when others;
 
-    rf_ce   <= mc_data1(9 downto 8);
-    rf_amux <= mc_data1(11 downto 10);
-    rf_omux <= mc_data1(14 downto 12) when mc_data1(15) = '0' else
+    RF_CE   <= mc_data1(9 downto 8);
+    RF_AMUX <= mc_data1(11 downto 10);
+    RF_OMUX <= mc_data1(14 downto 12) when mc_data1(15) = '0' else
                cmd(2 downto 0);
 
     -- Bank 2
-    alu_cmd <= mc_data2(5 downto 0);
-    alu_ce <= mc_data2(6);
-    cmd_ce <= mc_data2(8);
-    acc_ce <= mc_data2(9);
-    tmp_ce <= mc_data2(10);
-    unq_ce <= mc_data2(11);
-    wr_en  <= mc_data2(12);
-    DMUX <= mc_data2(15 downto 13);
-    AMUX <= mc_par2(1 downto 0);
+    ALU_CMD <= mc_data2(5 downto 0);
+    ALU_CE  <= mc_data2(6);
+
+    R_CMDCE <= mc_data2(8);
+    R_ACCCE <= mc_data2(9);
+    R_TMPCE <= mc_data2(10);
+    R_UNQCE <= mc_data2(11);
+
+    RAM_WREN <= mc_data2(12);
+
+    DBUSMUX <= mc_data2(15 downto 13);
+    ABUSMUX <= mc_par2(1 downto 0);
 
     mc_code(53 downto 52) <= mc_par1(1 downto 0);
     mc_code(51 downto 36) <= mc_data1(15 downto 0);

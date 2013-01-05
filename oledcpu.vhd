@@ -78,7 +78,7 @@ architecture Behavioral of oledcpu is
     signal reader : std_logic_vector(153 downto 0);
 
     -- GBCPU
-    COMPONENT microcode
+    COMPONENT cpu
         Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
                 RAM : in STD_LOGIC_VECTOR(7 downto 0);
                 RAM_OE : out STD_LOGIC;
@@ -585,7 +585,7 @@ begin
             "ZZZZZZZZ";
 
     -- Component Instantiation
-    uut: microcode PORT MAP(
+    ucpu: cpu PORT MAP(
         ABUS => ABUS,
         RAM => RAM,
         TCK => clkdiv,
