@@ -95,6 +95,14 @@ begin
 		wait for sysclk_period;
 		wr_en <= '0';
 
+		wait for sysclk_period;
+		abus <= X"FF11";
+		dbus <= "11000000";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
 		wait; -- will wait forever
 	 END PROCESS tb;
 

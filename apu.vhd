@@ -35,6 +35,10 @@ architecture Behaviour of apu is
 	signal progcnt : unsigned(10 downto 0);
 	signal progtc : std_logic;
 
+	signal duty : std_logic_vector(1 downto 0);
+	signal dutycnt : unsigned(2 downto 0);
+	signal dutywav : std_logic;
+
 	signal channel_en : std_logic;
 begin
 
@@ -162,6 +166,43 @@ begin
 		end if;
 	end process;
 
+	-- Ch1 Duty Cycle Generator
+	process(rst,clk)
+		variable old_wr, old_clk, wav : std_logic;
+	begin
+		if rst = '1' then
+			dutycnt <= (others => '0');
+			duty <= (others => '0');
+			old_wr := '0';
+			old_clk := '0';
+			wav := '0';
+			dutywav <= '0';
+		elsif rising_edge(clk) then
+			-- writes to the duty cycle register
+			if old_wr = '0' and wr_en = '1' then
+				-- save the frequency and reload the counter
+				if abus = X"FF11" then
+					duty <= dbus(7 downto 6);
+				end if;
+			end if;
+			-- the actual counting, clocked by sysclk/4
+			if old_clk = '0' and progtc = '1' then
+				dutycnt <= dutycnt + 1;
+			end if;
+			wav := '0';
+			if dutycnt = 4 or (dutycnt = 5 and duty /= "00") or (dutycnt(2 downto 1) = "01" and duty = "10") then
+				wav := '1';
+			end if;
+			-- 75% duty cycle is not(25%)
+			if duty = "11" then
+				dutywav <= not(wav);
+			else
+				dutywav <= wav;
+			end if;
+			old_wr := wr_en;
+			old_clk := progtc;
+		end if;
+	end process;
 
 
 	-- Envelope generator
