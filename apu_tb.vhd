@@ -63,33 +63,8 @@ begin
 		wait for 1 ns; -- Sync to just after the falling edge
 
 		wait for sysclk_period;
-		abus <= X"FF12";
-		dbus <= "00100010";
-		wr_en <= '1';
-
-		wait for sysclk_period;
-		wr_en <= '0';
-
-		wait for sysclk_period;
 		abus <= X"FF26";
-		dbus <= "10000000";
-		wr_en <= '1';
-
-		wait for sysclk_period;
-		wr_en <= '0';
-
-		wait for sysclk_period;
-		abus <= X"FF14";
-		dbus <= "00000111";
-		wr_en <= '1';
-
-		wait for sysclk_period;
-		wr_en <= '0';
-
-		wait for sysclk_period;
-		abus <= X"FF13";
-		dbus <= "10000011";  -- First sound, 1048 Hz
---		dbus <= "11000001";  -- Second sound, 2080 Hz
+		dbus <= X"80";
 		wr_en <= '1';
 
 		wait for sysclk_period;
@@ -97,7 +72,48 @@ begin
 
 		wait for sysclk_period;
 		abus <= X"FF11";
-		dbus <= "11000000";
+		dbus <= X"80";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF12";
+		dbus <= X"F3";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF25";
+		dbus <= X"F3";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF24";
+		dbus <= X"77";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF13";
+--		dbus <= X"83";  -- First sound, 1048 Hz
+		dbus <= X"C1";  -- Second sound, 2080 Hz
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF14";
+		dbus <= X"87";
 		wr_en <= '1';
 
 		wait for sysclk_period;
