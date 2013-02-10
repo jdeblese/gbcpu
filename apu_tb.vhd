@@ -9,7 +9,8 @@ END apu_tb;
 
 ARCHITECTURE behavior OF apu_tb IS
 
-	constant clk_period : time := 10 ns;
+--	constant clk_period : time := 10 ns;
+	constant clk_period : time := 9.9341074625 ns;
 --	constant sysclk_period : time := 238.4185791015 ns;  -- 4,194,304 MHz
 	constant sysclk_period : time := 240 ns;  -- 4,194,304 MHz
 
@@ -72,6 +73,23 @@ begin
 		wait for sysclk_period;
 		abus <= X"FF26";
 		dbus <= "10000000";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF14";
+		dbus <= "00000111";
+		wr_en <= '1';
+
+		wait for sysclk_period;
+		wr_en <= '0';
+
+		wait for sysclk_period;
+		abus <= X"FF13";
+		dbus <= "10000011";  -- First sound, 1048 Hz
+--		dbus <= "11000001";  -- Second sound, 2080 Hz
 		wr_en <= '1';
 
 		wait for sysclk_period;
