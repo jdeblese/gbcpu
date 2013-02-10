@@ -42,6 +42,18 @@ architecture Behaviour of apu is
 	signal channel_en : std_logic;
 begin
 
+	-- Master power switch
+	process(rst,clk)
+	begin
+		if rst = '1' then
+			power <= '0';
+		elsif rising_edge(clk) then
+			if wr_en = '1' and abus = X"FF26" then
+				power <= dbus(7);
+			end if;
+		end if;
+	end process;
+
 	-- Channel enable
 	-- enabled on trigger, a write of '1' to bit 7 of NRx4
 	-- enable sits between duty cycle generator and envelope generator
@@ -112,7 +124,9 @@ begin
 		if rst = '1' then
 			seqdiv <= (others => '0');
 		elsif rising_edge(clk) then
-			if sysclk_delay = '0' and sysclk = '1' then
+			if power = '0' then  -- sequencer is disabled but not 512 Hz timer, according to GbdevWiki
+				seqdiv <= (others => '0');
+			elsif sysclk_delay = '0' and sysclk = '1' then
 				seqdiv <= seqdiv + "1";
 			end if;
 		end if;
@@ -135,14 +149,17 @@ begin
 	begin
 		if rst = '1' then
 			progcnt <= (others => '0');
-			progfreq <= (others => '0');
+			progfreq <= (others => '1');
 			progtc <= '0';
 			old_wr := '0';
 			old_clk := '0';
 		elsif rising_edge(clk) then
 			progtc <= '0';
+
 			-- writes to the length counter registers
-			if old_wr = '0' and wr_en = '1' then
+			if power = '0' then
+				progfreq <= (others => '1');
+			elsif old_wr = '0' and wr_en = '1' then
 				-- save the frequency and reload the counter
 				if abus = X"FF13" then
 					progfreq(7 downto 0) <= dbus(7 downto 0);
@@ -152,8 +169,11 @@ begin
 					progcnt <= unsigned(not(dbus(2 downto 0) & progfreq(7 downto 0)));
 				end if;
 			end if;
+
 			-- the actual counting, clocked by sysclk/4
-			if old_clk = '0' and seqdiv(1) = '1' then
+			if power = '0' then
+				progcnt <= (others => '0');
+			elsif old_clk = '0' and seqdiv(1) = '1' then
 				if progcnt = "0" then
 					progtc <= '1';
 					progcnt <= unsigned(not(progfreq));
@@ -161,6 +181,7 @@ begin
 					progcnt <= progcnt - 1;
 				end if;
 			end if;
+
 			old_wr := wr_en;
 			old_clk := seqdiv(1);
 		end if;
@@ -172,33 +193,40 @@ begin
 	begin
 		if rst = '1' then
 			dutycnt <= (others => '0');
-			duty <= (others => '0');
+			duty <= "10";  -- Channel 1 initial value is 50%
 			old_wr := '0';
 			old_clk := '0';
 			wav := '0';
 			dutywav <= '0';
 		elsif rising_edge(clk) then
+
 			-- writes to the duty cycle register
-			if old_wr = '0' and wr_en = '1' then
-				-- save the frequency and reload the counter
+			if power = '0' then
+				duty <= "10";  -- Channel 1 initial value is 50%
+			elsif old_wr = '0' and wr_en = '1' then
 				if abus = X"FF11" then
 					duty <= dbus(7 downto 6);
 				end if;
 			end if;
+
 			-- the actual counting, clocked by sysclk/4
-			if old_clk = '0' and progtc = '1' then
+			if power = '0' then
+				dutycnt <= (others => '0');
+			elsif old_clk = '0' and progtc = '1' then
 				dutycnt <= dutycnt + 1;
 			end if;
+
+			-- Waveform generation
 			wav := '0';
 			if dutycnt = 4 or (dutycnt = 5 and duty /= "00") or (dutycnt(2 downto 1) = "01" and duty = "10") then
 				wav := '1';
 			end if;
-			-- 75% duty cycle is not(25%)
-			if duty = "11" then
+			if duty = "11" then  -- 75% duty cycle is not(25%)
 				dutywav <= not(wav);
 			else
 				dutywav <= wav;
 			end if;
+
 			old_wr := wr_en;
 			old_clk := progtc;
 		end if;
