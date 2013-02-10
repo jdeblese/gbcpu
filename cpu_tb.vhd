@@ -10,7 +10,7 @@ END cpu_tb;
 ARCHITECTURE behavior OF cpu_tb IS
 
     -- Component Declaration
-    COMPONENT microcode
+    COMPONENT cpu
         Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
                 RAM : in STD_LOGIC_VECTOR(7 downto 0);
                 RAM_OE : out STD_LOGIC;
@@ -61,14 +61,19 @@ ARCHITECTURE behavior OF cpu_tb IS
 
     constant clk_period : time := 240 ns;   -- 4.1666 MHz, close to actual 2^22 Hz
 
+    signal clkdiv : unsigned(3 downto 0) := "0000";
+
 BEGIN
 
+    -- Input and address for RAM Port B
     DIB <= "00000000000000000000000000000000";
     ADDRB <= "00000000000000";
 
+    -- Addressing for RAM port A
     ADDRA(13 downto 3) <= ABUS(10 downto 0);
     ADDRA(2 downto 0) <= "000";
 
+    -- Memory space mapping
     RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
            DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
            DOA_VID(7 downto 0)  WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
@@ -85,7 +90,7 @@ BEGIN
     process(CLK, RST)
     begin
         if RST = '1' then
-            BOOTRAM_VIS <= '0';
+            BOOTRAM_VIS <= '1';  -- Set to 1 to enable booting using the boot ROM rather than cartridge memory
         elsif rising_edge(CLK) then
             if ABUS = X"FF50" and WR_EN = '1' and WR_D = X"01" then
                 BOOTRAM_VIS <= '0';
@@ -94,7 +99,7 @@ BEGIN
     end process;
 
     -- Component Instantiation
-    uut: microcode PORT MAP(
+    uut: cpu PORT MAP(
         ABUS => ABUS,
         RAM => RAM,
         RAM_OE => RAM_OE,
@@ -106,10 +111,6 @@ BEGIN
         CLK => CLK,
         RST => RST
     );
-
-    -- RAMB16BWER: 16k-bit Data and 2k-bit Parity Configurable Synchronous Dual Port Block RAM with Optional Output Registers
-    --             Spartan-6
-    -- Xilinx HDL Language Template, version 13.3
 
     bootram : RAMB16BWER
     generic map (
@@ -757,6 +758,7 @@ BEGIN
         wait for clk_period/4;
         clk90 <= '0';
         wait for clk_period/4;
+        clkdiv <= clkdiv + "1";
     end process;
 
 
