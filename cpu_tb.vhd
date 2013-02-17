@@ -24,7 +24,19 @@ ARCHITECTURE behavior OF cpu_tb IS
                 RST : IN STD_LOGIC );
     END COMPONENT;
 
-    signal gpu_dout : std_logic_vector(7 downto 0);
+    COMPONENT video
+    Port (  DIN     : in std_logic_vector(7 downto 0);
+            DOUT    : out std_logic_vector(7 downto 0);
+            ABUS    : in std_logic_vector(15 downto 0);
+            WR_EN   : in std_logic;
+            VIDROW  : out unsigned(7 downto 0);
+            VIDCOL  : out unsigned(7 downto 0);
+            VIDWORD : out std_logic_vector(1 downto 0);
+            VIDWR   : out std_logic;
+            CLK     : in std_logic;
+            RST     : in std_logic );
+    END COMPONENT;
+
 
     signal DOA_BOOT   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
     signal WBOOT_EN : STD_LOGIC;
@@ -63,6 +75,10 @@ ARCHITECTURE behavior OF cpu_tb IS
 
     signal clkdiv : unsigned(3 downto 0) := "0000";
 
+    signal VIDROW, VIDCOL : unsigned(7 downto 0);
+    signal VIDWORD : std_logic_vector(1 downto 0);
+    signal VIDWR : std_logic;
+    signal VID_D : std_logic_vector(7 downto 0);
 BEGIN
 
     -- Input and address for RAM Port B
@@ -76,9 +92,9 @@ BEGIN
     -- Memory space mapping
     RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
            DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
-           DOA_VID(7 downto 0)  WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
+           VID_D                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            DOA_INT(7 downto 0)  WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
-           gpu_dout when ABUS(15 downto 4) = "111111110100" else        -- FF40-FF4F
+           VID_D                WHEN ABUS(15 downto 4) = X"FF4" else        -- FF40-FF4F
            DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else    -- F800-FFFF
             "ZZZZZZZZ";
 
@@ -111,6 +127,18 @@ BEGIN
         CLK => CLK,
         RST => RST
     );
+
+    uut2: video PORT MAP(
+        DIN   => WR_D,
+        DOUT  => VID_D,
+        ABUS  => ABUS,
+        WR_EN => WR_EN,
+        VIDROW  => VIDROW,
+        VIDCOL  => VIDCOL,
+        VIDWORD => VIDWORD,
+        VIDWR   => VIDWR,
+        CLK => CLK,
+        RST => RST );
 
     bootram : RAMB16BWER
     generic map (

@@ -14,6 +14,10 @@ entity video is
             DOUT    : out std_logic_vector(7 downto 0);
             ABUS    : in std_logic_vector(15 downto 0);
             WR_EN   : in std_logic;
+            VIDROW  : out unsigned(7 downto 0);
+            VIDCOL  : out unsigned(7 downto 0);
+            VIDWORD : out std_logic_vector(1 downto 0);
+            VIDWR   : out std_logic;
             CLK     : in std_logic;
             RST     : in std_logic );
 end video;
@@ -24,6 +28,8 @@ architecture Behaviour of video is
     signal lcdc, dma, bgp, obp0, obp1 : std_logic_vector(7 downto 0);
     signal scx, scy, wx, wy, ly, lyc : unsigned(7 downto 0);  -- All 8-bit values
     signal tile : unsigned(4 downto 0);  -- Horizontal tile number
+
+    signal lcdc_tiledatsel : std_logic;
 
     signal mode : std_logic_vector(1 downto 0);
     signal ly_coinc : std_logic;
@@ -63,8 +69,15 @@ architecture Behaviour of video is
     signal scanline_doa  : std_logic_vector(15 downto 0);
     signal scanline_wr   : std_logic;
 
+    signal sladdr : std_logic_vector(12 downto 0);
+    signal slsrc  : std_logic;
+    signal sldma  : unsigned(7 downto 0);
+
     signal pixcount : unsigned(2 downto 0);
 begin
+
+    -- Names for ease of use
+    lcdc_tiledatsel <= lcdc(4);
 
     -- *********************************************************************************************
     -- Memory mapping, 8000-9FFF and FF40-FF4B
@@ -187,7 +200,7 @@ begin
     )
     port map (
         -- Port A: Scanline I/O
-        ADDRAWRADDR => "0000" & std_logic_vector(scanline_fill) & "0",  -- 13-bit address
+        ADDRAWRADDR => sladdr,  -- 13-bit address
         DIADI => X"000" & "00" & scanline_in,   -- 16-bit data input
         DOADO => scanline_doa,                  -- 16-bit data output
         WEAWEL => scanline_wr & scanline_wr,    -- 2-bit write enable
@@ -206,6 +219,39 @@ begin
         DIBDI => X"0000",             -- 16-bit data input
         DIPBDIP => "00"               -- 2-bit parity input
     );
+
+    VIDCOL <= sldma;
+    VIDROW <= ly;
+    VIDWORD <= scanline_doa(1 downto 0);
+    VIDWR <= slsrc;
+
+    with slsrc select
+        sladdr <= "0000" & std_logic_vector(scanline_fill) & "0" when '1',
+                  "0000" & std_logic_vector(sldma) & "0" when others;
+
+    scanlinedma : process(CLK,RST)
+        variable OS : STATE_TYPE;
+    begin
+        if RST = '1' then
+            sldma <= (others => '0');
+            slsrc <= '0';
+        elsif rising_edge(CLK) then
+            -- DMA starts after scanline is finished, so on state change to HBLANK
+            if CS = HBLANK and OS /= HBLANK then
+                slsrc <= '1';
+            end if;
+            OS := CS;
+            -- Count up to FF, then stop and turn off DMA
+            if slsrc = '1' then
+                if sldma = X"FF" then
+                    sldma <= (others => '0');
+                    slsrc <= '0';
+                else
+                    sldma <= sldma + 1;
+                end if;
+            end if;
+        end if;
+    end process;
 
     -- *********************************************************************************************
     -- FSM-dependent processes
@@ -232,6 +278,12 @@ begin
         if RST = '1' then
             map_addr <= (others => '0');
             map_sel <= '0';
+            dataddr <= (others => '0');
+            tileidx <= (others => '0');
+            pixcount <= (others => '0');
+            scanline_fill <= (others => '0');
+            scanline_in <= (others => '0');
+            scanline_wr <= '0';
         elsif falling_edge(CLK) then
             if NS = MAPREAD and CS /= MAPREAD then
 --              if lcdc(5) and (ly >= wy) and (scanline_fill + to_unsigned(7,8) >= wx) then  -- Window
@@ -255,12 +307,13 @@ begin
                 -- Tile row is now available at output of the appropriate RAM
                 -- either 0 to 255 with origin 8000 or -128 to 127 with origin 9000
                 if tileidx(7) = '1' then
-                    rowdata := mid_dob(15 downto 0);
-                elsif lcdc(4) = '1' then -- only true when drawing bg, otherwise dependent on other parameters
-                    rowdata := lo_dob(15 downto 0);
+                    rowdata := mid_dob(15 downto 0);  -- 8800-8FFF
+                elsif lcdc_tiledatsel = '1' then -- only true when drawing bg, otherwise dependent on other parameters
+                    rowdata := lo_dob(15 downto 0);  -- 8000-8800
                 else
-                    rowdata := hi_dob(15 downto 0);
+                    rowdata := hi_dob(15 downto 0);  -- 9000-9800
                 end if;
+                -- Of 16 bits of data, low bit of pixel comes from first 8 bits and high bit from last 8 bits
                 scanline_in <= rowdata(to_integer('1' & pixcount)) & rowdata(to_integer(pixcount));
                 scanline_wr <= '1';
                 scanline_fill <= scanline_fill + X"01";
