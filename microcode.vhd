@@ -50,6 +50,10 @@ architecture FSM of microcode is
     signal mc_code : std_logic_vector(53 downto 0);
     signal lcode : std_logic_vector(53 downto 0);  -- JTAG: mc_code shift register
 
+    -- For ease of understanding code...
+    signal cmdjmp, flsel, fljmp : std_logic;
+    signal flagsel : std_logic_vector(1 downto 0);
+
 begin
 
     -- *****************************************************************
@@ -83,12 +87,17 @@ begin
     -- *****************************************************************
     -- Signal Routing --
 
+    cmdjmp <= mc_data0(10);
+    flsel <= mc_data0(12);
+    fljmp <= mc_data0(13);
+
     -- Bank 0
     mc_addr(9) <= mc_data0(9);
-    with mc_data0(10) select    -- addr select
+    with cmdjmp select    -- addr select
         mc_addr(7 downto 0) <= mc_data0(7 downto 0) when '0',
                                cmd when others;
-    with mc_data0(13 downto 12) select    -- flag select
+    flagsel <= fljmp & flsel;
+    with flagsel select    -- flag select
         mc_addr(8) <= cflag when "10",
                       zflag when "11",
                       mc_data0(8) when others;

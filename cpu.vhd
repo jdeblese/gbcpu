@@ -222,7 +222,7 @@ begin
     cflag <= r_oflags(0);
 
     with flagsrc select
-        r_iflags <= alu_zout & alu_nout & alu_hout & alu_cout when '1',
+        r_iflags <= alu_zout & alu_nout & alu_hout & alu_cout when '0',
                     rf_zout & rf_nout & rf_hout & rf_cout when others;
 
     r_flagsce <= zf_en & nf_en & hf_en & cf_en;
