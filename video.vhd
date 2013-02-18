@@ -44,6 +44,9 @@ architecture Behaviour of video is
     type STATE_TYPE is (RESET, OAMSCAN, MAPREAD, TILEREAD, WAI, HBLANK, VBLANK);
     signal CS, NS: STATE_TYPE;
 
+    type VRAMSTATES is (VRAM_RST, VRAM_TILE, VRAM_LO, VRAM_HI, VRAM_SPRITE);
+    signal VRAMCS, VRAMNS, VRAMOS: VRAMSTATES;
+
     signal map_doa : std_logic_vector(31 downto 0);
     signal map_dob : std_logic_vector(31 downto 0);
     signal map_en : std_logic;
@@ -115,7 +118,7 @@ begin
         if RST = '1' then
             lcdc <= X"7d";
             scy  <= X"03";
-            scx  <= X"dd";
+            scx  <= X"00";
             lyc  <= X"dd";
             dma  <= X"dd";
             bgp  <= X"dd";
@@ -254,19 +257,112 @@ begin
     end process;
 
     -- *********************************************************************************************
-    -- FSM-dependent processes
+    -- VRAM FSM
+
+    process (CLK, RST)
+    begin
+        if RST = '1' then
+            VRAMCS <= VRAM_RST;
+        elsif rising_edge(CLK) then  -- LCD clocks data in on falling edge
+            VRAMCS <= VRAMNS;
+            VRAMOS <= VRAMCS;
+        end if;
+    end process;
+
+    process (RST, VRAMCS, VRAMOS, NS)
+    begin
+
+        case VRAMCS is
+            when VRAM_RST =>
+                VRAMNS <= VRAM_RST;
+                if NS = MAPREAD then
+                    VRAMNS <= VRAM_TILE;
+                end if;
+
+            when VRAM_TILE =>
+                VRAMNS <= VRAM_TILE;
+                if NS = HBLANK then
+                    VRAMNS <= VRAM_RST;
+                elsif VRAMOS = VRAM_TILE then
+                    VRAMNS <= VRAM_LO;
+                end if;
+
+            when VRAM_LO =>
+                VRAMNS <= VRAM_LO;
+                if NS = HBLANK then
+                    VRAMNS <= VRAM_RST;
+                elsif VRAMOS = VRAM_LO then
+                    VRAMNS <= VRAM_HI;
+                end if;
+
+            when VRAM_HI =>
+                VRAMNS <= VRAM_HI;
+                if NS = HBLANK then
+                    VRAMNS <= VRAM_RST;
+                elsif VRAMOS = VRAM_HI then
+                    VRAMNS <= VRAM_SPRITE;
+                end if;
+
+            when VRAM_SPRITE =>
+                VRAMNS <= VRAM_SPRITE;
+                if NS = HBLANK then
+                    VRAMNS <= VRAM_RST;
+                elsif VRAMOS = VRAM_SPRITE then
+                    VRAMNS <= VRAM_TILE;
+                end if;
+
+            when others =>
+                VRAMNS <= VRAM_RST;
+        end case;
+    end process;
+
+    -- *********************************************************************************************
 
     process(CLK,RST)
     begin
         if RST = '1' then
             tile <= (others => '0');
+        elsif rising_edge(CLK) then
+            if VRAMCS = VRAM_RST then
+                tile <= (others => '0');
+            elsif VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then  -- Only update 'tile' when stepping to the next one
+                tile <= tile + "00001";
+            end if;
+        end if;
+    end process;
+
+    map_sel <= lcdc(3);
+    process(CLK,RST)
+        variable x : unsigned(4 downto 0);
+        variable y : unsigned(7 downto 0);
+    begin
+        if RST = '1' then
+            map_addr <= (others => '0');
+            tileidx <= (others => '0');
         elsif falling_edge(CLK) then
-            if NS = MAPREAD then  -- Only update 'tile' when entering mapread
-                if CS = OAMSCAN then  -- When entering mode 3...
-                    tile <= (others => '0');
-                else
-                    tile <= tile + "00001";
+            if VRAMCS = VRAM_TILE then
+                x := tile + scx(7 downto 3);
+                y := ly + scy;
+                map_addr <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
+                tileidx <= map_dob(7 downto 0);
+            end if;
+        end if;
+    end process;
+
+    -- *********************************************************************************************
+    -- FSM-dependent processes
+
+    process(CLK,RST)
+    begin
+        if RST = '1' then
+            pixcount <= (others => '0');
+        elsif falling_edge(CLK) then
+            if CS = MAPREAD then
+                if tile = "00000" then
+                    pixcount <= scx(2 downto 0);  -- counts up to 8 to indicate how many pixels written to scanline buffer
                 end if;
+            elsif CS = TILEREAD then
+                pixcount <= pixcount + "001";
             end if;
         end if;
     end process;
@@ -276,11 +372,7 @@ begin
         variable rowdata : std_logic_vector(15 downto 0);
     begin
         if RST = '1' then
-            map_addr <= (others => '0');
-            map_sel <= '0';
             dataddr <= (others => '0');
-            tileidx <= (others => '0');
-            pixcount <= (others => '0');
             scanline_fill <= (others => '0');
             scanline_in <= (others => '0');
             scanline_wr <= '0';
@@ -292,17 +384,11 @@ begin
 --                  map_sel <= lcdc(6);
                 x := scanline_fill + scx;
                 y := ly + scy;
-                map_sel <= lcdc(3);
-                map_addr <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x(7 downto 3));
             elsif CS = MAPREAD then
                 -- Tile index is now available at output of mapram, so read tile
                 y := ly + scy;
-                tileidx <= map_dob(7 downto 0);
                 dataddr(9 downto 3) <= tileidx(6 downto 0);  -- which tile to be read determined by tile map
                 dataddr(2 downto 0) <= std_logic_vector(y(2 downto 0));  -- row of tile to be read determined by ly and scy
-                if tile = "00000" then
-                    pixcount <= scx(2 downto 0);  -- counts up to 8 to indicate how many pixels written to scanline buffer
-                end if;
             elsif CS = TILEREAD then
                 -- Tile row is now available at output of the appropriate RAM
                 -- either 0 to 255 with origin 8000 or -128 to 127 with origin 9000
@@ -317,7 +403,6 @@ begin
                 scanline_in <= rowdata(to_integer('1' & pixcount)) & rowdata(to_integer(pixcount));
                 scanline_wr <= '1';
                 scanline_fill <= scanline_fill + X"01";
-                pixcount <= pixcount + "001";
             end if;
         end if;
     end process;
@@ -330,7 +415,7 @@ begin
     begin
         if RST = '1' then
             CS <= RESET;
-        elsif falling_edge(CLK) then
+        elsif rising_edge(CLK) then
             CS <= NS;
         end if;
     end process;
@@ -357,25 +442,16 @@ begin
                     NS <= MAPREAD;
                 end if;
 
-            when MAPREAD =>
-                NS <= TILEREAD;
-                mode <= "11";
-                internal_en <= '1';
-
             when TILEREAD =>
-                NS <= TILEREAD;
+                NS <= RESET;
                 mode <= "11";
                 internal_en <= '1';
-                if pixcount = "111" then
-                    if scanline_fill > "10100000" then  -- 160 (A0h)
-                        NS <= WAI;
-                    else
-                        NS <= MAPREAD;
-                    end if;
-                end if;
 
             when WAI =>
                 NS <= WAI;
+
+            when MAPREAD =>
+                NS <= MAPREAD;
                 mode <= "11";
                 internal_en <= '1';
                 if count = "011111011" then -- 251 (FBh)  Earliest value, may be as late as 377 (179h)
