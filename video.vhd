@@ -47,6 +47,7 @@ architecture Behaviour of video is
 
     type VRAMSTATES is (VRAM_RST, VRAM_TILE, VRAM_LO, VRAM_HI, VRAM_SPRITE);
     signal VRAMCS, VRAMNS, VRAMOS: VRAMSTATES;
+    signal vram_init : std_logic;
 
     signal map_doa : std_logic_vector(31 downto 0);
     signal map_dob : std_logic_vector(31 downto 0);
@@ -273,7 +274,7 @@ begin
         end if;
     end process;
 
-    process (RST, VRAMCS, VRAMOS, NS)
+    process (RST, VRAMCS, VRAMOS, NS, vram_init)
     begin
 
         case VRAMCS is
@@ -304,7 +305,11 @@ begin
                 if NS = HBLANK then
                     VRAMNS <= VRAM_RST;
                 elsif VRAMOS = VRAM_HI then
-                    VRAMNS <= VRAM_SPRITE;
+                    if vram_init = '1' then
+                        VRAMNS <= VRAM_TILE;
+                    else
+                        VRAMNS <= VRAM_SPRITE;
+                    end if;
                 end if;
 
             when VRAM_SPRITE =>
@@ -318,6 +323,21 @@ begin
             when others =>
                 VRAMNS <= VRAM_RST;
         end case;
+    end process;
+
+    process(CLK,RST)
+    begin
+        if RST = '1' then
+            vram_init <= '0';
+        elsif rising_edge(CLK) then
+            if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
+                if VRAMCS = VRAM_RST then
+                    vram_init <= '1';
+                else
+                    vram_init <= '0';
+                end if;
+            end if;
+        end if;
     end process;
 
     -- *********************************************************************************************
