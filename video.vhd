@@ -48,6 +48,9 @@ architecture Behaviour of video is
     type VRAMSTATES is (VRAM_RST, VRAM_TILE, VRAM_LO, VRAM_HI, VRAM_SPRITE);
     signal VRAMCS, VRAMNS, VRAMOS: VRAMSTATES;
     signal vram_init : std_logic;
+    signal vram_delay : unsigned(2 downto 0);
+
+    signal lcd_clk : std_logic;
 
     signal map_doa : std_logic_vector(31 downto 0);
     signal map_dob : std_logic_vector(31 downto 0);
@@ -336,6 +339,30 @@ begin
                 else
                     vram_init <= '0';
                 end if;
+            end if;
+        end if;
+    end process;
+
+    process(CLK,RST)
+    begin
+        if RST = '1' then
+            vram_delay <= (others => '0');
+        elsif rising_edge(CLK) then
+            if vram_init = '1' then
+                vram_delay <= unsigned(scx(2 downto 0));
+            elsif vram_delay /= "0" then
+                vram_delay <= vram_delay - 1;
+            end if;
+        end if;
+    end process;
+
+    process(CLK,RST)
+    begin
+        if RST = '1' then
+            lcd_clk <= '0';
+        elsif CLK'event then
+            if CS = MAPREAD and vram_init = '0' and vram_delay = "0" then
+                lcd_clk <= not(CLK);
             end if;
         end if;
     end process;
