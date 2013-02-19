@@ -4,6 +4,8 @@ USE ieee.numeric_std.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.video_comp.all;
+
 ENTITY cpu_tb IS
 END cpu_tb;
 
@@ -23,20 +25,6 @@ ARCHITECTURE behavior OF cpu_tb IS
                 CLK : IN STD_LOGIC;
                 RST : IN STD_LOGIC );
     END COMPONENT;
-
-    COMPONENT video
-    Port (  DIN     : in std_logic_vector(7 downto 0);
-            DOUT    : out std_logic_vector(7 downto 0);
-            ABUS    : in std_logic_vector(15 downto 0);
-            WR_EN   : in std_logic;
-            VIDROW  : out unsigned(7 downto 0);
-            VIDCOL  : out unsigned(7 downto 0);
-            VIDWORD : out std_logic_vector(1 downto 0);
-            VIDWR   : out std_logic;
-            CLK     : in std_logic;
-            RST     : in std_logic );
-    END COMPONENT;
-
 
     signal DOA_BOOT   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
     signal WBOOT_EN : STD_LOGIC;
@@ -75,9 +63,7 @@ ARCHITECTURE behavior OF cpu_tb IS
 
     signal clkdiv : unsigned(3 downto 0) := "0000";
 
-    signal VIDROW, VIDCOL : unsigned(7 downto 0);
-    signal VIDWORD : std_logic_vector(1 downto 0);
-    signal VIDWR : std_logic;
+    signal pixels : pixelpipe;
     signal VID_D : std_logic_vector(7 downto 0);
 BEGIN
 
@@ -133,10 +119,7 @@ BEGIN
         DOUT  => VID_D,
         ABUS  => ABUS,
         WR_EN => WR_EN,
-        VIDROW  => VIDROW,
-        VIDCOL  => VIDCOL,
-        VIDWORD => VIDWORD,
-        VIDWR   => VIDWR,
+        VID => pixels,
         CLK => CLK,
         RST => RST );
 

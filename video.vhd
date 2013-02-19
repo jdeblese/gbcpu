@@ -1,5 +1,30 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+package video_comp is
+    type pixelpipe is record
+        px : std_logic_vector(1 downto 0);
+        wr : std_logic;
+    end record;
+
+    component video
+    port (
+            DIN     : in std_logic_vector(7 downto 0);
+            DOUT    : out std_logic_vector(7 downto 0);
+            ABUS    : in std_logic_vector(15 downto 0);
+            WR_EN   : in std_logic;
+            VID     : out pixelpipe;
+            CLK     : in std_logic;
+            RST     : in std_logic );
+    end component;
+
+end package;
+
+use work.video_comp.all;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED."+";
 use IEEE.NUMERIC_STD.ALL;
 
@@ -14,10 +39,7 @@ entity video is
             DOUT    : out std_logic_vector(7 downto 0);
             ABUS    : in std_logic_vector(15 downto 0);
             WR_EN   : in std_logic;
-            VIDROW  : out unsigned(7 downto 0);
-            VIDCOL  : out unsigned(7 downto 0);
-            VIDWORD : out std_logic_vector(1 downto 0);
-            VIDWR   : out std_logic;
+            VID     : out pixelpipe;
             CLK     : in std_logic;
             RST     : in std_logic );
 end video;
@@ -247,7 +269,7 @@ begin
 
     -- *********************************************************************************************
 
-    VIDWR <= vram.wr;
+    VID.wr <= vram.wr;
     process(CLK,RST)
     begin
         if RST = '1' then
@@ -388,13 +410,13 @@ begin
             -- shift data
             out_shiftreg(0) <= '0' & out_shiftreg(0)(7 downto 1);
             out_shiftreg(1) <= '0' & out_shiftreg(1)(7 downto 1);
-            VIDWORD <= out_shiftreg(1)(0) & out_shiftreg(0)(0);
+            VID.px <= out_shiftreg(1)(0) & out_shiftreg(0)(0);
 
             -- on loop, reload rather than shift
             if VRAMCS /= VRAM_TILE and VRAMNS = VRAM_TILE then  -- can check here against vramns or vramos
                 out_shiftreg(0) <= '0' & out_latch(0)(7 downto 1);
                 out_shiftreg(1) <= '0' & out_latch(1)(7 downto 1);
-                VIDWORD <= out_latch(1)(0) & out_latch(0)(0);
+                VID.px <= out_latch(1)(0) & out_latch(0)(0);
             end if;
 
         end if;
