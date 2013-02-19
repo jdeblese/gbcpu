@@ -27,8 +27,6 @@ architecture Behaviour of video is
     -- Registers
     signal lcdc, dma, bgp, obp0, obp1 : std_logic_vector(7 downto 0);
     signal scx, scy, wx, wy, ly, lyc : unsigned(7 downto 0);  -- All 8-bit values
-    signal tile : unsigned(4 downto 0);  -- Horizontal tile number
-
     signal lcdc_tiledatsel : std_logic;
 
     signal mode : std_logic_vector(1 downto 0);
@@ -36,19 +34,22 @@ architecture Behaviour of video is
 
     signal count : std_logic_vector(8 downto 0);
 
-    signal bgshift : std_logic_vector(7 downto 0);  -- ly - scy
     signal dataddr : std_logic_vector(9 downto 0); -- Address in tile data table (16-bit words)
     signal bitfield : std_logic;
-    signal tilerow : std_logic_vector(15 downto 0); -- one row of 2-bit values, 8 lsbits then 8 msbits
     signal tileidx : std_logic_vector(7 downto 0);  -- active tile
 
-    type STATE_TYPE is (RESET, OAMSCAN, MAPREAD, TILEREAD, WAI, HBLANK, VBLANK);
+    type STATE_TYPE is (RESET, OAMSCAN, MAPREAD, HBLANK, VBLANK);
     signal CS, NS: STATE_TYPE;
 
     type VRAMSTATES is (VRAM_RST, VRAM_TILE, VRAM_LO, VRAM_HI, VRAM_SPRITE);
     signal VRAMCS, VRAMNS, VRAMOS: VRAMSTATES;
-    signal vram_init : std_logic;
-    signal vram_delay : unsigned(2 downto 0);
+
+    type vram_regs is record
+        delay : unsigned(2 downto 0);
+        init, wr : std_logic;
+        tile : unsigned(4 downto 0);
+    end record;
+    signal vram, vram_new : vram_regs;
 
     signal lcd_clk : std_logic;
 
@@ -74,17 +75,11 @@ architecture Behaviour of video is
     signal hi_en : std_logic;
 
     signal internal_en : std_logic;
+    signal eol : std_logic;
 
-    signal scanline_fill : unsigned(7 downto 0);
-    signal scanline_in   : std_logic_vector(1 downto 0);
-    signal scanline_doa  : std_logic_vector(15 downto 0);
-    signal scanline_wr   : std_logic;
+    type PIXEL is array (1 downto 0) of std_logic_vector(7 downto 0);
+    signal out_shiftreg, out_latch : PIXEL;
 
-    signal sladdr : std_logic_vector(12 downto 0);
-    signal slsrc  : std_logic;
-    signal sldma  : unsigned(7 downto 0);
-
-    signal pixcount : unsigned(2 downto 0);
 begin
 
     -- Names for ease of use
@@ -187,84 +182,6 @@ begin
     end process;
 
     -- *********************************************************************************************
-    -- Scanline buffer
-
-    -- scanline_fill(7 downto 0) : number of pixels rendered in this scanline
-    -- scanline_in(1 downto 0)   : pixel to write to scanline buffer
-    -- scanline_doa(15 downto 0) : scanline buffer output
-    -- scanline_wr               : scanline buffer write enable
-
-    scanlineram : RAMB8BWER
-    generic map (
-        DATA_WIDTH_A => 2,
-        DATA_WIDTH_B => 2,
-        DOA_REG => 0,
-        DOB_REG => 0,
-        EN_RSTRAM_A => TRUE,
-        EN_RSTRAM_B => TRUE,
-        -- GB Bootstrap Rom
-        RSTTYPE => "SYNC",
-        RST_PRIORITY_A => "CE",
-        RST_PRIORITY_B => "CE",
-        SIM_COLLISION_CHECK => "ALL"
---      SIM_DEVICE => "SPARTAN6"       -- WRONG NAME
-    )
-    port map (
-        -- Port A: Scanline I/O
-        ADDRAWRADDR => sladdr,  -- 13-bit address
-        DIADI => X"000" & "00" & scanline_in,   -- 16-bit data input
-        DOADO => scanline_doa,                  -- 16-bit data output
-        WEAWEL => scanline_wr & scanline_wr,    -- 2-bit write enable
-        DIPADIP => "00",   -- 2-bit parity input
-        CLKAWRCLK => CLK,  -- clock
-        ENAWREN => '1',    -- port enable
-        REGCEA => '0',     -- output register enable
-        RSTA => '0',       -- reset
-        -- Port B: not used
-        ADDRBRDADDR => '0' & X"000",  -- 13-bit address
-        CLKBRDCLK => CLK,             -- clock
-        ENBRDEN => '0',               -- port enable
-        REGCEBREGCE => '0',           -- output register enable
-        RSTBRST => '0',               -- reset
-        WEBWEU => "00",               -- write enable
-        DIBDI => X"0000",             -- 16-bit data input
-        DIPBDIP => "00"               -- 2-bit parity input
-    );
-
-    VIDCOL <= sldma;
-    VIDROW <= ly;
-    VIDWORD <= scanline_doa(1 downto 0);
-    VIDWR <= slsrc;
-
-    with slsrc select
-        sladdr <= "0000" & std_logic_vector(scanline_fill) & "0" when '1',
-                  "0000" & std_logic_vector(sldma) & "0" when others;
-
-    scanlinedma : process(CLK,RST)
-        variable OS : STATE_TYPE;
-    begin
-        if RST = '1' then
-            sldma <= (others => '0');
-            slsrc <= '0';
-        elsif rising_edge(CLK) then
-            -- DMA starts after scanline is finished, so on state change to HBLANK
-            if CS = HBLANK and OS /= HBLANK then
-                slsrc <= '1';
-            end if;
-            OS := CS;
-            -- Count up to FF, then stop and turn off DMA
-            if slsrc = '1' then
-                if sldma = X"FF" then
-                    sldma <= (others => '0');
-                    slsrc <= '0';
-                else
-                    sldma <= sldma + 1;
-                end if;
-            end if;
-        end if;
-    end process;
-
-    -- *********************************************************************************************
     -- VRAM FSM
 
     process (CLK, RST)
@@ -273,11 +190,11 @@ begin
             VRAMCS <= VRAM_RST;
         elsif rising_edge(CLK) then  -- LCD clocks data in on falling edge
             VRAMCS <= VRAMNS;
-            VRAMOS <= VRAMCS;
+            VRAMOS <= VRAMCS;  -- This might be better done via a toggling bit
         end if;
     end process;
 
-    process (RST, VRAMCS, VRAMOS, NS, vram_init)
+    process (RST, VRAMCS, VRAMOS, NS, vram)
     begin
 
         case VRAMCS is
@@ -308,7 +225,7 @@ begin
                 if NS = HBLANK then
                     VRAMNS <= VRAM_RST;
                 elsif VRAMOS = VRAM_HI then
-                    if vram_init = '1' then
+                    if vram.init = '1' then
                         VRAMNS <= VRAM_TILE;
                     else
                         VRAMNS <= VRAM_SPRITE;
@@ -328,60 +245,82 @@ begin
         end case;
     end process;
 
+    -- *********************************************************************************************
+
+    VIDWR <= vram.wr;
     process(CLK,RST)
     begin
         if RST = '1' then
-            vram_init <= '0';
-        elsif rising_edge(CLK) then
-            if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
-                if VRAMCS = VRAM_RST then
-                    vram_init <= '1';
+            vram.init <= '0';
+            vram.delay <= (others => '0');
+            vram.wr <= '0';
+            vram.tile <= (others => '0');
+        elsif rising_edge(clk) then
+            vram <= vram_new;
+        end if;
+    end process;
+
+    process(vram, VRAMNS, VRAMCS)
+        variable nxt : vram_regs;
+    begin
+        nxt := vram;
+
+        if nxt.init = '0' and nxt.delay /= "0" then
+            nxt.delay := vram.delay - 1;
+        end if;
+
+        if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
+            -- Start counting up tiles once out of init
+            if nxt.init = '0' then
+                nxt.tile := vram.tile + 1;
+            end if;
+
+            if VRAMCS = VRAM_RST then
+                nxt.init := '1';
+                nxt.delay := unsigned(scx(2 downto 0));
+                nxt.tile := "00001";
+            else
+                nxt.init := '0';
+            end if;
+        end if;
+
+        if eol = '1' then
+            nxt.wr := '0';
+        elsif nxt.delay = "0" then
+            nxt.wr := '1';
+        end if;
+
+        vram_new <= nxt;
+    end process;
+
+    -- *********************************************************************************************
+
+    -- Count out 160 pixels on the falling edge, starting after init and delay are zero
+    process(CLK,RST)
+        variable count : unsigned(7 downto 0);
+    begin
+        if RST = '1' then
+            eol <= '1';
+            count := (others => '0');
+        elsif falling_edge(CLK) then
+            if vram.init = '1' then
+                count := X"9E";
+                eol <= '0';
+            elsif CS = MAPREAD and vram.delay = "0" then
+                if count = "0" then
+                    eol <= '1';
                 else
-                    vram_init <= '0';
+                    count := count - "1";
                 end if;
-            end if;
-        end if;
-    end process;
-
-    process(CLK,RST)
-    begin
-        if RST = '1' then
-            vram_delay <= (others => '0');
-        elsif rising_edge(CLK) then
-            if vram_init = '1' then
-                vram_delay <= unsigned(scx(2 downto 0));
-            elsif vram_delay /= "0" then
-                vram_delay <= vram_delay - 1;
-            end if;
-        end if;
-    end process;
-
-    process(CLK,RST)
-    begin
-        if RST = '1' then
-            lcd_clk <= '0';
-        elsif CLK'event then
-            if CS = MAPREAD and vram_init = '0' and vram_delay = "0" then
-                lcd_clk <= not(CLK);
+            else
+                eol <= '0';
             end if;
         end if;
     end process;
 
     -- *********************************************************************************************
 
-    process(CLK,RST)
-    begin
-        if RST = '1' then
-            tile <= (others => '0');
-        elsif rising_edge(CLK) then
-            if VRAMCS = VRAM_RST then
-                tile <= (others => '0');
-            elsif VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then  -- Only update 'tile' when stepping to the next one
-                tile <= tile + "00001";
-            end if;
-        end if;
-    end process;
-
+    -- Set the tile map address and save the tile read
     map_sel <= lcdc(3);
     process(CLK,RST)
         variable x : unsigned(4 downto 0);
@@ -392,7 +331,7 @@ begin
             tileidx <= (others => '0');
         elsif falling_edge(CLK) then
             if VRAMCS = VRAM_TILE then
-                x := tile + scx(7 downto 3);
+                x := vram.tile + scx(7 downto 3);
                 y := ly + scy;
                 map_addr <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
                 tileidx <= map_dob(7 downto 0);
@@ -400,82 +339,66 @@ begin
         end if;
     end process;
 
+    -- Set the tile data address and latch the data
     process(CLK,RST)
         variable x, y : unsigned(7 downto 0);
-        variable rowdata : std_logic_vector(15 downto 0);
+        variable rowdata : std_logic_vector(7 downto 0);
     begin
         if RST = '1' then
             dataddr <= (others => '0');
             bitfield <= '0';
+            out_latch <= (others => (others => '0'));
         elsif falling_edge(CLK) then
             if VRAMCS = VRAM_LO or VRAMCS = VRAM_HI then
+
                 y := ly + scy;
+
                 dataddr(9 downto 3) <= tileidx(6 downto 0);  -- which tile to be read determined by tile map
                 dataddr(2 downto 0) <= std_logic_vector(y(2 downto 0));  -- row of tile to be read determined by ly and scy
+
+                if tileidx(7) = '1' then
+                    rowdata := mid_dob(7 downto 0);  -- 8800-8FFF
+                elsif lcdc_tiledatsel = '1' then -- only true when drawing bg, otherwise dependent on other parameters
+                    rowdata := lo_dob(7 downto 0);  -- 8000-8800
+                else
+                    rowdata := hi_dob(7 downto 0);  -- 9000-9800
+                end if;
+
                 if VRAMCS = VRAM_LO then
                     bitfield <= '0';
+                    out_latch(0) <= rowdata;
                 else
                     bitfield <= '1';
+                    out_latch(1) <= rowdata;
                 end if;
+
             end if;
         end if;
     end process;
 
     -- *********************************************************************************************
-    -- FSM-dependent processes
 
+    -- Shift out data on each rising edge, reload the shift register on a transition to VRAM_TILE
     process(CLK,RST)
     begin
         if RST = '1' then
-            pixcount <= (others => '0');
-        elsif falling_edge(CLK) then
-            if CS = MAPREAD then
-                if tile = "00000" then
-                    pixcount <= scx(2 downto 0);  -- counts up to 8 to indicate how many pixels written to scanline buffer
-                end if;
-            elsif CS = TILEREAD then
-                pixcount <= pixcount + "001";
+            out_shiftreg <= (others => (others => '0'));
+        elsif rising_edge(CLK) then
+
+            -- shift data
+            out_shiftreg(0) <= '0' & out_shiftreg(0)(7 downto 1);
+            out_shiftreg(1) <= '0' & out_shiftreg(1)(7 downto 1);
+            VIDWORD <= out_shiftreg(1)(0) & out_shiftreg(0)(0);
+
+            -- on loop, reload rather than shift
+            if VRAMCS /= VRAM_TILE and VRAMNS = VRAM_TILE then  -- can check here against vramns or vramos
+                out_shiftreg(0) <= '0' & out_latch(0)(7 downto 1);
+                out_shiftreg(1) <= '0' & out_latch(1)(7 downto 1);
+                VIDWORD <= out_latch(1)(0) & out_latch(0)(0);
             end if;
+
         end if;
     end process;
-
-    process(CLK,RST)
-        variable x, y : unsigned(7 downto 0);
-        variable rowdata : std_logic_vector(15 downto 0);
-    begin
-        if RST = '1' then
-            scanline_fill <= (others => '0');
-            scanline_in <= (others => '0');
-            scanline_wr <= '0';
-        elsif falling_edge(CLK) then
-            if NS = MAPREAD and CS /= MAPREAD then
---              if lcdc(5) and (ly >= wy) and (scanline_fill + to_unsigned(7,8) >= wx) then  -- Window
---                  x := lx - wx - to_unsigned(7, 8);
---                  y := ly - wy;
---                  map_sel <= lcdc(6);
-                x := scanline_fill + scx;
-                y := ly + scy;
-            elsif CS = MAPREAD then
-                -- Tile index is now available at output of mapram, so read tile
-                y := ly + scy;
-            elsif CS = TILEREAD then
-                -- Tile row is now available at output of the appropriate RAM
-                -- either 0 to 255 with origin 8000 or -128 to 127 with origin 9000
-                if tileidx(7) = '1' then
-                    rowdata := mid_dob(15 downto 0);  -- 8800-8FFF
-                elsif lcdc_tiledatsel = '1' then -- only true when drawing bg, otherwise dependent on other parameters
-                    rowdata := lo_dob(15 downto 0);  -- 8000-8800
-                else
-                    rowdata := hi_dob(15 downto 0);  -- 9000-9800
-                end if;
-                -- Of 16 bits of data, low bit of pixel comes from first 8 bits and high bit from last 8 bits
-                scanline_in <= rowdata(to_integer('1' & pixcount)) & rowdata(to_integer(pixcount));
-                scanline_wr <= '1';
-                scanline_fill <= scanline_fill + X"01";
-            end if;
-        end if;
-    end process;
-
 
     -- *********************************************************************************************
     -- Renderer FSM
@@ -511,19 +434,11 @@ begin
                     NS <= MAPREAD;
                 end if;
 
-            when TILEREAD =>
-                NS <= RESET;
-                mode <= "11";
-                internal_en <= '1';
-
-            when WAI =>
-                NS <= WAI;
-
             when MAPREAD =>
                 NS <= MAPREAD;
                 mode <= "11";
                 internal_en <= '1';
-                if count = "011111011" then -- 251 (FBh)  Earliest value, may be as late as 377 (179h)
+                if eol = '1' then
                     internal_en <= '0';
                     NS <= HBLANK;
                 end if;
