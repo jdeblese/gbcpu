@@ -38,6 +38,7 @@ architecture Behaviour of video is
 
     signal bgshift : std_logic_vector(7 downto 0);  -- ly - scy
     signal dataddr : std_logic_vector(9 downto 0); -- Address in tile data table (16-bit words)
+    signal bitfield : std_logic;
     signal tilerow : std_logic_vector(15 downto 0); -- one row of 2-bit values, 8 lsbits then 8 msbits
     signal tileidx : std_logic_vector(7 downto 0);  -- active tile
 
@@ -53,14 +54,17 @@ architecture Behaviour of video is
     signal map_sel : std_logic;
     signal map_addr : std_logic_vector(9 downto 0);  -- Address within tile map (000h -- 3FFh)
 
+    signal lo_addr : std_logic_vector(13 downto 0);
     signal lo_doa : std_logic_vector(31 downto 0);
     signal lo_dob : std_logic_vector(31 downto 0);
     signal lo_en : std_logic;
 
+    signal mid_addr : std_logic_vector(13 downto 0);
     signal mid_doa : std_logic_vector(31 downto 0);
     signal mid_dob : std_logic_vector(31 downto 0);
     signal mid_en : std_logic;
 
+    signal hi_addr : std_logic_vector(13 downto 0);
     signal hi_doa : std_logic_vector(31 downto 0);
     signal hi_dob : std_logic_vector(31 downto 0);
     signal hi_en : std_logic;
@@ -349,6 +353,27 @@ begin
         end if;
     end process;
 
+    process(CLK,RST)
+        variable x, y : unsigned(7 downto 0);
+        variable rowdata : std_logic_vector(15 downto 0);
+    begin
+        if RST = '1' then
+            dataddr <= (others => '0');
+            bitfield <= '0';
+        elsif falling_edge(CLK) then
+            if VRAMCS = VRAM_LO or VRAMCS = VRAM_HI then
+                y := ly + scy;
+                dataddr(9 downto 3) <= tileidx(6 downto 0);  -- which tile to be read determined by tile map
+                dataddr(2 downto 0) <= std_logic_vector(y(2 downto 0));  -- row of tile to be read determined by ly and scy
+                if VRAMCS = VRAM_LO then
+                    bitfield <= '0';
+                else
+                    bitfield <= '1';
+                end if;
+            end if;
+        end if;
+    end process;
+
     -- *********************************************************************************************
     -- FSM-dependent processes
 
@@ -372,7 +397,6 @@ begin
         variable rowdata : std_logic_vector(15 downto 0);
     begin
         if RST = '1' then
-            dataddr <= (others => '0');
             scanline_fill <= (others => '0');
             scanline_in <= (others => '0');
             scanline_wr <= '0';
@@ -387,8 +411,6 @@ begin
             elsif CS = MAPREAD then
                 -- Tile index is now available at output of mapram, so read tile
                 y := ly + scy;
-                dataddr(9 downto 3) <= tileidx(6 downto 0);  -- which tile to be read determined by tile map
-                dataddr(2 downto 0) <= std_logic_vector(y(2 downto 0));  -- row of tile to be read determined by ly and scy
             elsif CS = TILEREAD then
                 -- Tile row is now available at output of the appropriate RAM
                 -- either 0 to 255 with origin 8000 or -128 to 127 with origin 9000
@@ -494,10 +516,13 @@ begin
     -- Internal access is through port B, using 'dataddr' / 'map_sel & mapaddr' and '_dob' signals
 
 
+    lo_addr(2 downto 0) <= "000";
+    lo_addr(3) <= bitfield;
+    lo_addr(13 downto 4) <= dataddr;
     loram : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 9,
-        DATA_WIDTH_B => 18,
+        DATA_WIDTH_B => 9,
         DOA_REG => 0,
         DOB_REG => 0,
         EN_RSTRAM_A => TRUE,
@@ -523,7 +548,7 @@ begin
         DIPA => "0000",   -- 4-bit input: A port parity input
         -- Port B: data to output
         DOB => lo_dob,   -- 32-bit output: B port data output
-        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        ADDRB => lo_addr, -- 14-bit input: B port address input: 8-bit output -> 11-bit address
         CLKB => CLK,      -- 1-bit input: B port clock input
         ENB => internal_en, -- 1-bit input: B port enable input
         REGCEB => '0',    -- 1-bit input: B port register clock enable input
@@ -533,10 +558,13 @@ begin
         DIPB => "0000"    -- 4-bit input: B port parity input
     );
 
-    medram : RAMB16BWER
+    mid_addr(2 downto 0) <= "000";
+    mid_addr(3) <= bitfield;
+    mid_addr(13 downto 4) <= dataddr;
+    midram : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 9,
-        DATA_WIDTH_B => 18,
+        DATA_WIDTH_B => 9,
         DOA_REG => 0,
         DOB_REG => 0,
         EN_RSTRAM_A => TRUE,
@@ -562,7 +590,7 @@ begin
         DIPA => "0000",   -- 4-bit input: A port parity input
         -- Port B: data to output
         DOB => mid_dob,   -- 32-bit output: B port data output
-        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        ADDRB => mid_addr, -- 14-bit input: B port address input: 8-bit output -> 11-bit address
         CLKB => CLK,      -- 1-bit input: B port clock input
         ENB => internal_en, -- 1-bit input: B port enable input
         REGCEB => '0',    -- 1-bit input: B port register clock enable input
@@ -572,10 +600,13 @@ begin
         DIPB => "0000"    -- 4-bit input: B port parity input
     );
 
+    hi_addr(2 downto 0) <= "000";
+    hi_addr(3) <= bitfield;
+    hi_addr(13 downto 4) <= dataddr;
     hiram : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 9,
-        DATA_WIDTH_B => 18,
+        DATA_WIDTH_B => 9,
         DOA_REG => 0,
         DOB_REG => 0,
         EN_RSTRAM_A => TRUE,
@@ -601,7 +632,7 @@ begin
         DIPA => "0000",   -- 4-bit input: A port parity input
         -- Port B: data to output
         DOB => hi_dob,   -- 32-bit output: B port data output
-        ADDRB => dataddr & "0000", -- 14-bit input: B port address input: 16-bit output -> 10-bit address
+        ADDRB => hi_addr, -- 14-bit input: B port address input: 8-bit output -> 11-bit address
         CLKB => CLK,      -- 1-bit input: B port clock input
         ENB => internal_en, -- 1-bit input: B port enable input
         REGCEB => '0',    -- 1-bit input: B port register clock enable input
