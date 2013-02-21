@@ -6,6 +6,11 @@ use ieee.std_logic_unsigned.all ;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.clockgen_comp.all;
+use work.cpu_comp.all;
+use work.video_comp.all;
+use work.driver_comp.all;
+
 entity oledcpu is
     Port (
         CS : out  STD_LOGIC;
@@ -19,7 +24,12 @@ entity oledcpu is
         CLK : in  STD_LOGIC;
         LED : OUT STD_LOGIC_VECTOR(7 downto 0);
         SW : IN STD_LOGIC_VECTOR(3 downto 0);
-        BTN : IN STD_LOGIC_VECTOR(4 downto 0) );
+        BTN : IN STD_LOGIC_VECTOR(4 downto 0);
+        VSYNC : OUT STD_LOGIC;
+        HSYNC : OUT STD_LOGIC;
+        RED : OUT STD_LOGIC_VECTOR(2 downto 0);
+        GREEN : OUT STD_LOGIC_VECTOR(2 downto 0);
+        BLUE : OUT STD_LOGIC_VECTOR(1 downto 0) );
 end oledcpu;
 
 architecture Behavioral of oledcpu is
@@ -78,24 +88,17 @@ architecture Behavioral of oledcpu is
     signal reader : std_logic_vector(153 downto 0);
 
     -- GBCPU
-    COMPONENT cpu
-        Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
-                RAM : in STD_LOGIC_VECTOR(7 downto 0);
-                RAM_OE : out STD_LOGIC;
-                WR_D : out std_logic_vector(7 downto 0);
-                RAM_WR : out std_logic;
-                TCK : IN STD_LOGIC;
-                TDL : IN STD_LOGIC;
-                TDI : IN STD_LOGIC;
-                TDO : OUT STD_LOGIC;
-                CLK : IN STD_LOGIC;
-                RST : IN STD_LOGIC );
-    END COMPONENT;
-
     signal ADDRCPU : STD_LOGIC_VECTOR(13 downto 0);
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
-    signal DOA_CART   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
+    signal DOA_BOOT, DOA_CART   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
+    signal wr_d : std_logic_vector(7 downto 0);
+    signal vid_d : std_logic_vector(7 downto 0);
+    signal wr_en : std_logic;
+    signal pixels : pixelpipe;
+    signal cpuclk, fastclk, lockrst : std_logic;
+    signal clkstatus : clockgen_status;
+    signal BOOTRAM_VIS : std_logic;
 
 
     -- Debouncer
@@ -113,8 +116,6 @@ architecture Behavioral of oledcpu is
 
 
 begin
-
-    u1 : debouncer port map(RST, BTN(0), CLK, bclk);
 
     -- RAMB16BWER: 16k-bit Data and 2k-bit Parity Configurable Synchronous Dual Port Block RAM with Optional Output Registers
     --       Spartan-6
@@ -299,11 +300,6 @@ begin
     ADDRA(2 downto 0) <= ("111" - tbyte);
 
 
-    LED(0) <= spol;
-    LED(1) <= tchar(0);
-    LED(4 downto 2) <= trow;
-    LED(7 downto 5) <= tbyte;
-
     -- 10 MHz Clock
     process(CLK,RST)
     begin
@@ -343,11 +339,11 @@ begin
             slowtimer <= X"00000000";
             spol <= '0';
         elsif rising_edge(CLK) and divtimer = "0000" then
-            if slowtimer = X"026259ff" then    -- 98967f
+            if slowtimer = X"0098967f" then    -- 98967f
                 slowtimer <= X"00000000";
                 spol <= '0';
             else
-                if slowtimer = X"01312cff" then  -- 4c4b40
+                if slowtimer = X"004c4b40" then  -- 4c4b40
                     spol <= '1';
                 end if;
                 slowtimer <= slowtimer + "01";
@@ -578,22 +574,115 @@ begin
 
     -- GBCPU
 
+    LED(0) <= clkstatus.done;
+    LED(1) <= clkstatus.locked;
+    LED(2) <= clkstatus.clkin_err;
+    LED(3) <= RST;
+    LED(4) <= lockrst;
+    LED(7 downto 6) <= "00";
+
+    process(cpuclk,RST)
+        variable toggle : std_logic;
+    begin
+        if RST = '1' then
+            LED(5) <= '0';
+            toggle := '0';
+        elsif rising_edge(cpuclk) then
+            LED(5) <= toggle;
+            toggle := not(toggle);
+        end if;
+    end process;
+
     ADDRCPU(13 downto 3) <= ABUS(10 downto 0);
     ADDRCPU(2 downto 0) <= "000";
 
-    RAM <= DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
+    process(cpuclk, RST)
+    begin
+        if RST = '1' then
+            BOOTRAM_VIS <= '1';  -- Set to 1 to enable booting using the boot ROM rather than cartridge memory
+        elsif rising_edge(cpuclk) then
+            if ABUS = X"FF50" and wr_en = '1' and wr_d = X"01" then
+                BOOTRAM_VIS <= '0';
+            end if;
+        end if;
+    end process;
+
+    RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
+           DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
+           vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
+           vid_d                WHEN ABUS(15 downto 4) = X"FF4" else        -- FF40-FF4F
             "ZZZZZZZZ";
 
     -- Component Instantiation
+--  uclk : clockgen port map ( CLK, fastclk, open, cpuclk, clkstatus, RST );
+    uclk : clockgen port map ( CLK, fastclk, open, open, clkstatus, RST );
+--  u1 : debouncer port map(RST, BTN(0), CLK, cpuclk);
+    ucpuclk : BUFG port map (I => spol, O => cpuclk);
+
+
+    lockrst <= RST and clkstatus.locked;
+
     ucpu: cpu PORT MAP(
         ABUS => ABUS,
         RAM => RAM,
+        RAM_OE => open,
+        wr_d => wr_d,
+        RAM_WR => wr_en,
         TCK => clkdiv,
         TDL => TDL,
         TDI => '0',
         TDO => TDO,
-        CLK => bclk,
-        RST => RST
+        CLK => cpuclk,
+        RST => lockrst
+    );
+
+    ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, cpuclk, lockrst );
+    uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, lockrst );
+
+    bootram : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 9,
+        DATA_WIDTH_B => 9,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        -- GB Bootstrap Rom
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+        INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
+        INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
+        INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
+        INIT_04 => X"1711cbc11711cbc504064fcb1820164f2005d2201542e09042f0e2873e0ce27b",
+        INIT_05 => X"0e0089881f1108000d000c00830073030b000dcc6666edcec923222322f52005", -- 00A0
+        INIT_06 => X"3c42a5b9a5b9423c3e33b9bb9f99dcddccec0e6e6367bbbb99d9dddde66eccdc", -- 00C0
+        INIT_07 => X"50e0013efe2086fb20052386781906f52034fe7d23fe20be131a00a811010421",
+        INIT_FILE => "NONE",
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        SIM_DEVICE => "SPARTAN6"
+    )
+    port map (
+        -- Port A
+        DOA => DOA_BOOT,  -- 32-bit output: A port data output
+        ADDRA => ADDRCPU, -- 14-bit input: A port address input
+        CLKA => cpuclk,   -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
+        DIA => X"00000000", -- 32-bit input: A port data input
+        DIPA => "0000",   -- 4-bit input: A port parity input
+        -- Port B
+        ADDRB => (others => '0'), -- 14-bit input: B port address input
+        CLKB => '0',      -- 1-bit input: B port clock input
+        ENB => '0',       -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
+        DIB => X"00000000", -- 32-bit input: B port data input
+        DIPB => "0000"    -- 4-bit input: B port parity input
     );
 
     cartram : RAMB16BWER
@@ -683,6 +772,7 @@ begin
         -- 0052 DEC (HL)    35
         -- 0053 DEC A       3d
         INIT_02 => X"0000000000000000000000003d352d251d150d053c342c241c140cff0e040f06",
+        INIT_08 => X"00000000000000000000000000000000000000000000000000000000000100c3",
         -- INIT_A/INIT_B: Initial values on output port
         INIT_A => X"000000000",
         INIT_B => X"000000000",
@@ -709,7 +799,7 @@ begin
         DOA => DOA_CART,  -- 32-bit output: A port data output
 --      DOPA => DOPA,     -- 4-bit output: A port parity output
         ADDRA => ADDRCPU,   -- 14-bit input: A port address input
-        CLKA => CLK,      -- 1-bit input: A port clock input
+        CLKA => cpuclk,   -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input

@@ -5,6 +5,7 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 use work.video_comp.all;
+use work.driver_comp.all;
 
 ENTITY cpu_tb IS
 END cpu_tb;
@@ -48,7 +49,7 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal DIB    : STD_LOGIC_VECTOR(31 downto 0);  -- B port data input
     signal ADDRB  : STD_LOGIC_VECTOR(13 downto 0);  -- B port address input
 
-    signal CLK : STD_LOGIC;
+    signal FASTCLK, CLK : STD_LOGIC;
     signal CLK90 : STD_LOGIC;
     signal RST : STD_LOGIC;
     signal RAM_OE : STD_LOGIC;
@@ -60,11 +61,16 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal WR_EN : STD_LOGIC;
 
     constant clk_period : time := 240 ns;   -- 4.1666 MHz, close to actual 2^22 Hz
+    constant fastclk_period : time := 10 ns;
 
     signal clkdiv : unsigned(3 downto 0) := "0000";
 
     signal pixels : pixelpipe;
     signal VID_D : std_logic_vector(7 downto 0);
+
+    signal VSYNC, HSYNC : std_logic;
+    signal RED, GREEN : std_logic_vector(2 downto 0);
+    signal BLUE : std_logic_vector(1 downto 0);
 BEGIN
 
     -- Input and address for RAM Port B
@@ -104,7 +110,7 @@ BEGIN
     uut: cpu PORT MAP(
         ABUS => ABUS,
         RAM => RAM,
-        RAM_OE => RAM_OE,
+        RAM_OE => open,
         WR_D => WR_D,
         RAM_WR => WR_EN,
         TCK => '0',
@@ -121,6 +127,17 @@ BEGIN
         WR_EN => WR_EN,
         VID => pixels,
         CLK => CLK,
+        RST => RST );
+
+    uut3: driver PORT MAP(
+        VSYNC => VSYNC,
+        HSYNC => HSYNC,
+        RED => RED,
+        GREEN => GREEN,
+        BLUE => BLUE,
+        PX => pixels,
+        LOGICLK => FASTCLK,
+        SYSCLK => CLK,
         RST => RST );
 
     bootram : RAMB16BWER
@@ -770,6 +787,14 @@ BEGIN
         clk90 <= '0';
         wait for clk_period/4;
         clkdiv <= clkdiv + "1";
+    end process;
+
+    fastclk_process : process
+    begin
+        fastclk <= '0';
+        wait for fastclk_period/2;
+        fastclk <= '1';
+        wait for fastclk_period/2;
     end process;
 
 

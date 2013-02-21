@@ -1,10 +1,31 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+
+package cpu_comp is
+    component cpu
+    Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
+            RAM : in STD_LOGIC_VECTOR(7 downto 0);
+            RAM_OE : out STD_LOGIC;
+            WR_D : out STD_LOGIC_VECTOR(7 downto 0);
+            RAM_WR : out STD_LOGIC;
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
+            CLK : IN STD_LOGIC;
+            RST : IN STD_LOGIC );
+    end component;
+end package;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use IEEE.NUMERIC_STD.ALL;
 
 library UNISIM;
 use UNISIM.VComponents.all;
+
+use work.cpu_comp.all;
 
 entity cpu is
     Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);

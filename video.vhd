@@ -282,7 +282,7 @@ begin
         end if;
     end process;
 
-    process(vram, VRAMNS, VRAMCS)
+    process(vram, VRAMNS, VRAMCS, scx, eol)
         variable nxt : vram_regs;
     begin
         nxt := vram;
@@ -293,22 +293,23 @@ begin
 
         if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
             -- Start counting up tiles once out of init
+            if VRAMCS = VRAM_RST then
+                nxt.init := '1';
+                nxt.delay := unsigned(scx(2 downto 0));
+                nxt.tile := "00000";
+            else
+                nxt.init := '0';
+            end if;
+
             if nxt.init = '0' then
                 nxt.tile := vram.tile + 1;
             end if;
 
-            if VRAMCS = VRAM_RST then
-                nxt.init := '1';
-                nxt.delay := unsigned(scx(2 downto 0));
-                nxt.tile := "00001";
-            else
-                nxt.init := '0';
-            end if;
         end if;
 
         if eol = '1' then
             nxt.wr := '0';
-        elsif nxt.delay = "0" then
+        elsif VRAMCS /= VRAM_RST and nxt.init = '0' and nxt.delay = "0" then
             nxt.wr := '1';
         end if;
 
@@ -434,7 +435,7 @@ begin
         end if;
     end process;
 
-    COMB_PROC: process (RST, CS, lcdc, ly, count)
+    COMB_PROC: process (RST, CS, lcdc, ly, count, eol)
     begin
 
         internal_en <= '0';     -- Disable internal RAM port when not in use to avoid collisions
