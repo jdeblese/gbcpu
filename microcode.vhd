@@ -233,7 +233,7 @@ begin
         INIT_3F => X"040003ff03fe03fd03fc03fb03fa03f903f803f703f603f503f403f303f203f1", -- 3f0h
         SRVAL_A => X"000000000",  -- Start with a NOP
         INIT_FILE => "NONE",
-        RSTTYPE => "SYNC",
+        RSTTYPE => "ASYNC",
         RST_PRIORITY_A => "CE",
         RST_PRIORITY_B => "CE",
         SIM_COLLISION_CHECK => "ALL",
