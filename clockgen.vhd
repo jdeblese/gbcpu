@@ -16,6 +16,7 @@ package clockgen_comp is
         fastclk  : out std_logic;
         fastclkn : out std_logic;
         cpuclk   : out std_logic;
+        pixclk   : out std_logic;
         status   : out clockgen_status;
         rst      : in std_logic );
     end component;
@@ -37,6 +38,7 @@ entity clockgen is
         fastclk  : out std_logic;
         fastclkn : out std_logic;
         cpuclk   : out std_logic;
+        pixclk   : out std_logic;
         status   : out clockgen_status;
         rst      : in std_logic );
 end clockgen;
@@ -44,7 +46,7 @@ end clockgen;
 architecture Behaviour of clockgen is
     signal master_buf : std_logic;
     signal clk2x_ub, clk2xn_ub : std_logic;
-    signal cpuclk_ub : std_logic;
+    signal cpuclk_ub, pixclk_ub : std_logic;
     signal clkfb : std_logic;
     signal statvec : std_logic_vector(7 downto 0);
 begin
@@ -71,8 +73,8 @@ begin
         CLKIN_DIVIDE_BY_2 => TRUE,             -- CLKIN divide by two (TRUE/FALSE)
         CLK_FEEDBACK => "2X",                  -- Feedback source (NONE, 1X, 2X)
         CLKDV_DIVIDE => 12.0,                  -- CLKDV divide value
-        CLKFX_DIVIDE => 24,                    -- Divide value on CLKFX outputs
-        CLKFX_MULTIPLY => 2,                   -- Multiply value on CLKFX outputs
+        CLKFX_DIVIDE => 5,                     -- Divide value on CLKFX outputs
+        CLKFX_MULTIPLY => 4,                   -- Multiply value on CLKFX outputs
         CLKOUT_PHASE_SHIFT => "NONE",          -- Output phase shift (NONE, FIXED, VARIABLE)
         DESKEW_ADJUST => "SYSTEM_SYNCHRONOUS", -- SYSTEM_SYNCHRNOUS or SOURCE_SYNCHRONOUS
         STARTUP_WAIT => FALSE                  -- Delay config DONE until DCM_SP LOCKED (TRUE/FALSE)
@@ -83,7 +85,7 @@ begin
         CLKFB => clkfb,         -- 1-bit input: Clock feedback input
         CLK2X => clk2x_ub,      -- 1-bit output: 2X clock frequency clock output
         CLK2X180 => clk2xn_ub,  -- 1-bit output: 2X clock frequency, 180 degree clock output
-        CLKFX => open,          -- 1-bit output: Digital Frequency Synthesizer output (DFS)
+        CLKFX => pixclk_ub,     -- 1-bit output: Digital Frequency Synthesizer output (DFS)
         CLKFX180 => open,       -- 1-bit output: 180 degree CLKFX output
         CLKDV => cpuclk_ub,     -- 1-bit output: Divided clock output
         CLK0 => open,           -- 1-bit output: 0 degree clock output
@@ -102,9 +104,10 @@ begin
     -- Required for BUFIO2 above
     obuf : BUFIO2FB generic map ( DIVIDE_BYPASS => TRUE ) port map ( I => clk2x_ub, O => clkfb );
 
-    fbuf : BUFG port map ( I => clk2x_ub,   O => fastclk  );
+    fbuf  : BUFG port map ( I => clk2x_ub,   O => fastclk  );
     fnbuf : BUFG port map ( I => clk2xn_ub,  O => fastclkn );
-    cbuf : BUFG port map ( I => cpuclk_ub,  O => cpuclk   );
+    cbuf  : BUFG port map ( I => cpuclk_ub,  O => cpuclk   );
+    pbuf  : BUFG port map ( I => pixclk_ub,  O => pixclk   );
 
     status.clkin_err <= statvec(1);
     status.clkfx_err <= statvec(2);

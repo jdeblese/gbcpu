@@ -266,11 +266,5 @@ begin
             zflag & nflag & hflag & cflag & "0000" when DMUX = "111" else
             X"00";
 
-    -- *****************************************************************
-    -- Defaults --
-
-    RAM_OE <= '1';      -- RAM on DBUS
-
-
 end FSM;
 

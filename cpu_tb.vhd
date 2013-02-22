@@ -4,6 +4,8 @@ USE ieee.numeric_std.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.clockgen_comp.all;
+use work.cpu_comp.all;
 use work.video_comp.all;
 use work.driver_comp.all;
 
@@ -11,21 +13,6 @@ ENTITY cpu_tb IS
 END cpu_tb;
 
 ARCHITECTURE behavior OF cpu_tb IS
-
-    -- Component Declaration
-    COMPONENT cpu
-        Port (  ABUS : buffer STD_LOGIC_VECTOR(15 downto 0);
-                RAM : in STD_LOGIC_VECTOR(7 downto 0);
-                RAM_OE : out STD_LOGIC;
-                WR_D : out std_logic_vector(7 downto 0);
-                RAM_WR : out std_logic;
-                TCK : IN STD_LOGIC;
-                TDL : IN STD_LOGIC;
-                TDI : IN STD_LOGIC;
-                TDO : OUT STD_LOGIC;
-                CLK : IN STD_LOGIC;
-                RST : IN STD_LOGIC );
-    END COMPONENT;
 
     signal DOA_BOOT   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
     signal WBOOT_EN : STD_LOGIC;
@@ -49,8 +36,9 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal DIB    : STD_LOGIC_VECTOR(31 downto 0);  -- B port data input
     signal ADDRB  : STD_LOGIC_VECTOR(13 downto 0);  -- B port address input
 
-    signal FASTCLK, CLK : STD_LOGIC;
-    signal CLK90 : STD_LOGIC;
+    signal CLK, FASTCLK, PIXCLK, SYSCLK : STD_LOGIC;
+    signal clkstatus : clockgen_status;
+
     signal RST : STD_LOGIC;
     signal RAM_OE : STD_LOGIC;
 
@@ -60,10 +48,7 @@ ARCHITECTURE behavior OF cpu_tb IS
     signal WR_D : STD_LOGIC_VECTOR(7 downto 0);
     signal WR_EN : STD_LOGIC;
 
-    constant clk_period : time := 240 ns;   -- 4.1666 MHz, close to actual 2^22 Hz
-    constant fastclk_period : time := 10 ns;
-
-    signal clkdiv : unsigned(3 downto 0) := "0000";
+    constant clk_period : time := 10 ns;
 
     signal pixels : pixelpipe;
     signal VID_D : std_logic_vector(7 downto 0);
@@ -116,7 +101,7 @@ BEGIN
         TCK => '0',
         TDL => '0',
         TDI => '0',
-        CLK => CLK,
+        CLK => SYSCLK,
         RST => RST
     );
 
@@ -126,7 +111,7 @@ BEGIN
         ABUS  => ABUS,
         WR_EN => WR_EN,
         VID => pixels,
-        CLK => CLK,
+        CLK => SYSCLK,
         RST => RST );
 
     uut3: driver PORT MAP(
@@ -137,8 +122,11 @@ BEGIN
         BLUE => BLUE,
         PX => pixels,
         LOGICLK => FASTCLK,
-        SYSCLK => CLK,
+        SYSCLK => SYSCLK,
+        EXTCLK => PIXCLK,
         RST => RST );
+
+    uclk : clockgen port map ( CLK, FASTCLK, open, SYSCLK, PIXCLK, clkstatus, RST );
 
     bootram : RAMB16BWER
     generic map (
@@ -149,9 +137,10 @@ BEGIN
         EN_RSTRAM_A => TRUE,
         EN_RSTRAM_B => TRUE,
         -- GB Bootstrap Rom
-        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+--      INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21af005bc3",
         INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
-        INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
+        INIT_02 => X"0440e0913e42e0574f3e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
         INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
         INIT_04 => X"1711cbc11711cbc504064fcb1820164f2005d2201542e09042f0e2873e0ce27b",
         INIT_05 => X"0e0089881f1108000d000c00830073030b000dcc6666edcec923222322f52005", -- 00A0
@@ -778,25 +767,11 @@ BEGIN
     -- Clock process definitions
     clk_process : process
     begin
-        clk <= '0';
-        wait for clk_period/4;
-        clk90 <= '1';
-        wait for clk_period/4;
-        clk <= '1';
-        wait for clk_period/4;
-        clk90 <= '0';
-        wait for clk_period/4;
-        clkdiv <= clkdiv + "1";
+        CLK <= '0';
+        wait for clk_period/2;
+        CLK <= '1';
+        wait for clk_period/2;
     end process;
-
-    fastclk_process : process
-    begin
-        fastclk <= '0';
-        wait for fastclk_period/2;
-        fastclk <= '1';
-        wait for fastclk_period/2;
-    end process;
-
 
     --  Test Bench Statements
     tb : PROCESS

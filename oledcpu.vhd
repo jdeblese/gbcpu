@@ -96,7 +96,7 @@ architecture Behavioral of oledcpu is
     signal vid_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
     signal pixels : pixelpipe;
-    signal cpuclk, fastclk, lockrst : std_logic;
+    signal cpuclk, fastclk, pixclk, lockrst : std_logic;
     signal clkstatus : clockgen_status;
     signal BOOTRAM_VIS : std_logic;
 
@@ -113,7 +113,12 @@ architecture Behavioral of oledcpu is
     ATTRIBUTE buffer_type : string;  --" {bufgdll | ibufg | bufgp | ibuf | bufr | none}";
     ATTRIBUTE buffer_type OF bclk : SIGNAL IS "BUFG";
 
-
+    type io_op is record
+        addr : std_logic_vector(15 downto 0);
+        data : std_logic_vector(7 downto 0);
+    end record;
+    type io_list is array (3 downto 0) of io_op;
+    signal read, write : io_list;
 
 begin
 
@@ -213,83 +218,73 @@ begin
         case trow(2 downto 1) is
             when "11" =>
                 case tchar is
-                    when "00000" => digit <= X"0" & cpu_cmd(7 downto 4);
-                    when "00001" => digit <= X"0" & cpu_cmd(3 downto 0);
-                    when "00011" => digit <= X"50";
-                    when "00100" => digit <= X"43";
-                    when "00101" => digit <= X"3a";
-                    when "00110" => digit <= X"0" & cpu_pc(15 downto 12);
-                    when "00111" => digit <= X"0" & cpu_pc(11 downto 8);
-                    when "01000" => digit <= X"0" & cpu_pc(7 downto 4);
-                    when "01001" => digit <= X"0" & cpu_pc(3 downto 0);
-                    when "01101" => digit <= X"41";
-                    when "01110" => digit <= X"3a";
-                    when "01111" => digit <= X"0" & cpu_acc(7 downto 4);
-                    when "10000" => digit <= X"0" & cpu_acc(3 downto 0);
-                    when "10010" => digit <= X"46";
-                    when "10011" => digit <= X"3a";
-                    when "10100" => digit <= X"0" & cpu_flag(3 downto 0);
+                    when "00000" => digit <= X"0" & read(3).addr(15 downto 12);
+                    when "00001" => digit <= X"0" & read(3).addr(11 downto 8);
+                    when "00010" => digit <= X"0" & read(3).addr(7 downto 4);
+                    when "00011" => digit <= X"0" & read(3).addr(3 downto 0);
+                    when "00101" => digit <= X"0" & read(3).data(7 downto 4);
+                    when "00110" => digit <= X"0" & read(3).data(3 downto 0);
+                    when "01000" => digit <= X"0" & write(3).addr(15 downto 12);
+                    when "01001" => digit <= X"0" & write(3).addr(11 downto 8);
+                    when "01010" => digit <= X"0" & write(3).addr(7 downto 4);
+                    when "01011" => digit <= X"0" & write(3).addr(3 downto 0);
+                    when "01101" => digit <= X"0" & write(3).data(7 downto 4);
+                    when "01110" => digit <= X"0" & write(3).data(3 downto 0);
+--                  when "01110" => digit <= X"50";
+--                  when "01111" => digit <= X"43";
+--                  when "10000" => digit <= X"3a";
+                    when "10001" => digit <= X"0" & cpu_pc(15 downto 12);
+                    when "10010" => digit <= X"0" & cpu_pc(11 downto 8);
+                    when "10011" => digit <= X"0" & cpu_pc(7 downto 4);
+                    when "10100" => digit <= X"0" & cpu_pc(3 downto 0);
                     when others => d_en <= '0';
                 end case;
             when "10" =>
                 case tchar is
-                    when "00011" => digit <= X"53";
-                    when "00100" => digit <= X"50";
-                    when "00101" => digit <= X"3a";
-                    when "00110" => digit <= X"0" & cpu_sp(15 downto 12);
-                    when "00111" => digit <= X"0" & cpu_sp(11 downto 8);
-                    when "01000" => digit <= X"0" & cpu_sp(7 downto 4);
-                    when "01001" => digit <= X"0" & cpu_sp(3 downto 0);
---                  when "01101" => digit <= X"42";
---                  when "01110" => digit <= X"43";
---                  when "01111" => digit <= X"3a";
-                    when "10001" => digit <= X"0" & cpu_bc(15 downto 12);
-                    when "10010" => digit <= X"0" & cpu_bc(11 downto 8);
-                    when "10011" => digit <= X"0" & cpu_bc(7 downto 4);
-                    when "10100" => digit <= X"0" & cpu_bc(3 downto 0);
+                    when "00000" => digit <= X"0" & read(2).addr(15 downto 12);
+                    when "00001" => digit <= X"0" & read(2).addr(11 downto 8);
+                    when "00010" => digit <= X"0" & read(2).addr(7 downto 4);
+                    when "00011" => digit <= X"0" & read(2).addr(3 downto 0);
+                    when "00101" => digit <= X"0" & read(2).data(7 downto 4);
+                    when "00110" => digit <= X"0" & read(2).data(3 downto 0);
+                    when "01000" => digit <= X"0" & write(2).addr(15 downto 12);
+                    when "01001" => digit <= X"0" & write(2).addr(11 downto 8);
+                    when "01010" => digit <= X"0" & write(2).addr(7 downto 4);
+                    when "01011" => digit <= X"0" & write(2).addr(3 downto 0);
+                    when "01101" => digit <= X"0" & write(2).data(7 downto 4);
+                    when "01110" => digit <= X"0" & write(2).data(3 downto 0);
                     when others => d_en <= '0';
                 end case;
             when "01" =>
                 case tchar is
-                    when "00000" => digit <= X"20";
-                    when "00001" => digit <= X"41";
-                    when "00010" => digit <= X"64";
-                    when "00011" => digit <= X"64";
-                    when "00100" => digit <= X"72";
-                    when "00101" => digit <= X"3a";
-                    when "00110" => digit <= X"0" & cpu_addr(15 downto 12);
-                    when "00111" => digit <= X"0" & cpu_addr(11 downto 8);
-                    when "01000" => digit <= X"0" & cpu_addr(7 downto 4);
-                    when "01001" => digit <= X"0" & cpu_addr(3 downto 0);
-                    when "01010" => digit <= X"7e";
-                    when "01011" => digit <= X"0" & RAM(7 downto 4);
-                    when "01100" => digit <= X"0" & RAM(3 downto 0);
-                    when "10001" => digit <= X"0" & cpu_de(15 downto 12);
-                    when "10010" => digit <= X"0" & cpu_de(11 downto 8);
-                    when "10011" => digit <= X"0" & cpu_de(7 downto 4);
-                    when "10100" => digit <= X"0" & cpu_de(3 downto 0);
+                    when "00000" => digit <= X"0" & read(1).addr(15 downto 12);
+                    when "00001" => digit <= X"0" & read(1).addr(11 downto 8);
+                    when "00010" => digit <= X"0" & read(1).addr(7 downto 4);
+                    when "00011" => digit <= X"0" & read(1).addr(3 downto 0);
+                    when "00101" => digit <= X"0" & read(1).data(7 downto 4);
+                    when "00110" => digit <= X"0" & read(1).data(3 downto 0);
+                    when "01000" => digit <= X"0" & write(1).addr(15 downto 12);
+                    when "01001" => digit <= X"0" & write(1).addr(11 downto 8);
+                    when "01010" => digit <= X"0" & write(1).addr(7 downto 4);
+                    when "01011" => digit <= X"0" & write(1).addr(3 downto 0);
+                    when "01101" => digit <= X"0" & write(1).data(7 downto 4);
+                    when "01110" => digit <= X"0" & write(1).data(3 downto 0);
                     when others => d_en <= '0';
                 end case;
             when "00" =>
                 case tchar is
-                    when "00000" => digit <= "000000" & cpu_mop(53 downto 52);
-                    when "00001" => digit <= X"0" & cpu_mop(51 downto 48);
-                    when "00010" => digit <= X"0" & cpu_mop(47 downto 44);
-                    when "00011" => digit <= X"0" & cpu_mop(43 downto 40);
-                    when "00100" => digit <= X"0" & cpu_mop(39 downto 36);
-                    when "00101" => digit <= X"0" & cpu_mop(35 downto 32);
-                    when "00110" => digit <= X"0" & cpu_mop(31 downto 28);
-                    when "00111" => digit <= X"0" & cpu_mop(27 downto 24);
-                    when "01000" => digit <= X"0" & cpu_mop(23 downto 20);
-                    when "01001" => digit <= X"0" & cpu_mop(19 downto 16);
-                    when "01010" => digit <= X"0" & cpu_mop(15 downto 12);
-                    when "01011" => digit <= X"0" & cpu_mop(11 downto 8);
-                    when "01100" => digit <= X"0" & cpu_mop(7 downto 4);
-                    when "01101" => digit <= X"0" & cpu_mop(3 downto 0);
-                    when "10001" => digit <= X"0" & cpu_hl(15 downto 12);
-                    when "10010" => digit <= X"0" & cpu_hl(11 downto 8);
-                    when "10011" => digit <= X"0" & cpu_hl(7 downto 4);
-                    when "10100" => digit <= X"0" & cpu_hl(3 downto 0);
+                    when "00000" => digit <= X"0" & read(0).addr(15 downto 12);
+                    when "00001" => digit <= X"0" & read(0).addr(11 downto 8);
+                    when "00010" => digit <= X"0" & read(0).addr(7 downto 4);
+                    when "00011" => digit <= X"0" & read(0).addr(3 downto 0);
+                    when "00101" => digit <= X"0" & read(0).data(7 downto 4);
+                    when "00110" => digit <= X"0" & read(0).data(3 downto 0);
+                    when "01000" => digit <= X"0" & write(0).addr(15 downto 12);
+                    when "01001" => digit <= X"0" & write(0).addr(11 downto 8);
+                    when "01010" => digit <= X"0" & write(0).addr(7 downto 4);
+                    when "01011" => digit <= X"0" & write(0).addr(3 downto 0);
+                    when "01101" => digit <= X"0" & write(0).data(7 downto 4);
+                    when "01110" => digit <= X"0" & write(0).data(3 downto 0);
                     when others => d_en <= '0';
                 end case;
             when others => null;
@@ -577,9 +572,8 @@ begin
     LED(0) <= clkstatus.done;
     LED(1) <= clkstatus.locked;
     LED(2) <= clkstatus.clkin_err;
-    LED(3) <= RST;
+    LED(3) <= clkstatus.clkfx_err;
     LED(4) <= lockrst;
-    LED(7 downto 6) <= "00";
 
     process(cpuclk,RST)
         variable toggle : std_logic;
@@ -588,8 +582,10 @@ begin
             LED(5) <= '0';
             toggle := '0';
         elsif rising_edge(cpuclk) then
-            LED(5) <= toggle;
             toggle := not(toggle);
+            if ABUS = X"FF40" and wr_d(7) = '1' then
+                LED(5) <= '1';
+            end if;
         end if;
     end process;
 
@@ -613,11 +609,28 @@ begin
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else        -- FF40-FF4F
             "ZZZZZZZZ";
 
+    process(cpuclk,RST)
+    begin
+        if RST = '1' then
+            read <= (others => (others => (others => '0')));
+            write <= (others => (others => (others => '0')));
+        elsif rising_edge(cpuclk) then
+            read(2 downto 0) <= read(3 downto 1);
+            read(3).addr <= ABUS;
+            read(3).data <= RAM;
+            if wr_en = '1' then
+                write(2 downto 0) <= write(3 downto 1);
+                write(3).addr <= ABUS;
+                write(3).data <= wr_d;
+            end if;
+        end if;
+    end process;
+
     -- Component Instantiation
---  uclk : clockgen port map ( CLK, fastclk, open, cpuclk, clkstatus, RST );
-    uclk : clockgen port map ( CLK, fastclk, open, open, clkstatus, RST );
+    uclk : clockgen port map ( CLK, fastclk, open, cpuclk, pixclk, clkstatus, RST );
+--  uclk : clockgen port map ( CLK, fastclk, open, open,   pixclk, clkstatus, RST );
 --  u1 : debouncer port map(RST, BTN(0), CLK, cpuclk);
-    ucpuclk : BUFG port map (I => spol, O => cpuclk);
+--  ucpuclk : BUFG port map (I => spol, O => cpuclk);
 
 
     lockrst <= RST and clkstatus.locked;
@@ -632,12 +645,16 @@ begin
         TDL => TDL,
         TDI => '0',
         TDO => TDO,
+--      TCK => '0',
+--      TDL => '0',
+--      TDI => '0',
+--      TDO => open,
         CLK => cpuclk,
         RST => lockrst
     );
 
-    ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, cpuclk, lockrst );
-    uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, lockrst );
+    ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, lockrst );
+    uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );
 
     bootram : RAMB16BWER
     generic map (
@@ -648,10 +665,13 @@ begin
         EN_RSTRAM_A => TRUE,
         EN_RSTRAM_B => TRUE,
         -- GB Bootstrap Rom
-        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+--      INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21af005bc3",
         INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
-        INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
-        INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
+--      INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
+        INIT_02 => X"c340e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
+--      INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
+        INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e0100",
         INIT_04 => X"1711cbc11711cbc504064fcb1820164f2005d2201542e09042f0e2873e0ce27b",
         INIT_05 => X"0e0089881f1108000d000c00830073030b000dcc6666edcec923222322f52005", -- 00A0
         INIT_06 => X"3c42a5b9a5b9423c3e33b9bb9f99dcddccec0e6e6367bbbb99d9dddde66eccdc", -- 00C0

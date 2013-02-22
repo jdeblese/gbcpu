@@ -11,9 +11,11 @@ package driver_comp is
             GREEN   : out std_logic_vector(2 downto 0);
             BLUE    : out std_logic_vector(1 downto 0);
             PX      : in pixelpipe;
-            LOGICLK     : in std_logic;
-            SYSCLK     : in std_logic;
-            RST     : in std_logic );
+            LOGICLK : in std_logic;
+            SYSCLK  : in std_logic;
+            EXTCLK  : in std_logic;
+            RST     : in std_logic;
+            debug : out std_logic );
     end component;
 
 end package;
@@ -39,9 +41,11 @@ entity driver is
             GREEN   : out std_logic_vector(2 downto 0);
             BLUE    : out std_logic_vector(1 downto 0);
             PX      : in pixelpipe;
-            LOGICLK     : in std_logic;
-            SYSCLK     : in std_logic;
-            RST     : in std_logic );
+            LOGICLK : in std_logic;
+            SYSCLK  : in std_logic;
+            EXTCLK  : in std_logic;
+            RST     : in std_logic;
+            debug : out std_logic );
 end driver;
 
 architecture Behaviour of driver is
@@ -49,7 +53,7 @@ architecture Behaviour of driver is
     signal clkgen : std_logic_vector(1 downto 0);
 
     signal pixclk, lineclk : std_logic;
-    signal linecount, framecount : std_logic_vector(9 downto 0);
+    signal linecount, framecount : unsigned(9 downto 0);
     signal gblx, gbly : std_logic_vector(9 downto 0);
 
     signal vblank, hblank, visible : std_logic;
@@ -81,7 +85,7 @@ architecture Behaviour of driver is
         addr : std_logic_vector(13 downto 0);
         wen : std_logic_vector(3 downto 0);
     end record;
-    signal bin, bin_new : ram_in;
+    signal ain, bin, bin_new : ram_in;
 
     type ram_out is record
         odata : std_logic_vector(31 downto 0);
@@ -90,6 +94,40 @@ architecture Behaviour of driver is
     signal bout, bout_new : ram_out;
 
     signal toggle : std_logic;
+
+    -- Standard timings: H 640 16 96 48 (280h 10h 60h 30h)
+    --                   V 480 10 2 33 (1E0h Ah 2h 21h)
+    -- visible, blank [front, sync, back]
+
+    -- Horizontal Timing: 640   9  96  52 (280h   9h  60h  34h)
+    --                    640 649 745 797 (280h 289h 2E9h 31Dh)
+    -- Vertical Timing: 480  10   2  33 (1E0h   Ah   2h  21h)
+    --                  480 490 492 525 (1E0h 1EAh 1ECh 20Dh)
+    -- With a 25 MHz pixel clock this gives a refresh rate of 59.748 Hz
+
+    -- SVGA Timing: 800 840 968 1056 (320h 348h 3C8h 420h)
+    --              600 601 605  628 (258h 259h 25Dh 274h)
+    -- 60.3165 Hz at 40 MHz pixel clock
+
+    type timing is record
+        vis   : unsigned(11 downto 0);
+        front : unsigned(11 downto 0);
+        sync  : unsigned(11 downto 0);
+        back  : unsigned(11 downto 0);
+        half  : unsigned(11 downto 0);
+    end record;
+--  constant hori : timing := (X"280", X"010", X"060", X"030", X"190");
+--  constant vert : timing := (X"1E0", X"00A", X"002", X"021", X"000");
+    constant hori : timing := (X"320", X"028", X"080", X"058", X"210");
+    constant vert : timing := (X"258", X"001", X"004", X"017", X"000");
+
+    type bbox is record
+        lo,hi : unsigned(11 downto 0);
+    end record;
+    constant gbhori : bbox := (X"050", X"230");
+    constant gbvert : bbox := (X"018", X"1C8");
+
+    signal pause : unsigned(1 downto 0);
 
 begin
 
@@ -106,6 +144,7 @@ begin
         variable nxtpx : readpx_regs;
         variable nxtbin : ram_in;
         variable edge : std_logic;
+        variable newpx : std_logic_vector(1 downto 0);
     begin
         nxtpx := readpx;
         nxtbin := bin;
@@ -121,29 +160,37 @@ begin
             edge := '0';
         end if;
 
+        nxtbin.ipar(1 downto 0) := bout.opar(1 downto 0);
+        nxtbin.idata(15 downto 0) := bout.odata(15 downto 0);
+
+        newpx(0) := std_logic(readpx.colcount(0)) xor std_logic(readpx.rowcount(0));
+        newpx(1) := std_logic(readpx.colcount(1)) xor std_logic(readpx.rowcount(1));
+
+        if readpx.rowcount(7 downto 4) = "0000" then
+            nxtbin.idata(1 downto 0) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0001" then
+            nxtbin.idata(3 downto 2) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0010" then
+            nxtbin.idata(5 downto 4) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0011" then
+            nxtbin.idata(7 downto 6) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0100" then
+            nxtbin.idata(9 downto 8) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0101" then
+            nxtbin.idata(11 downto 10) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0110" then
+            nxtbin.idata(13 downto 12) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "0111" then
+            nxtbin.idata(15 downto 14) := newpx;
+        elsif readpx.rowcount(7 downto 4) = "1000" then
+            nxtbin.ipar(1 downto 0) := newpx;
+        end if;
+
         if readpx.sync_wr(0) = '1' and edge = '1' then
-
-            nxtbin.ipar(1 downto 0) := bout.opar(1 downto 0);
-            nxtbin.idata(15 downto 0) := bout.odata(15 downto 0);
-
-            if readpx.rowcount(7 downto 4) = "0000" then
-                nxtbin.idata(1 downto 0) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0001" then
-                nxtbin.idata(3 downto 2) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0010" then
-                nxtbin.idata(5 downto 4) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0011" then
-                nxtbin.idata(7 downto 6) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0100" then
-                nxtbin.idata(9 downto 8) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0101" then
-                nxtbin.idata(11 downto 10) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0110" then
-                nxtbin.idata(13 downto 12) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "0111" then
-                nxtbin.idata(15 downto 14) := readpx.sync_px(0);
-            elsif readpx.rowcount(7 downto 4) = "1000" then
-                nxtbin.ipar(1 downto 0) := readpx.sync_px(0);
+            nxtpx.change := '1';
+            -- Only update the framebuffer when in the second 64 columns
+            if nxtpx.colcount(7 downto 6) = "01" then
+                nxtbin.wen := (others => '1');
             end if;
 
             if readpx.colcount = X"9F" then
@@ -156,16 +203,9 @@ begin
             else
                 nxtpx.colcount := readpx.colcount + "1";
             end if;
-
-            nxtpx.change := '1';
-            -- Only update the framebuffer when in the second 64 columns
-            if nxtpx.colcount(7 downto 6) = "01" then
-                nxtbin.wen := "1111";
-            end if;
-
         else
             nxtpx.change := '0';
-            nxtbin.wen := "0000";
+            nxtbin.wen := (others => '0');
         end if;
 
         if readpx.change = '1' then
@@ -173,11 +213,34 @@ begin
             nxtbin.addr(7 downto 4) := std_logic_vector(nxtpx.rowcount(3 downto 0));
         end if;
 
+--      nxtbin.wen(3 downto 0) := (others => '0');
+
+
+--      if pause = "00" then  -- Next rising edge, set the address
+--          nxtbin.addr(13 downto 8) := std_logic_vector(nxtpx.colcount(5 downto 0));
+--          nxtbin.addr(7 downto 4) := std_logic_vector(nxtpx.rowcount(3 downto 0));
+--      elsif pause = "01" then  -- data is not yet available...
+--      elsif pause = "10" then  -- data is now available, so can latch it on next rising edge together with write signal
+--          nxtbin.wen(3 downto 0) := (others => '1');
+--          if readpx.colcount = X"9F" then
+--              nxtpx.colcount := X"00";
+--              if readpx.rowcount = X"8F" then
+--                  nxtpx.rowcount := X"00";
+--              else
+--                  nxtpx.rowcount := readpx.rowcount + "1";
+--              end if;
+--          else
+--              nxtpx.colcount := readpx.colcount + "1";
+--          end if;
+--      elsif pause = "11" then  -- Could already change the address here...
+--      end if;
+
+
         bin_new <= nxtbin;
         readpx_new <= nxtpx;
     end process;
 
-    process(RST,LOGICLK)
+    process(RST,pixclk)
     begin
         if RST = '1' then
             readpx.sync_px <= (others => (others => '0'));
@@ -191,9 +254,15 @@ begin
             bin.ipar <= (others => '0');
             bin.addr <= (others => '0');
             bin.wen <= (others => '0');
-        elsif rising_edge(LOGICLK) then
+            pause <= (others => '0');
+            debug <= '0';
+        elsif rising_edge(pixclk) then
             bin <= bin_new;
             readpx <= readpx_new;
+            pause <= pause + "1";
+            if PX.wr = '1' then
+                debug <= '1';
+            end if;
         end if;
     end process;
 
@@ -209,33 +278,33 @@ begin
         end if;
     end process;
 
+--  pixclk <= clkgen(1);
+--  upixclk : BUFG port map ( I => clkgen(1), O => pixclk );
+    pixclk <= EXTCLK;
+
     -- 'linecount' incrementer clocked by 'pixelclock'
-    process(LOGICLK, RST)
-        variable old : std_logic;
+    process(pixclk, RST)
     begin
         if RST = '1' then
             linecount <= "0000000000";
-        elsif rising_edge(LOGICLK) then
-            if old = '1' and pixclk = '0' then
-                if linecount = "1100011111" then  -- 799
-                    linecount <= "0000000000";
-                else
-                    linecount <= linecount + "1";
-                end if;
+        elsif falling_edge(pixclk) then
+            if linecount = (hori.vis + hori.front + hori.sync + hori.back - "1") then
+                linecount <= "0000000000";
+            else
+                linecount <= linecount + "1";
             end if;
-            old := pixclk;
         end if;
     end process;
 
     -- 'framecount' incrementer clocked by 'lineclk'
-    process(LOGICLK, RST)
+    process(pixclk, RST)
         variable old : std_logic;
     begin
         if RST = '1' then
             framecount <= "0000000000";
-        elsif rising_edge(LOGICLK) then
+        elsif rising_edge(pixclk) then
             if old = '1' and lineclk = '0' then
-                if framecount = "1000001100" then  -- 524
+                if framecount = (vert.vis + vert.front + vert.sync + vert.back - "1") then
                     framecount <= "0000000000";
                 else
                     framecount <= framecount + "1";
@@ -245,65 +314,53 @@ begin
         end if;
     end process;
 
-    -- Standard timings: H 640 16 96 48 V 480 10 2 33
-    -- visible, blank [front, sync, back]
+    lineclk <= '0' when linecount < hori.half else '1';
 
-    -- Horizontal Timing: 640 9 96 52 (640 649 745 797)
-    -- Vertical Timing: 480 10 2 33 (480 490 492 525)
-    -- With a 25 MHz pixel clock this gives a refresh rate of 59.748 Hz
+    HSYNC  <= '1' when linecount < hori.vis + hori.front else
+              '0' when linecount < hori.vis + hori.front + hori.sync else '1';
+    hblank <= '0' when linecount < hori.vis else '1';
 
-    pixclk <= clkgen(1);
-    lineclk <= '0' when linecount < "0110010000" else '1';   -- < 400 (190h)
+    VSYNC  <= '1' when framecount < vert.vis + vert.front else
+              '0' when framecount < vert.vis + vert.front + vert.sync else '1';
+    vblank <= '0' when framecount < vert.vis else '1';
 
-    HSYNC  <= '1' when linecount < "1010010000" else        -- < 640 + 16
-              '0' when linecount < "1011110000" else '1';   -- < 640 + 16 + 96
-    hblank <= '0' when linecount < "1010000000" else '1';   -- < 640
-
-    VSYNC  <= '1' when framecount < "111101010" else        -- < 480 + 10
-              '0' when framecount < "111101100" else '1';   -- < 480 + 10 + 2
-    vblank <= '0' when framecount < "111100000" else '1';   -- < 480
-
-    gbcols <= '0' when linecount < "0001010000" else        -- 80
-              '1' when linecount < "1000110000" else '0';   -- 80 + 480 (3 x 160)
-    gblines <= '0' when framecount < "000011000" else       -- 24
-               '1' when framecount < "111001000" else '0';  -- 24 + 432 (3 x 144)
+    gbcols <= '0' when linecount < gbhori.lo else
+              '1' when linecount < gbhori.hi else '0';
+    gblines <= '0' when framecount < gbvert.lo else
+               '1' when framecount < gbvert.hi else '0';
     gbvis <= gblines and gbcols;
 
     visible <= (hblank nor vblank);
 
-    -- Create 'gblx' clock, as (linecount - 80) / 3
-    divxproc : process(RST, LOGICLK)
-        variable old : std_logic;
+    -- Create 'gblx' clock, as (linecount - gbhori.lo) / 3
+    divxproc : process(RST, pixclk)
     begin
         if RST = '1' then
             divx <= "00";
             gblx <= "0000000000";
-        elsif rising_edge(LOGICLK) then
-            if old = '1' and pixclk = '0' then
-                if linecount = "0001001111" then    -- 79
-                    divx <= "00";
-                    gblx <= "0000000000";
-                elsif divx = "10" then
-                    divx <= "00";
-                    gblx <= gblx + "1";
-                else
-                    divx <= divx + "1";
-                end if;
+        elsif falling_edge(pixclk) then
+            if linecount = (gbhori.lo - "1") then
+                divx <= "00";
+                gblx <= "0000000000";
+            elsif divx = "10" then
+                divx <= "00";
+                gblx <= gblx + "1";
+            else
+                divx <= divx + "1";
             end if;
-            old := pixclk;
         end if;
     end process;
 
-    -- Create 'gbly' clock, as (framecount - 24) / 3
-    divyproc : process(RST, LOGICLK)
+    -- Create 'gbly' clock, as (framecount - gbvert.lo) / 3
+    divyproc : process(RST, pixclk)
         variable old : std_logic;
     begin
         if RST = '1' then
             divy <= "00";
             gbly <= "0000000000";
-        elsif rising_edge(LOGICLK) then
+        elsif rising_edge(pixclk) then
             if old = '1' and lineclk = '0' then
-                if framecount = "0000010111" then   --23
+                if framecount = (gbvert.lo - "1") then
                     divy <= "00";
                     gbly <= "0000000000";
                 elsif divy = "10" then
@@ -343,9 +400,9 @@ begin
                 BLUE <= "00";
             end if;
         elsif visible = '1' then
-            RED <= linecount(3 downto 1);
-            GREEN <= framecount(3 downto 1);
-            BLUE <= framecount(4) & linecount(4);
+            RED   <= std_logic_vector(linecount(3 downto 1));
+            GREEN <= std_logic_vector(framecount(3 downto 1));
+            BLUE  <= std_logic(framecount(4)) & std_logic(linecount(4));
         else
             RED <= "000";
             GREEN <= "000";
@@ -369,6 +426,11 @@ begin
                  pixelblk(15 downto 14) when X"7",
                  pixelblk(17 downto 16) when X"8",
        "00" when others;
+
+    ain.addr(13 downto 4) <= fb_addr;
+    ain.addr(3 downto 0) <= X"0";
+    ain.idata <= (others => '0');
+    ain.ipar <= (others => '0');
 
     -- Framebuffer containing 64 columns of 144 rows
     framebuffer : RAMB16BWER
@@ -528,25 +590,26 @@ begin
         RST_PRIORITY_A => "CE",
         RST_PRIORITY_B => "CE",
         SIM_COLLISION_CHECK => "ALL",
+        WRITE_MODE_B => "READ_FIRST",  -- To allow A to read from this address while B is writing
         SIM_DEVICE => "SPARTAN6"
     )
     port map (
         -- Port A
         DOA => fb_data,   -- 32-bit output: A port data output
         DOPA => fb_par,   -- 4-bit output: A port parity output
-        ADDRA => fb_addr & X"0", -- 14-bit input: A port address input
-        CLKA => LOGICLK,  -- 1-bit input: A port clock input
+        ADDRA => ain.addr, -- 14-bit input: A port address input
+        CLKA => pixclk,  -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input
         WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
-        DIA => X"00000000", -- 32-bit input: A port data input
-        DIPA => "0000",   -- 4-bit input: A port parity input
+        DIA => ain.idata, -- 32-bit input: A port data input
+        DIPA => ain.ipar, -- 4-bit input: A port parity input
         -- Port B
         DOB => bout.odata,-- 32-bit output: A port data output
         DOPB => bout.opar,-- 4-bit output: A port parity output
         ADDRB => bin.addr,-- 14-bit input: B port address input
-        CLKB => LOGICLK,  -- 1-bit input: B port clock input
+        CLKB => pixclk,  -- 1-bit input: B port clock input
         ENB => '1',       -- 1-bit input: B port enable input
         REGCEB => '0',    -- 1-bit input: B port register clock enable input
         RSTB => '0',      -- 1-bit input: B port register set/reset input

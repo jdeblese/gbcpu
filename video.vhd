@@ -15,6 +15,7 @@ package video_comp is
             ABUS    : in std_logic_vector(15 downto 0);
             WR_EN   : in std_logic;
             VID     : out pixelpipe;
+            debug : out std_logic;
             CLK     : in std_logic;
             RST     : in std_logic );
     end component;
@@ -40,6 +41,7 @@ entity video is
             ABUS    : in std_logic_vector(15 downto 0);
             WR_EN   : in std_logic;
             VID     : out pixelpipe;
+            debug : out std_logic;
             CLK     : in std_logic;
             RST     : in std_logic );
 end video;
@@ -152,7 +154,7 @@ begin
             wy   <= X"dd";
             wx   <= X"dd";
         elsif rising_edge(CLK) then
-            if WR_EN = '1' and ABUS(15 downto 4) = "111111110100" then
+            if WR_EN = '1' and ABUS(15 downto 4) = X"FF4" then
                 case ABUS(3 downto 0) is
                     when "0000" => lcdc <= DIN;
                     when "0010" => scy  <= unsigned(DIN);
@@ -281,6 +283,8 @@ begin
             vram <= vram_new;
         end if;
     end process;
+
+    debug <= lcdc(7);
 
     process(vram, VRAMNS, VRAMCS, scx, eol)
         variable nxt : vram_regs;
