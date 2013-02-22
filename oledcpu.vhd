@@ -627,10 +627,10 @@ begin
     end process;
 
     -- Component Instantiation
-    uclk : clockgen port map ( CLK, fastclk, open, cpuclk, pixclk, clkstatus, RST );
---  uclk : clockgen port map ( CLK, fastclk, open, open,   pixclk, clkstatus, RST );
+--  uclk : clockgen port map ( CLK, fastclk, open, cpuclk, pixclk, clkstatus, RST );
+    uclk : clockgen port map ( CLK, fastclk, open, open,   pixclk, clkstatus, RST );
 --  u1 : debouncer port map(RST, BTN(0), CLK, cpuclk);
---  ucpuclk : BUFG port map (I => spol, O => cpuclk);
+    ucpuclk : BUFG port map (I => spol, O => cpuclk);
 
 
     lockrst <= RST and clkstatus.locked;
@@ -666,7 +666,7 @@ begin
         EN_RSTRAM_B => TRUE,
         -- GB Bootstrap Rom
 --      INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
-        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21af005bc3",
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb32800421affffe31",
         INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
 --      INIT_02 => X"0440e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
         INIT_02 => X"c340e0913e42e057643e67f3180f2ef9200d3208283d0c0e992f219910ea193e",

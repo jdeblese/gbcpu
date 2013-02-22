@@ -138,7 +138,7 @@ BEGIN
         EN_RSTRAM_B => TRUE,
         -- GB Bootstrap Rom
 --      INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21affffe31",
-        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb329fff21af005bc3",
+        INIT_00 => X"e0fc3e77773e32e2f33e0ce232803e110eff2621fb207ccb32800421affffe31",
         INIT_01 => X"f920052322131a080600d811f32034fe7b130096cd0095cd1a80102101041147",
         INIT_02 => X"0440e0913e42e0574f3e67f3180f2ef9200d3208283d0c0e992f219910ea193e",
         INIT_03 => X"062064fec11e062862fe831e7c24130ef2201df7200dfa2090fe44f00c0e021e",
@@ -782,6 +782,11 @@ BEGIN
         wait for clk_period * 9; -- wait until global set/reset completes
         wait for clk_period * 0.9;
 
+        rst <= '0';
+
+        wait for 15 us;
+        rst <= '1';
+        wait for clk_period * 10;
         rst <= '0';
 
         wait; -- will wait forever
