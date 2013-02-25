@@ -163,8 +163,7 @@ begin
         nxtbin.ipar(1 downto 0) := bout.opar(1 downto 0);
         nxtbin.idata(15 downto 0) := bout.odata(15 downto 0);
 
-        newpx(0) := std_logic(readpx.colcount(0)) xor std_logic(readpx.rowcount(0));
-        newpx(1) := std_logic(readpx.colcount(1)) xor std_logic(readpx.rowcount(1));
+        newpx := readpx.sync_px(0);
 
         if readpx.rowcount(7 downto 4) = "0000" then
             nxtbin.idata(1 downto 0) := newpx;
