@@ -331,7 +331,7 @@ begin
             count := (others => '0');
         elsif falling_edge(CLK) then
             if vram.init = '1' then
-                count := X"9E";
+                count := X"9F";
                 eol <= '0';
             elsif CS = MAPREAD and vram.delay = "0" then
                 if count = "0" then
