@@ -4,7 +4,7 @@ import sys,re
 from copy import copy
 
 start = re.compile("([0-9a-fA-F]+)[ \t]+(.*)$")
-set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"][ \t]*([,;]?))[ \t]*(.*)$")
+set = re.compile("(([a-zA-Z0-9_]+)[ \t]*<=[ \t]*([xX]?)['\"]([0-9a-fA-F]+)['\"])")
 
 maxnib = 64 * 64
 maxpar = 64 * 8
@@ -44,15 +44,49 @@ bank = {"next" : (0, 10, 0),
         "dmux" : (13, 3, 2),
         "amux" : (16, 2, 2) }
 
+aliases = {"dmux" : {"ram":0, "rf":1, "acc":2, "alu":3, "tmp":4, "unq":5, "fixed":6, "zhnc":7},
+           "rf_imuxsel" : {"imux":0, "cmd[5:4]":1, "cmd[2:1]":2},
+           "rf_imux" : {"bc":0, "de":1, "hl":2, "sp":3, "pc":4},
+           "rf_omux" : {"bc":0, "de":1, "hl":2, "sp":3, "pc":4},
+           "rf_amux" : {"idata":0, "hl":1, "dec":2, "inc":3},
+           "rf_ce" : {"lo":1, "hi":2, "both":3},
+           "rf_dmux" : {"bc_hi":0, "bc_lo":1, "de_hi":2, "de_lo":3, "hl_hi":4, "hl_lo":5, "sp_hi":6, "sp_lo":7, "pc_hi":8, "pc_lo":9, "x":15}}
+
+singles = {'jcmd' : (('cmdjmp', 1),),
+           'jzero' : (('fljmp', 1), ('flsel', 1)),
+           'jcarry' : (('fljmp', 1), ('flsel', 0)),
+           'rf_ce' : (('rf_ce', 3),),
+           'wr' : (('wr_en', 1),),
+           'store_acc' : (('acc_ce', 1),),
+           'store_cmd' : (('cmd_ce', 1),),
+           'store_tmp' : (('tmp_ce', 1),),
+           'store_unq' : (('unq_ce', 1),) }
+
 data = [0] * (maxnib / nnib)
 data = (data, copy(data), copy(data))
 parity = [0] * maxpar
 parity = (parity, copy(parity), copy(parity))
 usage = [False] * (maxnib / nnib)
 
+# Find the first line of assembler
 fd = open(sys.argv[1])
 line = fd.readline()
 linecount = 1
+
+def insertcmd(key, val, addr, keyhit) :
+    # Check for duplicate commands on one line
+    if keyhit[key] :
+      raise RuntimeError('Duplicate key %s on line %d'%(key,linecount))
+    keyhit[key] = True
+
+    val *= 2**bank[key][0]
+
+    dval = val % maxdval
+    pval = val / maxdval * 2**(2*(addr%2))
+
+    data[bank[key][2]][addr] += dval;
+    parity[bank[key][2]][paddr] += pval;
+
 while line != '' and (line == '\n' or line[0] == ';') :
   line = fd.readline()
   linecount += 1
@@ -64,6 +98,7 @@ while len(line) > 0 :
   for k in keyhit.keys() :
     keyhit[k] = False;
 
+  # Use regex to extract the memory location
   try :
     loc,rest = start.match(line).groups()
   except :
@@ -77,27 +112,35 @@ while len(line) > 0 :
     raise RuntimeError("Multiple set of address %x (second on line %d)"%(addr,linecount))
   usage[addr] = True
 
+  cmds = [s.strip() for s in rest.split(',')]
+
   setcount = 0;
-  while rest != '' :
+  for cmd in cmds :
     setcount += 1;
-    try :
-      all,key,ty,val,delim,rest = set.match(rest).groups()
-    except AttributeError :
-      raise RuntimeError('Syntax error on line %d, value %d, rest was "%s"'%(linecount, setcount, rest))
-    if keyhit[key] :
-      raise RuntimeError('Duplicate key %s on line %d'%(key,linecount))
-    keyhit[key] = True
-    if ty == '' :
-      val = int(val, 2)
+    splitcmd = cmd.lower().split(' ')
+    if splitcmd[0] == 'jmp' :
+      insertcmd('next', int(splitcmd[1],16), addr, keyhit)
+    elif len(splitcmd) == 1 and splitcmd[0] in singles.keys() :
+      for target in singles[splitcmd[0]] :
+        key,val = target
+        insertcmd(key, val, addr, keyhit)
+    elif len(splitcmd) == 2 and splitcmd[0] in aliases.keys() and splitcmd[1] != '<=' :
+      key = splitcmd[0]
+      try :
+        val = aliases[key][splitcmd[1]]
+      except KeyError :
+        raise RuntimeError('Syntax error on line %d, term %d (address %x). Command was "%s"'%(linecount, setcount, addr, cmd))
+      insertcmd(key, val, addr, keyhit)
     else :
-      val = int(val, 16)
-    val *= 2**bank[key][0]
-
-    dval = val % maxdval
-    pval = val / maxdval * 2**(2*(addr%2))
-
-    data[bank[key][2]][addr] += dval;
-    parity[bank[key][2]][paddr] += pval;
+      try :
+        all,key,ty,val = set.match(cmd).groups()
+      except AttributeError :
+        raise RuntimeError('Syntax error on line %d, term %d (address %x). Command was "%s"'%(linecount, setcount, addr, cmd))
+      if ty == '' :
+        val = int(val, 2)
+      else :
+        val = int(val, 16)
+      insertcmd(key, val, addr, keyhit)
 
   line = fd.readline()
   linecount += 1
@@ -105,7 +148,7 @@ while len(line) > 0 :
     line = fd.readline()
     linecount += 1
 
-
+# Formatted output
 for b in range(0, 3) :
   print "---------- BANK %d ----------"%(b,)
   print "--- Signals: " + ', '.join( filter(lambda k: bank[k][2] == b, bank.keys()) )

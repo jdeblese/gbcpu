@@ -8,139 +8,139 @@
 ; ***************************************************************************
 
 ; NOP           4 cycles
-000 next <= X"3fd", rf_omux <= "100", rf_dmux <= X"f";
+000 JMP 3fd, RF_OMUX pc, RF_DMUX x
 
 ; TODO: STOP
 
 ; JRNZ/Z helper
-200 next <= X"210", rf_omux <= "100";
-210 next <= X"300", rf_omux <= "100", tmp_ce <= '1';
+200 JMP 210, RF_OMUX pc
+210 JMP 300, RF_OMUX pc, STORE_TMP
 ;   jump depending on zero flag
-300 next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+300 JMP 200, JCMD, JZERO, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 
 ; JRNZ n        12/8 cycles
 ;   read n
-020 next <= X"200", rf_omux <= "100";
+020 JMP 200, RF_OMUX pc
 ;   flag is not set, so put n on the databus and update PC (8 cycles left)
-220 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+220 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
 ;   flag is set, so move on to fetch (4 cycles left)
-320 next <= X"3fd", rf_omux <= "100";
+320 JMP 3fd, RF_OMUX pc
 
 ; JRZ n         12/8 cycles
 ;   read n
-028 next <= X"200", rf_omux <= "100";
+028 JMP 200, RF_OMUX pc
 ;   flag is not set, so move on to fetch (4 cycles left)
-228 next <= X"3fd", rf_omux <= "100";
+228 JMP 3fd, RF_OMUX pc
 ;   flag is set, so put n on the databus and update PC (8 cycles left)
-328 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+328 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
 
 ; JR n          12/8 cycles
 ;   read n
-018 next <= X"200", rf_omux <= "100";
+018 JMP 200, RF_OMUX pc
 ;   flag doesn't matter - put n on the databus and update PC (8 cycles left)
-218 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
-318 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+218 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
+318 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
 
 
 ; JRNC/C helper
-254 next <= X"255", rf_omux <= "100";
-255 next <= X"31c", rf_omux <= "100", tmp_ce <= '1';
-;   jump depending on zero flag
-31c next <= X"200", rf_omux <= "100", cmdjmp <= '1', fljmp <= '1', flsel <= '0', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+254 JMP 255, RF_OMUX pc
+255 JMP 31c, RF_OMUX pc, STORE_TMP
+;   jump depending on carry flag
+31c JMP 200, JCMD, JCARRY, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 
 ; JRNC n        12/8 cycles
 ;   read n
-030 next <= X"254", rf_omux <= "100";
+030 JMP 254, RF_OMUX pc
 ;   flag is not set, so put n on the databus and update PC (8 cycles left)
-230 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+230 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
 ;   flag is set, so move on to fetch (4 cycles left)
-330 next <= X"3fd", rf_omux <= "100";
+330 JMP 3fd, RF_OMUX pc
 
 ; JRC n         12/8 cycles
 ;   read n
-038 next <= X"254", rf_omux <= "100";
+038 JMP 254, RF_OMUX pc
 ;   flag is not set, so move on to fetch (4 cycles left)
-238 next <= X"3fd", rf_omux <= "100";
+238 JMP 3fd, RF_OMUX pc
 ;   flag is set, so put n on the databus and update PC (8 cycles left)
-338 next <= X"3f9", dmux <= "100", rf_omux <= "100", rf_amux <= "00", rf_imux <= "100", rf_ce <= "11";
+338 JMP 3f9, DMUX tmp, RF_OMUX pc, RF_AMUX idata, RF_IMUX pc, RF_CE
 
 
 ; LD16 helpers
 ;   Load (PC) into unq, PC++. Address should already be on bus for 1 cycle
-258 next <= X"259", rf_omux <= "100";
-259 next <= X"25a", rf_omux <= "100", unq_ce <= '1';
-25a next <= X"25b", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+258 JMP 259, RF_OMUX pc
+259 JMP 25a, RF_OMUX pc, STORE_UNQ
+25a JMP 25b, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 ;   (PC) into tmp, PC++, and jump to 200 + CMD
-25b next <= X"25c", rf_omux <= "100";
-25c next <= X"25d", rf_omux <= "100";
-25d next <= X"24d", rf_omux <= "100", tmp_ce <= '1';
-24d next <= X"200", rf_omux <= "100", cmdjmp <= '1', rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+25b JMP 25c, RF_OMUX pc
+25c JMP 25d, RF_OMUX pc
+25d JMP 24d, RF_OMUX pc, STORE_TMP
+24d JMP 200, JCMD, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 
 ; LD {BC,DE,HL,SP}, nn      12 cycles
 ; first byte in unq into lsB, second in tmp into msB, keeping PC on address bus
 ;   BC,nn
-001 next <= X"258", rf_omux <= "100";
-201 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
+001 JMP 258, RF_OMUX pc
+201 JMP 311, DMUX tmp, RF_IMUXSEL cmd[5:4], RF_CE hi, RF_OMUX pc
 ;   DE,nn
-011 next <= X"258", rf_omux <= "100";
-211 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
+011 JMP 258, RF_OMUX pc
+211 JMP 311, DMUX tmp, RF_IMUXSEL cmd[5:4], RF_CE hi, RF_OMUX pc
 ;   HL,nn
-021 next <= X"258", rf_omux <= "100";
-221 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
+021 JMP 258, RF_OMUX pc
+221 JMP 311, DMUX tmp, RF_IMUXSEL cmd[5:4], RF_CE hi, RF_OMUX pc
 ;   SP,nn
-031 next <= X"258", rf_omux <= "100";
-231 next <= X"311", dmux <= "100", rf_imuxsel <= "01", rf_ce <= "10", rf_omux <= "100";
+031 JMP 258, RF_OMUX pc
+231 JMP 311, DMUX tmp, RF_IMUXSEL cmd[5:4], RF_CE hi, RF_OMUX pc
 ;   Add unq into lsB for all
-311 next <= X"3fe", dmux <= "101", rf_imuxsel <= "01", rf_ce <= "01", rf_omux <= "100";
+311 JMP 3fe, DMUX unq, RF_IMUXSEL cmd[5:4], RF_CE lo, RF_OMUX pc
 
 
 ; LD ({BC,DE,HL+,HL-}),A    8 cycles
 ; address and acc on bus for 4 cycles, wr_en, inc/decrement HL at the end of the 4th as with PC
 ;   (BC),A
-002 next <= X"203", rf_omux <= "000", dmux <= "010";
-203 next <= X"202", rf_omux <= "000", dmux <= "010";
-202 next <= X"302", rf_omux <= "000", dmux <= "010", wr_en <= '1';
-302 next <= X"3fc", rf_omux <= "000", dmux <= "010", wr_en <= '1';
+002 JMP 203, RF_OMUX bc, DMUX acc
+203 JMP 202, RF_OMUX bc, DMUX acc
+202 JMP 302, RF_OMUX bc, DMUX acc, WR
+302 JMP 3fc, RF_OMUX bc, DMUX acc, WR
 ;   (DE),A
-012 next <= X"213", rf_omux <= "001", dmux <= "010";
-213 next <= X"212", rf_omux <= "001", dmux <= "010";
-212 next <= X"312", rf_omux <= "001", dmux <= "010", wr_en <= '1';
-312 next <= X"3fc", rf_omux <= "001", dmux <= "010", wr_en <= '1';
+012 JMP 213, RF_OMUX de, DMUX acc
+213 JMP 212, RF_OMUX de, DMUX acc
+212 JMP 312, RF_OMUX de, DMUX acc, WR
+312 JMP 3fc, RF_OMUX de, DMUX acc, WR
 ;   (HL+),A
-022 next <= X"223", rf_omux <= "010", dmux <= "010";
-223 next <= X"222", rf_omux <= "010", dmux <= "010";
-222 next <= X"322", rf_omux <= "010", dmux <= "010", wr_en <= '1';
-322 next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "11", rf_imux <= "010", rf_ce <= "11";
+022 JMP 223, RF_OMUX hl, DMUX acc
+223 JMP 222, RF_OMUX hl, DMUX acc
+222 JMP 322, RF_OMUX hl, DMUX acc, WR
+322 JMP 3fc, RF_OMUX hl, DMUX acc, WR, RF_AMUX inc, RF_IMUX hl, RF_CE
 ;   (HL-),A
-032 next <= X"233", rf_omux <= "010", dmux <= "010";
-233 next <= X"232", rf_omux <= "010", dmux <= "010";
-232 next <= X"332", rf_omux <= "010", dmux <= "010", wr_en <= '1';
-332 next <= X"3fc", rf_omux <= "010", dmux <= "010", wr_en <= '1', rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
+032 JMP 233, RF_OMUX hl, DMUX acc
+233 JMP 232, RF_OMUX hl, DMUX acc
+232 JMP 332, RF_OMUX hl, DMUX acc, WR
+332 JMP 3fc, RF_OMUX hl, DMUX acc, WR, RF_AMUX dec, RF_IMUX hl, RF_CE
 
 ; LD A,({BC,DE})    8 cycles
 ; address on bus for 4 cycles, loading into A, then jump to delay 4 cycles
 ;   A,(BC)
-00a next <= X"208", rf_omux <= "000";
-208 next <= X"20a", rf_omux <= "000";
-20a next <= X"30a", rf_omux <= "000", acc_ce <= '1';
-30a next <= X"3fc", rf_omux <= "000";
+00a JMP 208, RF_OMUX bc
+208 JMP 20a, RF_OMUX bc
+20a JMP 30a, RF_OMUX bc, STORE_ACC
+30a JMP 3fc, RF_OMUX bc
 ;   A,(DE)
-01a next <= X"235", rf_omux <= "001";
-235 next <= X"21a", rf_omux <= "001";
-21a next <= X"31a", rf_omux <= "001", acc_ce <= '1';
-31a next <= X"3fc", rf_omux <= "001";
+01a JMP 235, RF_OMUX de
+235 JMP 21a, RF_OMUX de
+21a JMP 31a, RF_OMUX de, STORE_ACC
+31a JMP 3fc, RF_OMUX de
 
 ; LD A,({HL+,HL-})    8 cycles
 ; address on bus for 4 cycles, loading into acc, then jump to delay 4 cycles
 ;   set the address
-02a next <= X"22a", rf_omux <= "010";
-03a next <= X"22a", rf_omux <= "010";
+02a JMP 22a, RF_OMUX hl
+03a JMP 22a, RF_OMUX hl
 ;   read into ACC, jumping depending on cmd
-22a next <= X"23a", rf_omux <= "010";
-23a cmdjmp <= '1', next <= X"300", rf_omux <= "010", acc_ce <= '1';
+22a JMP 23a, RF_OMUX hl
+23a JMP 300, JCMD, RF_OMUX hl, STORE_ACC
 ;   increment/decrement HL
-32a next <= X"3fc", rf_omux <= "010", rf_amux <= "11", rf_imux <= "010", rf_ce <= "11";
-33a next <= X"3fc", rf_omux <= "010", rf_amux <= "10", rf_imux <= "010", rf_ce <= "11";
+32a JMP 3fc, RF_OMUX hl, RF_AMUX inc, RF_IMUX hl, RF_CE
+33a JMP 3fc, RF_OMUX hl, RF_AMUX dec, RF_IMUX hl, RF_CE
 
 
 ; INC/DEC {BC,DE,HL,SP}     8 cycles
@@ -1376,23 +1376,23 @@
 ; *     Subroutines                                                         *
 ; ***************************************************************************
 
-3f0 next <= X"3f1";
-3f1 next <= X"3f2";
-3f2 next <= X"3f3";
-3f3 next <= X"3f4";
+3f0 JMP 3f1
+3f1 JMP 3f2
+3f2 JMP 3f3
+3f3 JMP 3f4
 
-3f4 next <= X"3f5";
-3f5 next <= X"3f6";
-3f6 next <= X"3f7";
-3f7 next <= X"3f8";
+3f4 JMP 3f5
+3f5 JMP 3f6
+3f6 JMP 3f7
+3f7 JMP 3f8
 
-3f8 next <= X"3f9";
-3f9 next <= X"3fa";
-3fa next <= X"3fb";
-3fb next <= X"3fc";
+3f8 JMP 3f9
+3f9 JMP 3fa
+3fa JMP 3fb
+3fb JMP 3fc
 
 ; 4 cycles to fetch instruction
-3fc next <= X"3fd", rf_omux <= "100";
-3fd next <= X"3fe", rf_omux <= "100";
-3fe next <= X"3ff", rf_omux <= "100", cmd_ce <= '1';
-3ff cmdjmp <= '1',  rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+3fc JMP 3fd, RF_OMUX pc
+3fd JMP 3fe, RF_OMUX pc
+3fe JMP 3ff, RF_OMUX pc, STORE_CMD
+3ff JCMD,    RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
