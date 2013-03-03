@@ -413,15 +413,15 @@ begin
         elsif rising_edge(CLK) then
 
             -- shift data
-            out_shiftreg(0) <= '0' & out_shiftreg(0)(7 downto 1);
-            out_shiftreg(1) <= '0' & out_shiftreg(1)(7 downto 1);
-            VID.px <= out_shiftreg(1)(0) & out_shiftreg(0)(0);
+            out_shiftreg(0) <= out_shiftreg(0)(6 downto 0) & '0';
+            out_shiftreg(1) <= out_shiftreg(1)(6 downto 0) & '0';
+            VID.px <= out_shiftreg(1)(7) & out_shiftreg(0)(7);
 
             -- on loop, reload rather than shift
             if VRAMCS /= VRAM_TILE and VRAMNS = VRAM_TILE then  -- can check here against vramns or vramos
-                out_shiftreg(0) <= '0' & out_latch(0)(7 downto 1);
-                out_shiftreg(1) <= '0' & out_latch(1)(7 downto 1);
-                VID.px <= out_latch(1)(0) & out_latch(0)(0);
+                out_shiftreg(0) <= out_latch(0)(6 downto 0) & '0';
+                out_shiftreg(1) <= out_latch(1)(6 downto 0) & '0';
+                VID.px <= out_latch(1)(7) & out_latch(0)(7);
             end if;
 
         end if;
