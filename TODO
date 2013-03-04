@@ -1,4 +1,0 @@
-* Test instruction and flag behaviour
-* Add interrupt controller and related instructions
-* Add a RD_EN output for accessing cartridge ram
-* De-optimize where possible, saving hardware at the cost of wait states
