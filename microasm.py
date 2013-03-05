@@ -46,7 +46,8 @@ bank = {"next" : (0, 10, 0),
 
 aliasmapping = {"flags":"znhc"}
 
-aliases = {"dmux" : {"ram":0, "rf":1, "acc":2, "alu":3, "tmp":4, "unq":5, "fixed":6, "zhnc":7},
+aliases = {"dmux" : {"ram":0, "rf":1, "acc":2, "alu":3, "tmp":4, "unq":5, "fixed":6, "znhc":7},
+           "amux" : {"rf16":0, "tmp_unq":1, "ff_rf8":2, "ff_tmp":3},
            "flags" : {"nh":6, "nhc":7, "zhc":11, "znh":14, "znhc":15},
            "rf_imuxsel" : {"imux":0, "cmd[5:4]":1, "cmd[2:1]":2},
            "rf_imux" : {"bc":0, "de":1, "hl":2, "sp":3, "pc":4},
@@ -135,7 +136,7 @@ while len(line) > 0 :
       try :
         val = aliases[key][splitcmd[1]]
       except KeyError :
-        raise RuntimeError('Syntax error on line %d, term %d (address %x). Command was "%s"'%(linecount, setcount, addr, cmd))
+        raise RuntimeError('Syntax error on line %d, term %d (address %x). Command was "%s", "%s" not found'%(linecount, setcount, addr, cmd, splitcmd[1]))
       if key in aliasmapping.keys() :
         key = aliasmapping[key]
       insertcmd(key, val, addr, keyhit)
