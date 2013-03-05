@@ -44,20 +44,26 @@ bank = {"next" : (0, 10, 0),
         "dmux" : (13, 3, 2),
         "amux" : (16, 2, 2) }
 
+aliasmapping = {"flags":"znhc"}
+
 aliases = {"dmux" : {"ram":0, "rf":1, "acc":2, "alu":3, "tmp":4, "unq":5, "fixed":6, "zhnc":7},
+           "flags" : {"nh":6, "nhc":7, "zhc":11, "znh":14, "znhc":15},
            "rf_imuxsel" : {"imux":0, "cmd[5:4]":1, "cmd[2:1]":2},
            "rf_imux" : {"bc":0, "de":1, "hl":2, "sp":3, "pc":4},
            "rf_omux" : {"bc":0, "de":1, "hl":2, "sp":3, "pc":4},
            "rf_amux" : {"idata":0, "hl":1, "dec":2, "inc":3},
            "rf_ce" : {"lo":1, "hi":2, "both":3},
-           "rf_dmux" : {"bc_hi":0, "bc_lo":1, "de_hi":2, "de_lo":3, "hl_hi":4, "hl_lo":5, "sp_hi":6, "sp_lo":7, "pc_hi":8, "pc_lo":9, "x":15}}
+           "rf_dmux" : {"b":0, "c":1, "d":2, "e":3, "h":4, "l":5, "sp_hi":6, "sp_lo":7, "pc_hi":8, "pc_lo":9, "x":15}}
 
 singles = {'jcmd' : (('cmdjmp', 1),),
            'jzero' : (('fljmp', 1), ('flsel', 1)),
            'jcarry' : (('fljmp', 1), ('flsel', 0)),
            'rf_ce' : (('rf_ce', 3),),
            'wr' : (('wr_en', 1),),
+           'aluflags' : (('flagsrc', 0),),
+           'rfflags' : (('flagsrc', 1),),
            'store_acc' : (('acc_ce', 1),),
+           'store_alu' : (('alu_ce', 1),),
            'store_cmd' : (('cmd_ce', 1),),
            'store_tmp' : (('tmp_ce', 1),),
            'store_unq' : (('unq_ce', 1),) }
@@ -130,6 +136,8 @@ while len(line) > 0 :
         val = aliases[key][splitcmd[1]]
       except KeyError :
         raise RuntimeError('Syntax error on line %d, term %d (address %x). Command was "%s"'%(linecount, setcount, addr, cmd))
+      if key in aliasmapping.keys() :
+        key = aliasmapping[key]
       insertcmd(key, val, addr, keyhit)
     else :
       try :

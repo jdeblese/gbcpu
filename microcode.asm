@@ -144,96 +144,95 @@
 
 
 ; INC/DEC {BC,DE,HL,SP}     8 cycles
-003 next <= X"3f9", rf_omux <= "000", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
-013 next <= X"3f9", rf_omux <= "001", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
-023 next <= X"3f9", rf_omux <= "010", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
-033 next <= X"3f9", rf_omux <= "011", rf_amux <= "11", rf_imuxsel <= "01", rf_ce <= "11";
-00b next <= X"3f9", rf_omux <= "000", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
-01b next <= X"3f9", rf_omux <= "001", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
-02b next <= X"3f9", rf_omux <= "010", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
-03b next <= X"3f9", rf_omux <= "011", rf_amux <= "10", rf_imuxsel <= "01", rf_ce <= "11";
+;   Use the register file's internal 16-bit adder
+003 JMP 3f9, RF_OMUX bc, RF_AMUX inc, RF_IMUXSEL cmd[5:4], RF_CE
+013 JMP 3f9, RF_OMUX de, RF_AMUX inc, RF_IMUXSEL cmd[5:4], RF_CE
+023 JMP 3f9, RF_OMUX hl, RF_AMUX inc, RF_IMUXSEL cmd[5:4], RF_CE
+033 JMP 3f9, RF_OMUX sp, RF_AMUX inc, RF_IMUXSEL cmd[5:4], RF_CE
+00b JMP 3f9, RF_OMUX bc, RF_AMUX dec, RF_IMUXSEL cmd[5:4], RF_CE
+01b JMP 3f9, RF_OMUX de, RF_AMUX dec, RF_IMUXSEL cmd[5:4], RF_CE
+02b JMP 3f9, RF_OMUX hl, RF_AMUX dec, RF_IMUXSEL cmd[5:4], RF_CE
+03b JMP 3f9, RF_OMUX sp, RF_AMUX dec, RF_IMUXSEL cmd[5:4], RF_CE
 
 
 ; INC {B,D,H}           4 cycles    ZNH-
-004 next <= X"304", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-014 next <= X"304", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-024 next <= X"304", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-304 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
+004 JMP 304, DMUX rf, RF_DMUX b, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+014 JMP 304, DMUX rf, RF_DMUX d, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+024 JMP 304, DMUX rf, RF_DMUX h, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+304 JMP 3fe, DMUX alu, RF_IMUXSEL cmd[5:4], RF_CE hi, ALUFLAGS, FLAGS znh, RF_OMUX pc
 ; INC {C,E,L}           4 cycles    ZNH-
-00c next <= X"314", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-01c next <= X"314", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-02c next <= X"314", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-314 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
+00c JMP 314, DMUX rf, RF_DMUX c, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+01c JMP 314, DMUX rf, RF_DMUX e, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+02c JMP 314, DMUX rf, RF_DMUX l, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+314 JMP 3fe, DMUX alu, RF_IMUXSEL cmd[5:4], RF_CE lo, ALUFLAGS, FLAGS znh, RF_OMUX pc
 ; INC A                 4 cycles    ZNH-
-03c next <= X"324", dmux <= "010", alu_cmd <= "001000", alu_ce <= '1', rf_omux <= "100";
-324 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
-
-; INC (HL)          12 cycles, ZNH-
-; recycle unused micro-op memory from INC r8
-;   load (HL) into alu, +1
-034 next <= X"204", rf_omux <= "010";
-204 next <= X"214", rf_omux <= "010";
-214 next <= X"224", rf_omux <= "010", alu_cmd <= "001000", alu_ce <= '1';
-224 next <= X"234", rf_omux <= "010", znhc <= "1110";
-;   store alu into (HL), then jump to fetch
-234 next <= X"20c", rf_omux <= "010", dmux <= "011";
-20c next <= X"21c", rf_omux <= "010", dmux <= "011";
-21c next <= X"22c", rf_omux <= "010", dmux <= "011", wr_en <= '1';
-22c next <= X"3fc", rf_omux <= "010", dmux <= "011", wr_en <= '1';
-
+03c JMP 324, DMUX acc, alu_cmd <= "001000", STORE_ALU, RF_OMUX pc
+324 JMP 3fe, DMUX alu, STORE_ACC, ALUFLAGS, FLAGS znh, RF_OMUX pc
 
 ; DEC {B,D,H}                   4 cycles
-005 next <= X"305", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-015 next <= X"305", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-025 next <= X"305", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-305 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "10",                    rf_omux <= "100", znhc <= "1110";
+005 JMP 305, DMUX rf, RF_DMUX b, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+015 JMP 305, DMUX rf, RF_DMUX d, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+025 JMP 305, DMUX rf, RF_DMUX h, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+305 JMP 3fe, DMUX alu, RF_IMUXSEL cmd[5:4], RF_CE hi, ALUFLAGS, FLAGS znh, RF_OMUX pc
 ; DEC {C,E,L}                   4 cycles
-00d next <= X"315", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-01d next <= X"315", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-02d next <= X"315", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-315 next <= X"3fe", dmux <= "011", rf_imuxsel <= "01", rf_ce <= "01",                    rf_omux <= "100", znhc <= "1110";
+00d JMP 315, DMUX rf, RF_DMUX c, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+01d JMP 315, DMUX rf, RF_DMUX e, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+02d JMP 315, DMUX rf, RF_DMUX l, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+315 JMP 3fe, DMUX alu, RF_IMUXSEL cmd[5:4], RF_CE lo, ALUFLAGS, FLAGS znh, RF_OMUX pc
 ; DEC A                         4 cycles
-03d next <= X"325", dmux <= "010", alu_cmd <= "001100", alu_ce <= '1', rf_omux <= "100";
-325 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1110";
+03d JMP 325, DMUX acc, alu_cmd <= "001100", STORE_ALU, RF_OMUX pc
+325 JMP 3fe, DMUX alu, STORE_ACC, ALUFLAGS, FLAGS znh, RF_OMUX pc
 
-; DEC (HL)          12 cycles, ZNH-
+; INC/DEC (HL)      12 cycles, ZNH-
+; recycle unused micro-op memory from INC r8
+;   load (HL) into alu, +1
+034 JMP 204, RF_OMUX hl, DMUX ram
+204 JMP 214, RF_OMUX hl, DMUX ram
+214 JMP 224, RF_OMUX hl, DMUX ram, alu_cmd <= "001000", STORE_ALU
+224 JMP 234, RF_OMUX hl, ALUFLAGS, FLAGS znh
 ; recycle unused micro-op memory from DEC r8
 ;   load (HL) into alu, -1
-035 next <= X"205", rf_omux <= "010";
-205 next <= X"215", rf_omux <= "010";
-215 next <= X"225", rf_omux <= "010", alu_cmd <= "001100", alu_ce <= '1';
-225 next <= X"234", rf_omux <= "010", znhc <= "1110";
-;   store alu into (HL), then jump to fetch (same as with INC (HL))
+035 JMP 205, RF_OMUX hl, DMUX ram
+205 JMP 215, RF_OMUX hl, DMUX ram
+215 JMP 225, RF_OMUX hl, DMUX ram, alu_cmd <= "001100", STORE_ALU
+225 JMP 234, RF_OMUX hl, ALUFLAGS, FLAGS znh
+;   store alu into (HL), then jump to fetch
+234 JMP 20c, RF_OMUX hl, DMUX alu
+20c JMP 21c, RF_OMUX hl, DMUX alu
+21c JMP 22c, RF_OMUX hl, DMUX alu, WR
+22c JMP 3fc, RF_OMUX hl, DMUX alu, WR
 
 
 ; LD {B,D,H},n                  8 cycles
-006 next <= X"306", rf_omux <= "100";
-016 next <= X"306", rf_omux <= "100";
-026 next <= X"306", rf_omux <= "100";
-306 next <= X"316", rf_omux <= "100";
-316 next <= X"326", rf_omux <= "100", rf_imuxsel <= "01", rf_ce <= "10";
-326 next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+006 JMP 306, RF_OMUX pc, DMUX ram
+016 JMP 306, RF_OMUX pc, DMUX ram
+026 JMP 306, RF_OMUX pc, DMUX ram
+;   read the byte at PC into the register file
+306 JMP 316, RF_OMUX pc, DMUX ram
+316 JMP 326, RF_OMUX pc, DMUX ram, RF_IMUXSEL cmd[5:4], RF_CE hi
+326 JMP 3fc, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 ; LD {C,E,L},n                  8 cycles
-00e next <= X"30e", rf_omux <= "100";
-01e next <= X"30e", rf_omux <= "100";
-02e next <= X"30e", rf_omux <= "100";
-30e next <= X"31e", rf_omux <= "100";
-31e next <= X"32e", rf_omux <= "100", rf_imuxsel <= "01", rf_ce <= "01";
-32e next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+00e JMP 30e, RF_OMUX pc, DMUX ram
+01e JMP 30e, RF_OMUX pc, DMUX ram
+02e JMP 30e, RF_OMUX pc, DMUX ram
+;   read the byte at PC into the register file
+30e JMP 31e, RF_OMUX pc, DMUX ram
+31e JMP 32e, RF_OMUX pc, DMUX ram, RF_IMUXSEL cmd[5:4], RF_CE lo
+32e JMP 3fc, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 ; LD A,n                        8 cycles
-03e next <= X"31d", rf_omux <= "100";
-31d next <= X"32d", rf_omux <= "100";
-32d next <= X"33d", rf_omux <= "100", acc_ce <= '1';
-33d next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
+03e JMP 31d, RF_OMUX pc, DMUX ram
+31d JMP 32d, RF_OMUX pc, DMUX ram
+32d JMP 33d, RF_OMUX pc, DMUX ram, STORE_ACC
+33d JMP 3fc, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
 ; LD (HL),n                     12 cycles
-036 next <= X"363", rf_omux <= "100";
-363 next <= X"364", rf_omux <= "100";
-364 next <= X"365", rf_omux <= "100", tmp_ce <= '1';
-365 next <= X"366", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11";
-366 next <= X"367", rf_omux <= "010", dmux <= "100";
-367 next <= X"368", rf_omux <= "010", dmux <= "100";
-368 next <= X"369", rf_omux <= "010", dmux <= "100", wr_en <= '1';
-369 next <= X"3fc", rf_omux <= "010", dmux <= "100", wr_en <= '1';
+036 JMP 363, RF_OMUX pc, DMUX ram
+363 JMP 364, RF_OMUX pc, DMUX ram
+364 JMP 365, RF_OMUX pc, DMUX ram, STORE_TMP
+365 JMP 366, RF_OMUX pc, RF_IMUX pc, RF_AMUX inc, RF_CE
+366 JMP 367, RF_OMUX hl, DMUX tmp
+367 JMP 368, RF_OMUX hl, DMUX tmp
+368 JMP 369, RF_OMUX hl, DMUX tmp, WR
+369 JMP 3fc, RF_OMUX hl, DMUX tmp, WR
 
 ; RLCA, RLA     4 cycles    ZNHC
 007 next <= X"307", dmux <= "010", alu_cmd <= "100000", alu_ce <= '1', rf_omux <= "100";
@@ -947,26 +946,29 @@
 
 ; JP HL         4 cycles
 ;   HL on address bus, H into P
-0e9 next <= X"2e9", rf_omux <= "010", dmux <= "001", rf_dmux <= X"4", rf_imux <= "100", rf_ce <= "10";
+0e9 JMP 2e9, RF_OMUX hl, DMUX rf, RF_DMUX h, RF_IMUX pc, RF_CE hi
 ;   HL on address bus, L into C
-2e9 next <= X"3fe", rf_omux <= "010", dmux <= "001", rf_dmux <= X"5", rf_imux <= "100", rf_ce <= "01";
+2e9 JMP 3fe, RF_OMUX hl, DMUX rf, RF_DMUX l, RF_IMUX pc, RF_CE lo
+;   FIXME Why HL on address bus? Not needed
 
 
 ; ADD SP,n      16 cycles
-;   read n
-0e8 next <= X"25c", rf_omux <= "100";
+;   read n into tmp, inc PC, jmp to 2e8
+0e8 JMP 25c, RF_OMUX pc
 ;   Use internal 16-bit data path, taking flags from RF
-2e8 next <= X"3f5", rf_omux <= "011", rf_amux <= "00", rf_imux <= "011", rf_ce <= "11", znhc <= "1111", flagsrc <= "1";
+2e8 JMP 3f5, RF_OMUX sp, RF_AMUX idata, RF_IMUX sp, RF_CE, RFFLAGS, FLAGS znhc
+;   FIXME shouldn't DMUX be tmp here?
 
 ; LD HL,SP+n    12 cycles
-;   read n
-0f8 next <= X"25c", rf_omux <= "100";
+;   read n into tmp, inc PC
+0f8 JMP 25c, RF_OMUX pc
 ;   Use internal 16-bit data path, taking flags from RF
-2f8 next <= X"3f9", rf_omux <= "011", rf_amux <= "00", rf_imux <= "010", rf_ce <= "11", znhc <= "1111", flagsrc <= "1";
+2f8 JMP 3f9, RF_OMUX sp, RF_AMUX idata, RF_IMUX hl, RF_CE, RFFLAGS, FLAGS znhc
+;   FIXME shouldn't DMUX be tmp here?
 
 ; LD SP, HL     8 cycles
 ;   Use internal 16-bit data path
-0f9 next <= X"3f9", rf_omux <= "010", rf_imux <= "011", rf_ce <= "11";
+0f9 JMP 3f9, RF_OMUX hl, RF_IMUX sp, RF_CE
 
 
 ; ***************************************************************************
