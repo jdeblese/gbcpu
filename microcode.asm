@@ -243,26 +243,26 @@
 369 JMP 3fc, RF_OMUX hl, DMUX tmp, WR
 
 ; RLCA, RLA     4 cycles    ZNHC
-007 next <= X"307", dmux <= "010", alu_cmd <= "100000", alu_ce <= '1', rf_omux <= "100";
-017 next <= X"307", dmux <= "010", alu_cmd <= "100001", alu_ce <= '1', rf_omux <= "100";
-307 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1111";
+007 JMP 307, DMUX acc, alu_cmd <= "100000", STORE_ALU, RF_OMUX pc
+017 JMP 307, DMUX acc, alu_cmd <= "100001", STORE_ALU, RF_OMUX pc
+307 JMP 3fe, DMUX alu, STORE_ACC, RF_OMUX pc, FLAGS znhc
 
 ; RRCA, RRA     4 cycles    ZNHC
-00f next <= X"307", dmux <= "010", alu_cmd <= "100010", alu_ce <= '1', rf_omux <= "100";
-01f next <= X"307", dmux <= "010", alu_cmd <= "100011", alu_ce <= '1', rf_omux <= "100";
+00f JMP 307, DMUX acc, alu_cmd <= "100010", STORE_ALU, RF_OMUX pc
+01f JMP 307, DMUX acc, alu_cmd <= "100011", STORE_ALU, RF_OMUX pc
 
 ; DAA     4 cycles    Z-HC
-027 next <= X"327", dmux <= "010", alu_cmd <= "011000", alu_ce <= '1', rf_omux <= "100";
-327 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "1011";
+027 JMP 327, DMUX acc, alu_cmd <= "011000", STORE_ALU, RF_OMUX pc
+327 JMP 3fe, DMUX alu, STORE_ACC, RF_OMUX pc, FLAGS zhc
 
 ; CPL A         4 cycles    -NH-
-02f next <= X"317", dmux <= "010", alu_cmd <= "010011", alu_ce <= '1', rf_omux <= "100";
-317 next <= X"3fe", dmux <= "011", acc_ce <= '1',                      rf_omux <= "100", znhc <= "0110";
+02f JMP 317, DMUX acc, alu_cmd <= "010011", STORE_ALU, RF_OMUX pc
+317 JMP 3fe, DMUX alu, STORE_ACC, RF_OMUX pc, FLAGS nh
 
 ; SCF, CCF     4 cycles    -NHC
-037 next <= X"337", dmux <= "010", alu_cmd <= "011010", alu_ce <= '1', rf_omux <= "100";
-03f next <= X"337", dmux <= "010", alu_cmd <= "011011", alu_ce <= '1', rf_omux <= "100";
-337 next <= X"3fe", dmux <= "011",                                     rf_omux <= "100", znhc <= "0111";
+037 JMP 337, DMUX acc, alu_cmd <= "011010", STORE_ALU, RF_OMUX pc
+03f JMP 337, DMUX acc, alu_cmd <= "011011", STORE_ALU, RF_OMUX pc
+337 JMP 3fe, DMUX alu, RF_OMUX pc, FLAGS nhc
 
 ; LD (nn),SP            20 cycles
 ; Load S and P into tmp and unq while loading nn into SP. Write tmp and unq to (SP), then
@@ -431,114 +431,115 @@
 ; *     Third block instructions: 8-bit alu ops                             *
 ; ***************************************************************************
 
+380 JMP 3fe, DMUX alu, STORE_ACC, FLAGS znhc, RF_OMUX pc
+383 JMP 3fc, RF_OMUX hl, STORE_ACC, FLAGS znhc
+
 ; ADD A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-080 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-081 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-082 next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-083 next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-084 next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-085 next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-087 next <= X"380", dmux <= "010",                  alu_cmd <= "000000", alu_ce <= '1', rf_omux <= "100";
-380 next <= X"3fe", dmux <= "011", acc_ce <= '1', znhc <= "1111",                       rf_omux <= "100";
+080 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+081 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+082 JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+083 JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+084 JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+085 JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
+087 JMP 380, DMUX acc, alu_cmd <= "000000", STORE_ALU, RF_OMUX pc
 ; ADD A,(HL)                        8 cycles    ZNHC
-086 next <= X"381", rf_omux <= "010";
-381 next <= X"382", rf_omux <= "010";
-382 next <= X"383", rf_omux <= "010", alu_cmd <= "000000", alu_ce <= '1';
-383 next <= X"3fc", rf_omux <= "010", acc_ce <= '1', znhc <= "1111";
+086 JMP 381, RF_OMUX hl
+381 JMP 382, RF_OMUX hl
+382 JMP 383, RF_OMUX hl, alu_cmd <= "000000", STORE_ALU
 
 ; ADC A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-088 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-089 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-08a next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-08b next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-08c next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-08d next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
-08f next <= X"380", dmux <= "010",                  alu_cmd <= "000001", alu_ce <= '1', rf_omux <= "100";
+088 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+089 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+08a JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+08b JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+08c JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+08d JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
+08f JMP 380, DMUX acc, alu_cmd <= "000001", STORE_ALU, RF_OMUX pc
 ; ADC A,(HL)                        8 cycles    ZNHC
-08e next <= X"384", rf_omux <= "010";
-384 next <= X"385", rf_omux <= "010";
-385 next <= X"383", rf_omux <= "010", alu_cmd <= "000001", alu_ce <= '1';
+08e JMP 384, RF_OMUX hl
+384 JMP 385, RF_OMUX hl
+385 JMP 383, RF_OMUX hl, alu_cmd <= "000001", STORE_ALU
 
 ; SUB A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-090 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-091 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-092 next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-093 next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-094 next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-095 next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
-097 next <= X"380", dmux <= "010",                  alu_cmd <= "000010", alu_ce <= '1', rf_omux <= "100";
+090 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+091 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+092 JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+093 JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+094 JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+095 JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
+097 JMP 380, DMUX acc, alu_cmd <= "000010", STORE_ALU, RF_OMUX pc
 ; SUB A,(HL)                        8 cycles    ZNHC
-096 next <= X"386", rf_omux <= "010";
-386 next <= X"387", rf_omux <= "010";
-387 next <= X"383", rf_omux <= "010", alu_cmd <= "000010", alu_ce <= '1';
+096 JMP 386, RF_OMUX hl
+386 JMP 387, RF_OMUX hl
+387 JMP 383, RF_OMUX hl, alu_cmd <= "000010", STORE_ALU
 
 ; SBC A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-098 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-099 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-09a next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-09b next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-09c next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-09d next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
-09f next <= X"380", dmux <= "010",                  alu_cmd <= "000011", alu_ce <= '1', rf_omux <= "100";
+098 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+099 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+09a JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+09b JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+09c JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+09d JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
+09f JMP 380, DMUX acc, alu_cmd <= "000011", STORE_ALU, RF_OMUX pc
 ; SBC A,(HL)                        8 cycles    ZNHC
-09e next <= X"388", rf_omux <= "010";
-388 next <= X"389", rf_omux <= "010";
-389 next <= X"383", rf_omux <= "010", alu_cmd <= "000011", alu_ce <= '1';
+09e JMP 388, RF_OMUX hl
+388 JMP 389, RF_OMUX hl
+389 JMP 383, RF_OMUX hl, alu_cmd <= "000011", STORE_ALU
 
 ; AND A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-0a0 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a1 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a2 next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a3 next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a4 next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a5 next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
-0a7 next <= X"380", dmux <= "010",                  alu_cmd <= "010000", alu_ce <= '1', rf_omux <= "100";
+0a0 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a1 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a2 JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a3 JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a4 JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a5 JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
+0a7 JMP 380, DMUX acc, alu_cmd <= "010000", STORE_ALU, RF_OMUX pc
 ; AND A,(HL)                        8 cycles    ZNHC
-0a6 next <= X"38a", rf_omux <= "010";
-38a next <= X"38b", rf_omux <= "010";
-38b next <= X"383", rf_omux <= "010", alu_cmd <= "010000", alu_ce <= '1';
+0a6 JMP 38a, RF_OMUX hl
+38a JMP 38b, RF_OMUX hl
+38b JMP 383, RF_OMUX hl, alu_cmd <= "010000", STORE_ALU
 
 ; XOR A,{B,C,D,E,H,L,A}             4 cycles    ZNHC
-0a8 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0a9 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0aa next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0ab next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0ac next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0ad next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
-0af next <= X"380", dmux <= "010",                  alu_cmd <= "010010", alu_ce <= '1', rf_omux <= "100";
+0a8 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0a9 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0aa JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0ab JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0ac JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0ad JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
+0af JMP 380, DMUX acc, alu_cmd <= "010010", STORE_ALU, RF_OMUX pc
 ; XOR A,(HL)                        8 cycles    ZNHC
-0ae next <= X"38c", rf_omux <= "010";
-38c next <= X"38d", rf_omux <= "010";
-38d next <= X"383", rf_omux <= "010", alu_cmd <= "010010", alu_ce <= '1';
+0ae JMP 38c, RF_OMUX hl
+38c JMP 38d, RF_OMUX hl
+38d JMP 383, RF_OMUX hl, alu_cmd <= "010010", STORE_ALU
 
 ; OR A,{B,C,D,E,H,L,A}              4 cycles    ZNHC
-0b0 next <= X"380", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b1 next <= X"380", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b2 next <= X"380", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b3 next <= X"380", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b4 next <= X"380", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b5 next <= X"380", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
-0b7 next <= X"380", dmux <= "010",                  alu_cmd <= "010001", alu_ce <= '1', rf_omux <= "100";
+0b0 JMP 380, DMUX rf, RF_DMUX b, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b1 JMP 380, DMUX rf, RF_DMUX c, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b2 JMP 380, DMUX rf, RF_DMUX d, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b3 JMP 380, DMUX rf, RF_DMUX e, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b4 JMP 380, DMUX rf, RF_DMUX h, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b5 JMP 380, DMUX rf, RF_DMUX l, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
+0b7 JMP 380, DMUX acc, alu_cmd <= "010001", STORE_ALU, RF_OMUX pc
 ; OR A,(HL)                         8 cycles    ZNHC
-0b6 next <= X"38e", rf_omux <= "010";
-38e next <= X"38f", rf_omux <= "010";
-38f next <= X"383", rf_omux <= "010", alu_cmd <= "010001", alu_ce <= '1';
+0b6 JMP 38e, RF_OMUX hl
+38e JMP 38f, RF_OMUX hl
+38f JMP 383, RF_OMUX hl, alu_cmd <= "010001", STORE_ALU
 
 ; CP A,{B,C,D,E,H,L,A}              4 cycles    ZNHC
 ;   Only set flags, not ACC
-0b8 next <= X"390", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0b9 next <= X"390", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0ba next <= X"390", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0bb next <= X"390", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0bc next <= X"390", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0bd next <= X"390", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-0bf next <= X"390", dmux <= "010",                  alu_cmd <= "000110", alu_ce <= '1', rf_omux <= "100";
-390 next <= X"3fe", dmux <= "011",                  znhc <= "1111",                     rf_omux <= "100";
+0b8 JMP 390, DMUX rf, RF_DMUX b, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0b9 JMP 390, DMUX rf, RF_DMUX c, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0ba JMP 390, DMUX rf, RF_DMUX d, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0bb JMP 390, DMUX rf, RF_DMUX e, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0bc JMP 390, DMUX rf, RF_DMUX h, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0bd JMP 390, DMUX rf, RF_DMUX l, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+0bf JMP 390, DMUX acc, alu_cmd <= "000110", STORE_ALU, RF_OMUX pc
+390 JMP 3fe, DMUX alu, FLAGS znhc, RF_OMUX pc
 ; CP A,(HL)                         8 cycles    ZNHC
-0be next <= X"391", rf_omux <= "010";
-391 next <= X"392", rf_omux <= "010";
-392 next <= X"393", rf_omux <= "010", alu_cmd <= "000110", alu_ce <= '1';
-393 next <= X"3fc", rf_omux <= "010", znhc <= "1111";
+0be JMP 391, RF_OMUX hl
+391 JMP 392, RF_OMUX hl
+392 JMP 393, RF_OMUX hl, alu_cmd <= "000110", STORE_ALU
+393 JMP 3fc, RF_OMUX hl, FLAGS znhc
 
 ; ***************************************************************************
 ; *     Fourth block instructions (with opcode [c-f]*)                      *
@@ -634,36 +635,36 @@
 ;   C <= (SP++)
 0c1 JMP 260, RF_OMUX sp
 260 JMP 261, RF_OMUX sp
-261 JMP 262, RF_OMUX sp,                  RF_IMUX bc, RF_CE lo
+261 JMP 262, RF_OMUX sp, RF_IMUX bc, RF_CE lo
 262 JMP 263, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 ;   B <= (SP++)
 263 JMP 264, RF_OMUX sp
 264 JMP 265, RF_OMUX sp
-265 JMP 32c, RF_OMUX sp,                  RF_IMUX bc, RF_CE hi
+265 JMP 32c, RF_OMUX sp, RF_IMUX bc, RF_CE hi
 32c JMP 3fc, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 
 ; POP DE                            12 cycles
 ;   E <= (SP++)
 0d1 JMP 268, RF_OMUX sp
 268 JMP 269, RF_OMUX sp
-269 JMP 26a, RF_OMUX sp,                  RF_IMUX de, RF_CE lo
+269 JMP 26a, RF_OMUX sp, RF_IMUX de, RF_CE lo
 26a JMP 26b, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 ;   D <= (SP++)
 26b JMP 26c, RF_OMUX sp
 26c JMP 26d, RF_OMUX sp
-26d JMP 23d, RF_OMUX sp,                  RF_IMUX de, RF_CE hi
+26d JMP 23d, RF_OMUX sp, RF_IMUX de, RF_CE hi
 23d JMP 3fc, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 
 ; POP HL                            12 cycles
 ;   L <= (SP++)
 0e1 JMP 270, RF_OMUX sp
 270 JMP 271, RF_OMUX sp
-271 JMP 272, RF_OMUX sp,                  RF_IMUX hl, RF_CE lo
+271 JMP 272, RF_OMUX sp, RF_IMUX hl, RF_CE lo
 272 JMP 273, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 ;   H <= (SP++)
 273 JMP 274, RF_OMUX sp
 274 JMP 275, RF_OMUX sp
-275 JMP 33c, RF_OMUX sp,                  RF_IMUX hl, RF_CE hi
+275 JMP 33c, RF_OMUX sp, RF_IMUX hl, RF_CE hi
 33c JMP 3fc, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 
 ; POP AF                            12 cycles
@@ -679,40 +680,40 @@
 22d JMP 3fc, RF_OMUX sp, RF_AMUX inc, RF_IMUX sp, RF_CE
 
 
+280 JMP 3fc, RF_OMUX pc, RF_AMUX inc, RF_IMUX pc, RF_CE, DMUX alu, STORE_ACC, FLAGS znhc
+28f JMP 3fc, RF_OMUX pc, RF_AMUX inc, RF_IMUX pc, RF_CE, FLAGS znhc
 ; ADD A,n                           8 cycles
-0c6 next <= X"281", rf_omux <= "100";
-281 next <= X"282", rf_omux <= "100";
-282 next <= X"280", rf_omux <= "100", alu_cmd <= "000000", alu_ce <= '1';
-280 next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11", dmux <= "011", acc_ce <= '1', znhc <= "1111";
+0c6 JMP 281, RF_OMUX pc
+281 JMP 282, RF_OMUX pc
+282 JMP 280, RF_OMUX pc, alu_cmd <= "000000", STORE_ALU
 ; ADC A,n                           8 cycles
-0ce next <= X"283", rf_omux <= "100";
-283 next <= X"284", rf_omux <= "100";
-284 next <= X"280", rf_omux <= "100", alu_cmd <= "000001", alu_ce <= '1';
+0ce JMP 283, RF_OMUX pc
+283 JMP 284, RF_OMUX pc
+284 JMP 280, RF_OMUX pc, alu_cmd <= "000001", STORE_ALU
 ; SUB A,n                           8 cycles
-0d6 next <= X"285", rf_omux <= "100";
-285 next <= X"347", rf_omux <= "100";
-347 next <= X"280", rf_omux <= "100", alu_cmd <= "000010", alu_ce <= '1';
+0d6 JMP 285, RF_OMUX pc
+285 JMP 347, RF_OMUX pc
+347 JMP 280, RF_OMUX pc, alu_cmd <= "000010", STORE_ALU
 ; SBC A,n                           8 cycles
-0de next <= X"287", rf_omux <= "100";
-287 next <= X"288", rf_omux <= "100";
-288 next <= X"280", rf_omux <= "100", alu_cmd <= "000011", alu_ce <= '1';
+0de JMP 287, RF_OMUX pc
+287 JMP 288, RF_OMUX pc
+288 JMP 280, RF_OMUX pc, alu_cmd <= "000011", STORE_ALU
 ; AND A,n                           8 cycles
-0e6 next <= X"289", rf_omux <= "100";
-289 next <= X"28a", rf_omux <= "100";
-28a next <= X"280", rf_omux <= "100", alu_cmd <= "010000", alu_ce <= '1';
+0e6 JMP 289, RF_OMUX pc
+289 JMP 28a, RF_OMUX pc
+28a JMP 280, RF_OMUX pc, alu_cmd <= "010000", STORE_ALU
 ; XOR A,n                           8 cycles
-0ee next <= X"28b", rf_omux <= "100";
-28b next <= X"28c", rf_omux <= "100";
-28c next <= X"280", rf_omux <= "100", alu_cmd <= "010010", alu_ce <= '1';
+0ee JMP 28b, RF_OMUX pc
+28b JMP 28c, RF_OMUX pc
+28c JMP 280, RF_OMUX pc, alu_cmd <= "010010", STORE_ALU
 ; OR A,n                            8 cycles
-0f6 next <= X"28d", rf_omux <= "100";
-28d next <= X"21d", rf_omux <= "100";
-21d next <= X"280", rf_omux <= "100", alu_cmd <= "010001", alu_ce <= '1';
+0f6 JMP 28d, RF_OMUX pc
+28d JMP 21d, RF_OMUX pc
+21d JMP 280, RF_OMUX pc, alu_cmd <= "010001", STORE_ALU
 ; CP A,n                            8 cycles
-0fe next <= X"308", rf_omux <= "100";
-308 next <= X"30d", rf_omux <= "100";
-30d next <= X"28f", rf_omux <= "100", alu_cmd <= "000110", alu_ce <= '1';
-28f next <= X"3fc", rf_omux <= "100", rf_imux <= "100", rf_amux <= "11", rf_ce <= "11", znhc <= "1111";
+0fe JMP 308, RF_OMUX pc
+308 JMP 30d, RF_OMUX pc
+30d JMP 28f, RF_OMUX pc, alu_cmd <= "000110", STORE_ALU
 
 
 ; JNZ nn        16/12 cycles
@@ -1017,381 +1018,381 @@
 34f JMP 3fc, RF_OMUX hl, DMUX tmp, WR
 
 ; RLC (B,C,D,E,H,L}     8 cycles    ZNHC
-100 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100000", alu_ce <= '1';
-101 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100000", alu_ce <= '1';
-102 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100000", alu_ce <= '1';
-103 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100000", alu_ce <= '1';
-104 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100000", alu_ce <= '1';
-105 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100000", alu_ce <= '1';
+100 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100000", STORE_ALU
+101 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100000", STORE_ALU
+102 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100000", STORE_ALU
+103 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100000", STORE_ALU
+104 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100000", STORE_ALU
+105 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100000", STORE_ALU
 ; RLC A                 8 cycles    ZNHC
-107 next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100000", alu_ce <= '1';
+107 JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100000", STORE_ALU
 ; RLC (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-106 next <= X"30f", rf_omux <= "010";
+106 JMP 30f, RF_OMUX hl
 ;   tmp <= RLC(tmp)     (9 cycles left)
-206 next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100000", alu_ce <= '1';
-2a0 next <= X"32f", rf_omux <= "010", dmux <= "011", tmp_ce <= '1', znhc <= "1111";
+206 JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100000", STORE_ALU
+2a0 JMP 32f, RF_OMUX hl, DMUX alu, STORE_TMP, FLAGS znhc
 
 ; RRC (B,C,D,E,H,L}     8 cycles    ZNHC
-108 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100010", alu_ce <= '1';
-109 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100010", alu_ce <= '1';
-10a next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100010", alu_ce <= '1';
-10b next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100010", alu_ce <= '1';
-10c next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100010", alu_ce <= '1';
-10d next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100010", alu_ce <= '1';
+108 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100010", STORE_ALU
+109 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100010", STORE_ALU
+10a JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100010", STORE_ALU
+10b JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100010", STORE_ALU
+10c JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100010", STORE_ALU
+10d JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100010", STORE_ALU
 ; RRC A                 8 cycles    ZNHC
-10f next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100010", alu_ce <= '1';
+10f JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100010", STORE_ALU
 ; RRC (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-10e next <= X"30f", rf_omux <= "010";
+10e JMP 30f, RF_OMUX hl
 ;   tmp <= RRC(tmp)     (9 cycles left)
-20e next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100010", alu_ce <= '1';
+20e JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100010", STORE_ALU
 
 ; RL (B,C,D,E,H,L}     8 cycles    ZNHC
-110 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100001", alu_ce <= '1';
-111 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100001", alu_ce <= '1';
-112 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100001", alu_ce <= '1';
-113 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100001", alu_ce <= '1';
-114 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100001", alu_ce <= '1';
-115 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100001", alu_ce <= '1';
+110 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100001", STORE_ALU
+111 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100001", STORE_ALU
+112 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100001", STORE_ALU
+113 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100001", STORE_ALU
+114 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100001", STORE_ALU
+115 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100001", STORE_ALU
 ; RL A                 8 cycles    ZNHC
-117 next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100001", alu_ce <= '1';
+117 JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100001", STORE_ALU
 ; RL (HL)               16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-116 next <= X"30f", rf_omux <= "010";
+116 JMP 30f, RF_OMUX hl
 ;   tmp <= RL(tmp)      (9 cycles left)
-216 next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100001", alu_ce <= '1';
+216 JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100001", STORE_ALU
 
 ; RR (B,C,D,E,H,L}     8 cycles    ZNHC
-118 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100011", alu_ce <= '1';
-119 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100011", alu_ce <= '1';
-11a next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100011", alu_ce <= '1';
-11b next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100011", alu_ce <= '1';
-11c next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100011", alu_ce <= '1';
-11d next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100011", alu_ce <= '1';
+118 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100011", STORE_ALU
+119 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100011", STORE_ALU
+11a JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100011", STORE_ALU
+11b JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100011", STORE_ALU
+11c JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100011", STORE_ALU
+11d JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100011", STORE_ALU
 ; RR A                 8 cycles    ZNHC
-11f next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100011", alu_ce <= '1';
+11f JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100011", STORE_ALU
 ; RR (HL)               16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-11e next <= X"30f", rf_omux <= "010";
+11e JMP 30f, RF_OMUX hl
 ;   tmp <= RR(tmp)      (9 cycles left)
-21e next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100011", alu_ce <= '1';
+21e JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100011", STORE_ALU
 
 ; SLA (B,C,D,E,H,L}     8 cycles    ZNHC
-120 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100100", alu_ce <= '1';
-121 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100100", alu_ce <= '1';
-122 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100100", alu_ce <= '1';
-123 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100100", alu_ce <= '1';
-124 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100100", alu_ce <= '1';
-125 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100100", alu_ce <= '1';
+120 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100100", STORE_ALU
+121 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100100", STORE_ALU
+122 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100100", STORE_ALU
+123 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100100", STORE_ALU
+124 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100100", STORE_ALU
+125 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100100", STORE_ALU
 ; SLA A                 8 cycles    ZNHC
-127 next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100100", alu_ce <= '1';
+127 JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100100", STORE_ALU
 ; SLA (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-126 next <= X"30f", rf_omux <= "010";
+126 JMP 30f, RF_OMUX hl
 ;   tmp <= SLA(tmp)     (9 cycles left)
-226 next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100100", alu_ce <= '1';
+226 JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100100", STORE_ALU
 
 ; SRA (B,C,D,E,H,L}     8 cycles    ZNHC
-128 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100101", alu_ce <= '1';
-129 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100101", alu_ce <= '1';
-12a next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100101", alu_ce <= '1';
-12b next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100101", alu_ce <= '1';
-12c next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100101", alu_ce <= '1';
-12d next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100101", alu_ce <= '1';
+128 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100101", STORE_ALU
+129 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100101", STORE_ALU
+12a JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100101", STORE_ALU
+12b JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100101", STORE_ALU
+12c JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100101", STORE_ALU
+12d JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100101", STORE_ALU
 ; SRA A                 8 cycles    ZNHC
-12f next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100101", alu_ce <= '1';
+12f JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100101", STORE_ALU
 ; SRA (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-12e next <= X"30f", rf_omux <= "010";
+12e JMP 30f, RF_OMUX hl
 ;   tmp <= SRA(tmp)     (9 cycles left)
-22e next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100101", alu_ce <= '1';
+22e JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100101", STORE_ALU
 
 ; SWP (B,C,D,E,H,L}     8 cycles    ZNHC
-130 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100111", alu_ce <= '1';
-131 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100111", alu_ce <= '1';
-132 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100111", alu_ce <= '1';
-133 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100111", alu_ce <= '1';
-134 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100111", alu_ce <= '1';
-135 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100111", alu_ce <= '1';
+130 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100111", STORE_ALU
+131 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100111", STORE_ALU
+132 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100111", STORE_ALU
+133 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100111", STORE_ALU
+134 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100111", STORE_ALU
+135 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100111", STORE_ALU
 ; SWP A                 8 cycles    ZNHC
-137 next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100111", alu_ce <= '1';
+137 JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100111", STORE_ALU
 ; SWP (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-136 next <= X"30f", rf_omux <= "010";
+136 JMP 30f, RF_OMUX hl
 ;   tmp <= SWP(tmp)     (9 cycles left)
-236 next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100111", alu_ce <= '1';
+236 JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100111", STORE_ALU
 
 ; SRL (B,C,D,E,H,L}     8 cycles    ZNHC
-138 next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "100110", alu_ce <= '1';
-139 next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "100110", alu_ce <= '1';
-13a next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "100110", alu_ce <= '1';
-13b next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "100110", alu_ce <= '1';
-13c next <= X"319", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "100110", alu_ce <= '1';
-13d next <= X"329", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "100110", alu_ce <= '1';
+138 JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "100110", STORE_ALU
+139 JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "100110", STORE_ALU
+13a JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "100110", STORE_ALU
+13b JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "100110", STORE_ALU
+13c JMP 319, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "100110", STORE_ALU
+13d JMP 329, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "100110", STORE_ALU
 ; SRL A                 8 cycles    ZNHC
-13f next <= X"339", rf_omux <= "100", dmux <= "010",                  alu_cmd <= "100110", alu_ce <= '1';
+13f JMP 339, RF_OMUX pc, DMUX acc, alu_cmd <= "100110", STORE_ALU
 ; SRL (HL)              16 cycles    ZNHC
 ;   tmp <= HL           (12 cycles left)
-13e next <= X"30f", rf_omux <= "010";
+13e JMP 30f, RF_OMUX hl
 ;   tmp <= SRL(tmp)     (9 cycles left)
-23e next <= X"2a0", rf_omux <= "010", dmux <= "100", alu_cmd <= "100110", alu_ce <= '1';
+23e JMP 2a0, RF_OMUX hl, DMUX tmp, alu_cmd <= "100110", STORE_ALU
 
 ; BIT           8 cycles    ZNH-
-310 next <= X"3fe", rf_omux <= "100", znhc <= "1110";
+310 JMP 3fe, RF_OMUX pc, FLAGS znh
 ; BIT b,B
-140 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101000", alu_ce <= '1';
-150 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101010", alu_ce <= '1';
-160 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101100", alu_ce <= '1';
-170 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101110", alu_ce <= '1';
-148 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101001", alu_ce <= '1';
-158 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101011", alu_ce <= '1';
-168 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101101", alu_ce <= '1';
-178 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "101111", alu_ce <= '1';
+140 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101000", STORE_ALU
+150 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101010", STORE_ALU
+160 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101100", STORE_ALU
+170 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101110", STORE_ALU
+148 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101001", STORE_ALU
+158 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101011", STORE_ALU
+168 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101101", STORE_ALU
+178 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "101111", STORE_ALU
 ; BIT b,C
-141 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101000", alu_ce <= '1';
-151 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101010", alu_ce <= '1';
-161 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101100", alu_ce <= '1';
-171 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101110", alu_ce <= '1';
-149 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101001", alu_ce <= '1';
-159 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101011", alu_ce <= '1';
-169 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101101", alu_ce <= '1';
-179 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "101111", alu_ce <= '1';
+141 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101000", STORE_ALU
+151 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101010", STORE_ALU
+161 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101100", STORE_ALU
+171 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101110", STORE_ALU
+149 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101001", STORE_ALU
+159 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101011", STORE_ALU
+169 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101101", STORE_ALU
+179 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "101111", STORE_ALU
 ; BIT b,D
-142 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101000", alu_ce <= '1';
-152 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101010", alu_ce <= '1';
-162 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101100", alu_ce <= '1';
-172 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101110", alu_ce <= '1';
-14a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101001", alu_ce <= '1';
-15a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101011", alu_ce <= '1';
-16a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101101", alu_ce <= '1';
-17a next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "101111", alu_ce <= '1';
+142 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101000", STORE_ALU
+152 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101010", STORE_ALU
+162 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101100", STORE_ALU
+172 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101110", STORE_ALU
+14a JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101001", STORE_ALU
+15a JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101011", STORE_ALU
+16a JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101101", STORE_ALU
+17a JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "101111", STORE_ALU
 ; BIT b,E
-143 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101000", alu_ce <= '1';
-153 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101010", alu_ce <= '1';
-163 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101100", alu_ce <= '1';
-173 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101110", alu_ce <= '1';
-14b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101001", alu_ce <= '1';
-15b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101011", alu_ce <= '1';
-16b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101101", alu_ce <= '1';
-17b next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "101111", alu_ce <= '1';
+143 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101000", STORE_ALU
+153 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101010", STORE_ALU
+163 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101100", STORE_ALU
+173 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101110", STORE_ALU
+14b JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101001", STORE_ALU
+15b JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101011", STORE_ALU
+16b JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101101", STORE_ALU
+17b JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "101111", STORE_ALU
 ; BIT b,H
-144 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101000", alu_ce <= '1';
-154 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101010", alu_ce <= '1';
-164 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101100", alu_ce <= '1';
-174 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101110", alu_ce <= '1';
-14c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101001", alu_ce <= '1';
-15c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101011", alu_ce <= '1';
-16c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101101", alu_ce <= '1';
-17c next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "101111", alu_ce <= '1';
+144 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101000", STORE_ALU
+154 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101010", STORE_ALU
+164 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101100", STORE_ALU
+174 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101110", STORE_ALU
+14c JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101001", STORE_ALU
+15c JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101011", STORE_ALU
+16c JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101101", STORE_ALU
+17c JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "101111", STORE_ALU
 ; BIT b,L
-145 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101000", alu_ce <= '1';
-155 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101010", alu_ce <= '1';
-165 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101100", alu_ce <= '1';
-175 next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101110", alu_ce <= '1';
-14d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101001", alu_ce <= '1';
-15d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101011", alu_ce <= '1';
-16d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101101", alu_ce <= '1';
-17d next <= X"310", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "101111", alu_ce <= '1';
+145 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101000", STORE_ALU
+155 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101010", STORE_ALU
+165 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101100", STORE_ALU
+175 JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101110", STORE_ALU
+14d JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101001", STORE_ALU
+15d JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101011", STORE_ALU
+16d JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101101", STORE_ALU
+17d JMP 310, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "101111", STORE_ALU
 ; BIT b,A
-147 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101000", alu_ce <= '1';
-157 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101010", alu_ce <= '1';
-167 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101100", alu_ce <= '1';
-177 next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101110", alu_ce <= '1';
-14f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101001", alu_ce <= '1';
-15f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101011", alu_ce <= '1';
-16f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101101", alu_ce <= '1';
-17f next <= X"310", rf_omux <= "100", dmux <= "010", alu_cmd <= "101111", alu_ce <= '1';
+147 JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101000", STORE_ALU
+157 JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101010", STORE_ALU
+167 JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101100", STORE_ALU
+177 JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101110", STORE_ALU
+14f JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101001", STORE_ALU
+15f JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101011", STORE_ALU
+16f JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101101", STORE_ALU
+17f JMP 310, RF_OMUX pc, DMUX acc, alu_cmd <= "101111", STORE_ALU
 ; BIT (HL)              16 cycles    ZNH-
 ;   tmp <= HL           (12 cycles left)
-146 next <= X"30f", rf_omux <= "010";
-156 next <= X"30f", rf_omux <= "010";
-166 next <= X"30f", rf_omux <= "010";
-176 next <= X"30f", rf_omux <= "010";
-14e next <= X"30f", rf_omux <= "010";
-15e next <= X"30f", rf_omux <= "010";
-16e next <= X"30f", rf_omux <= "010";
-17e next <= X"30f", rf_omux <= "010";
+146 JMP 30f, RF_OMUX hl
+156 JMP 30f, RF_OMUX hl
+166 JMP 30f, RF_OMUX hl
+176 JMP 30f, RF_OMUX hl
+14e JMP 30f, RF_OMUX hl
+15e JMP 30f, RF_OMUX hl
+16e JMP 30f, RF_OMUX hl
+17e JMP 30f, RF_OMUX hl
 ;   flags <= BIT(tmp)       (9 cycles left)
-246 next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101000", alu_ce <= '1';
-256 next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101010", alu_ce <= '1';
-266 next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101100", alu_ce <= '1';
-276 next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101110", alu_ce <= '1';
-24e next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101001", alu_ce <= '1';
-25e next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101011", alu_ce <= '1';
-26e next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101101", alu_ce <= '1';
-27e next <= X"2a1", rf_omux <= "010", dmux <= "100", alu_cmd <= "101111", alu_ce <= '1';
-2a1 next <= X"3f9", znhc <= "1110";
+246 JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101000", STORE_ALU
+256 JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101010", STORE_ALU
+266 JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101100", STORE_ALU
+276 JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101110", STORE_ALU
+24e JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101001", STORE_ALU
+25e JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101011", STORE_ALU
+26e JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101101", STORE_ALU
+27e JMP 2a1, RF_OMUX hl, DMUX tmp, alu_cmd <= "101111", STORE_ALU
+2a1 JMP 3f9, FLAGS znh
 
 ; SET/RESET     8 cycles
-25f next <= X"3fe", rf_omux <= "100", dmux <= "011", rf_imuxsel <= "10", rf_ce <= "10";
-26f next <= X"3fe", rf_omux <= "100", dmux <= "011", rf_imuxsel <= "10", rf_ce <= "01";
-27f next <= X"3fe", rf_omux <= "100", dmux <= "011", acc_ce <= '1';
+25f JMP 3fe, RF_OMUX pc, DMUX alu, RF_IMUXSEL cmd[2:1], RF_CE hi
+26f JMP 3fe, RF_OMUX pc, DMUX alu, RF_IMUXSEL cmd[2:1], RF_CE lo
+27f JMP 3fe, RF_OMUX pc, DMUX alu, STORE_ACC
 ; SET b,B
-180 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111000", alu_ce <= '1';
-190 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111010", alu_ce <= '1';
-1a0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111100", alu_ce <= '1';
-1b0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111110", alu_ce <= '1';
-188 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111001", alu_ce <= '1';
-198 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111011", alu_ce <= '1';
-1a8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111101", alu_ce <= '1';
-1b8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "111111", alu_ce <= '1';
+180 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111000", STORE_ALU
+190 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111010", STORE_ALU
+1a0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111100", STORE_ALU
+1b0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111110", STORE_ALU
+188 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111001", STORE_ALU
+198 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111011", STORE_ALU
+1a8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111101", STORE_ALU
+1b8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "111111", STORE_ALU
 ; SET b,C
-181 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111000", alu_ce <= '1';
-191 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111010", alu_ce <= '1';
-1a1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111100", alu_ce <= '1';
-1b1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111110", alu_ce <= '1';
-189 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111001", alu_ce <= '1';
-199 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111011", alu_ce <= '1';
-1a9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111101", alu_ce <= '1';
-1b9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "111111", alu_ce <= '1';
+181 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111000", STORE_ALU
+191 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111010", STORE_ALU
+1a1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111100", STORE_ALU
+1b1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111110", STORE_ALU
+189 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111001", STORE_ALU
+199 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111011", STORE_ALU
+1a9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111101", STORE_ALU
+1b9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "111111", STORE_ALU
 ; SET b,D
-182 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111000", alu_ce <= '1';
-192 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111010", alu_ce <= '1';
-1a2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111100", alu_ce <= '1';
-1b2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111110", alu_ce <= '1';
-18a next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111001", alu_ce <= '1';
-19a next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111011", alu_ce <= '1';
-1aa next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111101", alu_ce <= '1';
-1ba next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "111111", alu_ce <= '1';
+182 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111000", STORE_ALU
+192 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111010", STORE_ALU
+1a2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111100", STORE_ALU
+1b2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111110", STORE_ALU
+18a JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111001", STORE_ALU
+19a JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111011", STORE_ALU
+1aa JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111101", STORE_ALU
+1ba JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "111111", STORE_ALU
 ; SET b,E
-183 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111000", alu_ce <= '1';
-193 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111010", alu_ce <= '1';
-1a3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111100", alu_ce <= '1';
-1b3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111110", alu_ce <= '1';
-18b next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111001", alu_ce <= '1';
-19b next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111011", alu_ce <= '1';
-1ab next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111101", alu_ce <= '1';
-1bb next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "111111", alu_ce <= '1';
+183 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111000", STORE_ALU
+193 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111010", STORE_ALU
+1a3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111100", STORE_ALU
+1b3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111110", STORE_ALU
+18b JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111001", STORE_ALU
+19b JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111011", STORE_ALU
+1ab JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111101", STORE_ALU
+1bb JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "111111", STORE_ALU
 ; SET b,H
-184 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111000", alu_ce <= '1';
-194 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111010", alu_ce <= '1';
-1a4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111100", alu_ce <= '1';
-1b4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111110", alu_ce <= '1';
-18c next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111001", alu_ce <= '1';
-19c next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111011", alu_ce <= '1';
-1ac next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111101", alu_ce <= '1';
-1bc next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "111111", alu_ce <= '1';
+184 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111000", STORE_ALU
+194 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111010", STORE_ALU
+1a4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111100", STORE_ALU
+1b4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111110", STORE_ALU
+18c JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111001", STORE_ALU
+19c JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111011", STORE_ALU
+1ac JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111101", STORE_ALU
+1bc JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "111111", STORE_ALU
 ; SET b,L
-185 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111000", alu_ce <= '1';
-195 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111010", alu_ce <= '1';
-1a5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111100", alu_ce <= '1';
-1b5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111110", alu_ce <= '1';
-18d next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111001", alu_ce <= '1';
-19d next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111011", alu_ce <= '1';
-1ad next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111101", alu_ce <= '1';
-1bd next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "111111", alu_ce <= '1';
+185 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111000", STORE_ALU
+195 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111010", STORE_ALU
+1a5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111100", STORE_ALU
+1b5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111110", STORE_ALU
+18d JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111001", STORE_ALU
+19d JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111011", STORE_ALU
+1ad JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111101", STORE_ALU
+1bd JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "111111", STORE_ALU
 ; SET b,A
-187 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111000", alu_ce <= '1';
-197 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111010", alu_ce <= '1';
-1a7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111100", alu_ce <= '1';
-1b7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111110", alu_ce <= '1';
-18f next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111001", alu_ce <= '1';
-19f next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111011", alu_ce <= '1';
-1af next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111101", alu_ce <= '1';
-1bf next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "111111", alu_ce <= '1';
+187 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111000", STORE_ALU
+197 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111010", STORE_ALU
+1a7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111100", STORE_ALU
+1b7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111110", STORE_ALU
+18f JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111001", STORE_ALU
+19f JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111011", STORE_ALU
+1af JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111101", STORE_ALU
+1bf JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "111111", STORE_ALU
 ; SET (HL)              16 cycles
 ;   tmp <= HL           (12 cycles left)
-186 next <= X"30f", rf_omux <= "010";
-196 next <= X"30f", rf_omux <= "010";
-1a6 next <= X"30f", rf_omux <= "010";
-1b6 next <= X"30f", rf_omux <= "010";
-18e next <= X"30f", rf_omux <= "010";
-19e next <= X"30f", rf_omux <= "010";
-1ae next <= X"30f", rf_omux <= "010";
-1be next <= X"30f", rf_omux <= "010";
+186 JMP 30f, RF_OMUX hl
+196 JMP 30f, RF_OMUX hl
+1a6 JMP 30f, RF_OMUX hl
+1b6 JMP 30f, RF_OMUX hl
+18e JMP 30f, RF_OMUX hl
+19e JMP 30f, RF_OMUX hl
+1ae JMP 30f, RF_OMUX hl
+1be JMP 30f, RF_OMUX hl
 ;   (HL) <= SET(tmp)    (9 cycles left)
-286 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111000", alu_ce <= '1';
-296 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111010", alu_ce <= '1';
-2a6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111100", alu_ce <= '1';
-2b6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111110", alu_ce <= '1';
-28e next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111001", alu_ce <= '1';
-29e next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111011", alu_ce <= '1';
-2ae next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111101", alu_ce <= '1';
-2be next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111111", alu_ce <= '1';
-2a2 next <= X"32f", rf_omux <= "010", dmux <= "011", tmp_ce <= '1';
+286 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111000", STORE_ALU
+296 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111010", STORE_ALU
+2a6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111100", STORE_ALU
+2b6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111110", STORE_ALU
+28e JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111001", STORE_ALU
+29e JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111011", STORE_ALU
+2ae JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111101", STORE_ALU
+2be JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111111", STORE_ALU
+2a2 JMP 32f, RF_OMUX hl, DMUX alu, STORE_TMP
 ; RESET b,B
-1c0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110000", alu_ce <= '1';
-1d0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110010", alu_ce <= '1';
-1e0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110100", alu_ce <= '1';
-1f0 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110110", alu_ce <= '1';
-1c8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110001", alu_ce <= '1';
-1d8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110011", alu_ce <= '1';
-1e8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110101", alu_ce <= '1';
-1f8 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"0", alu_cmd <= "110111", alu_ce <= '1';
+1c0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110000", STORE_ALU
+1d0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110010", STORE_ALU
+1e0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110100", STORE_ALU
+1f0 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110110", STORE_ALU
+1c8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110001", STORE_ALU
+1d8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110011", STORE_ALU
+1e8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110101", STORE_ALU
+1f8 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX b, alu_cmd <= "110111", STORE_ALU
 ; RESET b,C
-1c1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110000", alu_ce <= '1';
-1d1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110010", alu_ce <= '1';
-1e1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110100", alu_ce <= '1';
-1f1 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110110", alu_ce <= '1';
-1c9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110001", alu_ce <= '1';
-1d9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110011", alu_ce <= '1';
-1e9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110101", alu_ce <= '1';
-1f9 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"1", alu_cmd <= "110111", alu_ce <= '1';
+1c1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110000", STORE_ALU
+1d1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110010", STORE_ALU
+1e1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110100", STORE_ALU
+1f1 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110110", STORE_ALU
+1c9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110001", STORE_ALU
+1d9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110011", STORE_ALU
+1e9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110101", STORE_ALU
+1f9 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX c, alu_cmd <= "110111", STORE_ALU
 ; RESET b,D
-1c2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110000", alu_ce <= '1';
-1d2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110010", alu_ce <= '1';
-1e2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110100", alu_ce <= '1';
-1f2 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110110", alu_ce <= '1';
-1ca next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110001", alu_ce <= '1';
-1da next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110011", alu_ce <= '1';
-1ea next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110101", alu_ce <= '1';
-1fa next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"2", alu_cmd <= "110111", alu_ce <= '1';
+1c2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110000", STORE_ALU
+1d2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110010", STORE_ALU
+1e2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110100", STORE_ALU
+1f2 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110110", STORE_ALU
+1ca JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110001", STORE_ALU
+1da JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110011", STORE_ALU
+1ea JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110101", STORE_ALU
+1fa JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX d, alu_cmd <= "110111", STORE_ALU
 ; RESET b,E
-1c3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110000", alu_ce <= '1';
-1d3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110010", alu_ce <= '1';
-1e3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110100", alu_ce <= '1';
-1f3 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110110", alu_ce <= '1';
-1cb next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110001", alu_ce <= '1';
-1db next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110011", alu_ce <= '1';
-1eb next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110101", alu_ce <= '1';
-1fb next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"3", alu_cmd <= "110111", alu_ce <= '1';
+1c3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110000", STORE_ALU
+1d3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110010", STORE_ALU
+1e3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110100", STORE_ALU
+1f3 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110110", STORE_ALU
+1cb JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110001", STORE_ALU
+1db JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110011", STORE_ALU
+1eb JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110101", STORE_ALU
+1fb JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX e, alu_cmd <= "110111", STORE_ALU
 ; RESET b,H
-1c4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110000", alu_ce <= '1';
-1d4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110010", alu_ce <= '1';
-1e4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110100", alu_ce <= '1';
-1f4 next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110110", alu_ce <= '1';
-1cc next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110001", alu_ce <= '1';
-1dc next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110011", alu_ce <= '1';
-1ec next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110101", alu_ce <= '1';
-1fc next <= X"25f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"4", alu_cmd <= "110111", alu_ce <= '1';
+1c4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110000", STORE_ALU
+1d4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110010", STORE_ALU
+1e4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110100", STORE_ALU
+1f4 JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110110", STORE_ALU
+1cc JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110001", STORE_ALU
+1dc JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110011", STORE_ALU
+1ec JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110101", STORE_ALU
+1fc JMP 25f, RF_OMUX pc, DMUX rf, RF_DMUX h, alu_cmd <= "110111", STORE_ALU
 ; RESET b,L
-1c5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110000", alu_ce <= '1';
-1d5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110010", alu_ce <= '1';
-1e5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110100", alu_ce <= '1';
-1f5 next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110110", alu_ce <= '1';
-1cd next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110001", alu_ce <= '1';
-1dd next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110011", alu_ce <= '1';
-1ed next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110101", alu_ce <= '1';
-1fd next <= X"26f", rf_omux <= "100", dmux <= "001", rf_dmux <= X"5", alu_cmd <= "110111", alu_ce <= '1';
+1c5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110000", STORE_ALU
+1d5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110010", STORE_ALU
+1e5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110100", STORE_ALU
+1f5 JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110110", STORE_ALU
+1cd JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110001", STORE_ALU
+1dd JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110011", STORE_ALU
+1ed JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110101", STORE_ALU
+1fd JMP 26f, RF_OMUX pc, DMUX rf, RF_DMUX l, alu_cmd <= "110111", STORE_ALU
 ; RESET b,A
-1c7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110000", alu_ce <= '1';
-1d7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110010", alu_ce <= '1';
-1e7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110100", alu_ce <= '1';
-1f7 next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110110", alu_ce <= '1';
-1cf next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110001", alu_ce <= '1';
-1df next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110011", alu_ce <= '1';
-1ef next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110101", alu_ce <= '1';
-1ff next <= X"27f", rf_omux <= "100", dmux <= "010", alu_cmd <= "110111", alu_ce <= '1';
+1c7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110000", STORE_ALU
+1d7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110010", STORE_ALU
+1e7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110100", STORE_ALU
+1f7 JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110110", STORE_ALU
+1cf JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110001", STORE_ALU
+1df JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110011", STORE_ALU
+1ef JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110101", STORE_ALU
+1ff JMP 27f, RF_OMUX pc, DMUX acc, alu_cmd <= "110111", STORE_ALU
 ; RESET (HL)            16 cycles
 ;   tmp <= HL           (12 cycles left)
-1c6 next <= X"30f", rf_omux <= "010";
-1d6 next <= X"30f", rf_omux <= "010";
-1e6 next <= X"30f", rf_omux <= "010";
-1f6 next <= X"30f", rf_omux <= "010";
-1ce next <= X"30f", rf_omux <= "010";
-1de next <= X"30f", rf_omux <= "010";
-1ee next <= X"30f", rf_omux <= "010";
-1fe next <= X"30f", rf_omux <= "010";
+1c6 JMP 30f, RF_OMUX hl
+1d6 JMP 30f, RF_OMUX hl
+1e6 JMP 30f, RF_OMUX hl
+1f6 JMP 30f, RF_OMUX hl
+1ce JMP 30f, RF_OMUX hl
+1de JMP 30f, RF_OMUX hl
+1ee JMP 30f, RF_OMUX hl
+1fe JMP 30f, RF_OMUX hl
 ;   (HL) <= RESET(tmp)  (9 cycles left)
-2c6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111000", alu_ce <= '1';
-2d6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111010", alu_ce <= '1';
-2e6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111100", alu_ce <= '1';
-2f6 next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111110", alu_ce <= '1';
-2ce next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111001", alu_ce <= '1';
-2de next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111011", alu_ce <= '1';
-2ee next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111101", alu_ce <= '1';
-2fe next <= X"2a2", rf_omux <= "010", dmux <= "100", alu_cmd <= "111111", alu_ce <= '1';
+2c6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111000", STORE_ALU
+2d6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111010", STORE_ALU
+2e6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111100", STORE_ALU
+2f6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111110", STORE_ALU
+2ce JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111001", STORE_ALU
+2de JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111011", STORE_ALU
+2ee JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111101", STORE_ALU
+2fe JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111111", STORE_ALU
 
 ; ***************************************************************************
 ; *     Subroutines                                                         *
