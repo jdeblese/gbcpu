@@ -655,7 +655,7 @@ begin
         ENA => '1',       -- 1-bit input: A port enable input
         REGCEA => '0',    -- 1-bit input: A port register clock enable input
         RSTA => '0',      -- 1-bit input: A port register set/reset input
-        WEA => "000" & map_en,   -- 4-bit input: Port A byte-wide write enable input
+        WEA => map_en & map_en & map_en & map_en,   -- 4-bit input: Port A byte-wide write enable input
         DIA => X"000000" & DIN, -- 32-bit input: A port data input
         DIPA => "0000",   -- 4-bit input: A port parity input
         -- Port B: data to internal bus
