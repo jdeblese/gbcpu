@@ -83,10 +83,11 @@ architecture Behavioral of system is
     signal vid_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
     signal pixels : pixelpipe;
-    signal cpuclk, fastclk, pixclk, lockrst : std_logic;
     signal clkstatus : clockgen_status;
     signal BOOTRAM_VIS : std_logic;
 
+    signal cpuclk, fastclk, pixclk, lockrst : std_logic;
+    signal startup, slowrst : std_logic;
 
     -- Debouncer
     component debouncer
@@ -139,10 +140,12 @@ begin
         if RST = '1' then
             slowtimer <= X"00000000";
             spol <= '0';
+            startup <= '1';
         elsif rising_edge(CLK) and divtimer = "0000" then
             if slowtimer = X"0098967f" then    -- 98967f
                 slowtimer <= X"00000000";
                 spol <= '0';
+                startup <= '0';
             else
                 if slowtimer = X"004c4b40" then  -- 4c4b40
                     spol <= '1';
@@ -158,6 +161,7 @@ begin
 
 
     lockrst <= RST or not(clkstatus.locked);
+    slowrst <= lockrst and startup;
 
     -- GBCPU
 
@@ -238,10 +242,10 @@ begin
         TDI => TDI,
         TDO => TDO,
         CLK => cpuclk,
-        RST => lockrst
+        RST => slowrst
     );
 
-    ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, lockrst );
+    ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, slowrst );
     uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );
 
     bootram : RAMB16BWER

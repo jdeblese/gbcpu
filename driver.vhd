@@ -61,8 +61,6 @@ architecture Behaviour of driver is
 
     signal divx, divy : std_logic_vector(1 downto 0);
 
-    signal fb_data : std_logic_vector(31 downto 0);
-    signal fb_par : std_logic_vector(3 downto 0);
     signal fb_addr : std_logic_vector(9 downto 0);
     signal pixelblk : std_logic_vector(17 downto 0);
     signal pixel : std_logic_vector(1 downto 0);
@@ -85,13 +83,15 @@ architecture Behaviour of driver is
         addr : std_logic_vector(13 downto 0);
         wen : std_logic_vector(3 downto 0);
     end record;
-    signal ain, bin, bin_new : ram_in;
+    signal ain, bin, bin_new, din, din_new, fin, fin_new : ram_in;
+
+    constant ram_in_zero : ram_in := (X"00000000", "0000", "00000000000000", "0000");
 
     type ram_out is record
         odata : std_logic_vector(31 downto 0);
         opar : std_logic_vector(3 downto 0);
     end record;
-    signal bout, bout_new : ram_out;
+    signal aout, bout, cout, dout, eout, fout : ram_out;
 
     signal toggle : std_logic;
 
@@ -140,14 +140,16 @@ begin
         end if;
     end process;
 
-    process(px, readpx, bin, bout, toggle)
+    process(px, readpx, bin, din, fin, bout, toggle)
         variable nxtpx : readpx_regs;
-        variable nxtbin : ram_in;
+        variable nxtbin, nxtdin, nxtfin : ram_in;
         variable edge : std_logic;
         variable newpx : std_logic_vector(1 downto 0);
     begin
         nxtpx := readpx;
         nxtbin := bin;
+        nxtdin := din;
+        nxtfin := fin;
 
         nxtpx.sync_px(1) := PX.px;
         nxtpx.sync_px(0) := readpx.sync_px(1);
@@ -160,36 +162,63 @@ begin
             edge := '0';
         end if;
 
+        -- FIXME Enormous degree of code duplication due to 3 blockrams
         nxtbin.ipar(1 downto 0) := bout.opar(1 downto 0);
         nxtbin.idata(15 downto 0) := bout.odata(15 downto 0);
+        nxtdin.ipar(1 downto 0) := dout.opar(1 downto 0);
+        nxtdin.idata(15 downto 0) := dout.odata(15 downto 0);
+        nxtfin.ipar(1 downto 0) := fout.opar(1 downto 0);
+        nxtfin.idata(15 downto 0) := fout.odata(15 downto 0);
 
         newpx := readpx.sync_px(0);
 
         if readpx.rowcount(7 downto 4) = "0000" then
             nxtbin.idata(1 downto 0) := newpx;
+            nxtdin.idata(1 downto 0) := newpx;
+            nxtfin.idata(1 downto 0) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0001" then
             nxtbin.idata(3 downto 2) := newpx;
+            nxtdin.idata(3 downto 2) := newpx;
+            nxtfin.idata(3 downto 2) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0010" then
             nxtbin.idata(5 downto 4) := newpx;
+            nxtdin.idata(5 downto 4) := newpx;
+            nxtfin.idata(5 downto 4) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0011" then
             nxtbin.idata(7 downto 6) := newpx;
+            nxtdin.idata(7 downto 6) := newpx;
+            nxtfin.idata(7 downto 6) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0100" then
             nxtbin.idata(9 downto 8) := newpx;
+            nxtdin.idata(9 downto 8) := newpx;
+            nxtfin.idata(9 downto 8) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0101" then
             nxtbin.idata(11 downto 10) := newpx;
+            nxtdin.idata(11 downto 10) := newpx;
+            nxtfin.idata(11 downto 10) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0110" then
             nxtbin.idata(13 downto 12) := newpx;
+            nxtdin.idata(13 downto 12) := newpx;
+            nxtfin.idata(13 downto 12) := newpx;
         elsif readpx.rowcount(7 downto 4) = "0111" then
             nxtbin.idata(15 downto 14) := newpx;
+            nxtdin.idata(15 downto 14) := newpx;
+            nxtfin.idata(15 downto 14) := newpx;
         elsif readpx.rowcount(7 downto 4) = "1000" then
             nxtbin.ipar(1 downto 0) := newpx;
+            nxtdin.ipar(1 downto 0) := newpx;
+            nxtfin.ipar(1 downto 0) := newpx;
         end if;
 
         if readpx.sync_wr(0) = '1' and edge = '1' then
             nxtpx.change := '1';
-            -- Only update the framebuffer when in the second 64 columns
-            if nxtpx.colcount(7 downto 6) = "01" then
+
+            if nxtpx.colcount(7 downto 6) = "00" then
                 nxtbin.wen := (others => '1');
+            elsif nxtpx.colcount(7 downto 6) = "01" then
+                nxtdin.wen := (others => '1');
+            elsif nxtpx.colcount(7 downto 6) = "10" then
+                nxtfin.wen := (others => '1');
             end if;
 
             if readpx.colcount = X"9F" then
@@ -205,37 +234,20 @@ begin
         else
             nxtpx.change := '0';
             nxtbin.wen := (others => '0');
+            nxtdin.wen := (others => '0');
+            nxtfin.wen := (others => '0');
         end if;
 
         if readpx.change = '1' then
             nxtbin.addr(13 downto 8) := std_logic_vector(nxtpx.colcount(5 downto 0));
             nxtbin.addr(7 downto 4) := std_logic_vector(nxtpx.rowcount(3 downto 0));
+            nxtdin.addr := nxtbin.addr;
+            nxtfin.addr := nxtbin.addr;
         end if;
 
---      nxtbin.wen(3 downto 0) := (others => '0');
-
-
---      if pause = "00" then  -- Next rising edge, set the address
---          nxtbin.addr(13 downto 8) := std_logic_vector(nxtpx.colcount(5 downto 0));
---          nxtbin.addr(7 downto 4) := std_logic_vector(nxtpx.rowcount(3 downto 0));
---      elsif pause = "01" then  -- data is not yet available...
---      elsif pause = "10" then  -- data is now available, so can latch it on next rising edge together with write signal
---          nxtbin.wen(3 downto 0) := (others => '1');
---          if readpx.colcount = X"9F" then
---              nxtpx.colcount := X"00";
---              if readpx.rowcount = X"8F" then
---                  nxtpx.rowcount := X"00";
---              else
---                  nxtpx.rowcount := readpx.rowcount + "1";
---              end if;
---          else
---              nxtpx.colcount := readpx.colcount + "1";
---          end if;
---      elsif pause = "11" then  -- Could already change the address here...
---      end if;
-
-
         bin_new <= nxtbin;
+        din_new <= nxtdin;
+        fin_new <= nxtfin;
         readpx_new <= nxtpx;
     end process;
 
@@ -249,14 +261,15 @@ begin
             readpx.colcount <= (others => '0');
             readpx.latch <= (others => '0');
             readpx.change <= '0';
-            bin.idata <= (others => '0');
-            bin.ipar <= (others => '0');
-            bin.addr <= (others => '0');
-            bin.wen <= (others => '0');
+            bin <= ram_in_zero;
+            din <= ram_in_zero;
+            fin <= ram_in_zero;
             pause <= (others => '0');
             debug <= '0';
         elsif rising_edge(pixclk) then
             bin <= bin_new;
+            din <= din_new;
+            fin <= fin_new;
             readpx <= readpx_new;
             pause <= pause + "1";
             if PX.wr = '1' then
@@ -410,10 +423,15 @@ begin
     end process;
 
     -- Address for framebuffer is set according to 'gblx' and 'gbly'
-    fb_addr <= gblx(5 downto 0) & gbly(3 downto 0);
+    ain.addr(13 downto 4) <= gblx(5 downto 0) & gbly(3 downto 0);
+    ain.addr(3 downto 0) <= X"0";
 
     -- Blocks of 9 pixels read at once
-    pixelblk <= fb_par(1 downto 0) & fb_data(15 downto 0);
+    with gblx(7 downto 6) select
+        pixelblk <= aout.opar(1 downto 0) & aout.odata(15 downto 0) when "00",
+                    cout.opar(1 downto 0) & cout.odata(15 downto 0) when "01",
+                    eout.opar(1 downto 0) & eout.odata(15 downto 0) when "10",
+                    (others => '0') when others;
     with gbly(7 downto 4) select
         pixel <= pixelblk(1 downto 0) when X"0",
                  pixelblk(3 downto 2) when X"1",
@@ -426,13 +444,12 @@ begin
                  pixelblk(17 downto 16) when X"8",
        "00" when others;
 
-    ain.addr(13 downto 4) <= fb_addr;
-    ain.addr(3 downto 0) <= X"0";
     ain.idata <= (others => '0');
     ain.ipar <= (others => '0');
 
+
     -- Framebuffer containing 64 columns of 144 rows
-    framebuffer : RAMB16BWER
+    frame00 : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 18,
         DATA_WIDTH_B => 18,
@@ -594,8 +611,8 @@ begin
     )
     port map (
         -- Port A
-        DOA => fb_data,   -- 32-bit output: A port data output
-        DOPA => fb_par,   -- 4-bit output: A port parity output
+        DOA => aout.odata,-- 32-bit output: A port data output
+        DOPA => aout.opar,-- 4-bit output: A port parity output
         ADDRA => ain.addr, -- 14-bit input: A port address input
         CLKA => pixclk,  -- 1-bit input: A port clock input
         ENA => '1',       -- 1-bit input: A port enable input
@@ -615,5 +632,89 @@ begin
         WEB => bin.wen,   -- 4-bit input: Port B byte-wide write enable input
         DIB => bin.idata, -- 32-bit input: B port data input
         DIPB => bin.ipar  -- 4-bit input: B port parity input
+    );
+
+    -- Framebuffer containing 64 columns of 144 rows
+    frame64 : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 18,
+        DATA_WIDTH_B => 18,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        INIT_FILE => "NONE",
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        WRITE_MODE_B => "READ_FIRST",  -- To allow A to read from this address while B is writing
+        SIM_DEVICE => "SPARTAN6"
+    )
+    port map (
+        -- Port A
+        DOA => cout.odata,-- 32-bit output: A port data output
+        DOPA => cout.opar,-- 4-bit output: A port parity output
+        ADDRA => ain.addr, -- 14-bit input: A port address input
+        CLKA => pixclk,  -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
+        DIA => ain.idata, -- 32-bit input: A port data input
+        DIPA => ain.ipar, -- 4-bit input: A port parity input
+        -- Port B
+        DOB => dout.odata,-- 32-bit output: A port data output
+        DOPB => dout.opar,-- 4-bit output: A port parity output
+        ADDRB => din.addr,-- 14-bit input: B port address input
+        CLKB => pixclk,  -- 1-bit input: B port clock input
+        ENB => '1',       -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => din.wen,   -- 4-bit input: Port B byte-wide write enable input
+        DIB => din.idata, -- 32-bit input: B port data input
+        DIPB => din.ipar  -- 4-bit input: B port parity input
+    );
+
+    -- Framebuffer containing 64 columns of 144 rows
+    frame128 : RAMB16BWER
+    generic map (
+        DATA_WIDTH_A => 18,
+        DATA_WIDTH_B => 18,
+        DOA_REG => 0,
+        DOB_REG => 0,
+        EN_RSTRAM_A => TRUE,
+        EN_RSTRAM_B => TRUE,
+        INIT_FILE => "NONE",
+        RSTTYPE => "SYNC",
+        RST_PRIORITY_A => "CE",
+        RST_PRIORITY_B => "CE",
+        SIM_COLLISION_CHECK => "ALL",
+        WRITE_MODE_B => "READ_FIRST",  -- To allow A to read from this address while B is writing
+        SIM_DEVICE => "SPARTAN6"
+    )
+    port map (
+        -- Port A
+        DOA => eout.odata,-- 32-bit output: A port data output
+        DOPA => eout.opar,-- 4-bit output: A port parity output
+        ADDRA => ain.addr, -- 14-bit input: A port address input
+        CLKA => pixclk,  -- 1-bit input: A port clock input
+        ENA => '1',       -- 1-bit input: A port enable input
+        REGCEA => '0',    -- 1-bit input: A port register clock enable input
+        RSTA => '0',      -- 1-bit input: A port register set/reset input
+        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
+        DIA => ain.idata, -- 32-bit input: A port data input
+        DIPA => ain.ipar, -- 4-bit input: A port parity input
+        -- Port B
+        DOB => fout.odata,-- 32-bit output: A port data output
+        DOPB => fout.opar,-- 4-bit output: A port parity output
+        ADDRB => fin.addr,-- 14-bit input: B port address input
+        CLKB => pixclk,  -- 1-bit input: B port clock input
+        ENB => '1',       -- 1-bit input: B port enable input
+        REGCEB => '0',    -- 1-bit input: B port register clock enable input
+        RSTB => '0',      -- 1-bit input: B port register set/reset input
+        WEB => fin.wen,   -- 4-bit input: Port B byte-wide write enable input
+        DIB => fin.idata, -- 32-bit input: B port data input
+        DIPB => fin.ipar  -- 4-bit input: B port parity input
     );
 end Behaviour;
