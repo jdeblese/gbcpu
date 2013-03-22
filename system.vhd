@@ -35,6 +35,7 @@ use ieee.std_logic_unsigned.all ;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.cartram_comp.all;
 use work.clockgen_comp.all;
 use work.cpu_comp.all;
 use work.video_comp.all;
@@ -78,7 +79,8 @@ architecture Behavioral of system is
     signal ADDRCPU : STD_LOGIC_VECTOR(13 downto 0);
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
-    signal DOA_BOOT, DOA_CART   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
+    signal DOA_BOOT : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
+    signal cart_d : std_logic_vector(7 downto 0);
     signal wr_d : std_logic_vector(7 downto 0);
     signal vid_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
@@ -200,7 +202,7 @@ begin
     end process;
 
     RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
-           DOA_CART(7 downto 0) WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
+           cart_d               WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
            vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else        -- FF40-FF4F
            DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else    -- F800-FFFF
@@ -248,6 +250,8 @@ begin
     ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, slowrst );
     uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );
 
+    ucart : cartram port map (RST, cpuclk, ABUS, cart_d, wr_d, '1', wr_en);
+
     bootram : RAMB16BWER
     generic map (
         DATA_WIDTH_A => 9,
@@ -294,142 +298,6 @@ begin
         RSTB => '0',      -- 1-bit input: B port register set/reset input
         WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
         DIB => X"00000000", -- 32-bit input: B port data input
-        DIPB => "0000"    -- 4-bit input: B port parity input
-    );
-
-    cartram : RAMB16BWER
-    generic map (
-        -- DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
-        DATA_WIDTH_A => 9,
-        DATA_WIDTH_B => 9,
-        -- DOA_REG/DOB_REG: Optional output register (0 or 1)
-        DOA_REG => 0,
-        DOB_REG => 0,
-        -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
-        EN_RSTRAM_A => TRUE,
-        EN_RSTRAM_B => TRUE,
-        -- INITP_00 to INITP_07: Initial memory contents.
-        INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_04 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_05 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        -- INIT_00 to INIT_3F: Initial memory contents.
---      INIT_00 => X"00000000000000002f833eff0721fe36ff06210536ff0721000000cf40e0913e",
---      INIT_00 => X"0000000000000000000003202414043323130332221202fffe314264012c2c00",
-        -- 0000 NOP         00
-        -- 0001 LD B,ff     06 ff
-        -- 0003 LD D,02     16 02
-        -- 0005 LD H,04     26 04
-        -- 0007 LD (HL),06  36 06
-        -- 0009 LD C,01     0e 01
-        -- 000b LD E,03     1e 03
-        -- 000d LD L,05     2e 05
-        -- 000f LD A,07     3e 07
-        -- 0011 LD BC,0000  01 00 00
-        -- 0014 LD A,(BC)   0a
-        -- 0015 LD DE,0001  11 01 00
-        -- 0018 LD A,(DE)   1a
-        -- 0019 LD SP,fffe  31 fe ff
-        -- 001c LD HL,0019  21 19 00
-        -- 001f LD A,(HL+)  2A
-        INIT_00 => X"2a001921fffe311a0001110a000001073e052e031e010e063604260216ff0600",
-        -- 0020 LD A,(HL+)  2A
-        -- 0021 LD A,(HL-)  3A
-        -- 0022 LD A,bb     3e bb
-        -- 0023 LD (BC),A   02
-        -- 0024 LD (DE),A   12
-        -- 0025 LD (HL+),A  22
-        -- 0026 LD (HL-),A  32
-        -- 0027 INC BC      03
-        -- 0028 INC DE      13
-        -- 0029 INC HL      23
-        -- 002a INC SP      33
-        -- 002b DEC BC      0b
-        -- 002c DEC DE      1b
-        -- 002d DEC HL      2b
-        -- 002e DEC SP      3b
-        -- 002f NOP
-        -- 0030 LD BC,0800  01 00 08
-        -- 0033 LD DE,c800  11 00 c8
-        -- 0036 LD SP,c800  31 00 c8
-        -- Test addition, and H and C flags, but not Z flag - do later
-        -- 0039 ADD HL,BC   09
-        -- 003a ADD HL,DE   19
-        -- 003b ADD HL,SP   39
-        -- 003c ADD HL,HL   29
-        -- 003d NOP
-        -- 003e NOP
-        -- 003f NOP
-        INIT_01 => X"00000029391909c80031c800110800013b2b1b0b3323130332221202bb3e3a2a",
-        -- 0040 LD B, 0f    06 0f
-        -- 0042 INC B       04
-        -- 0043 LD C, ff    0e ff
-        -- 0045 INC C       0c
-        -- 0046 INC D       14
-        -- 0047 INC E       1c
-        -- 0048 INC H       24
-        -- 0049 INC L       2c
-        -- 004a INC (HL)    34
-        -- 004b INC A       3c
-        -- 004c DEC B       05
-        -- 004d DEC C       0d
-        -- 004e DEC D       15
-        -- 004f DEC E       1d
-        -- 0050 DEC H       25
-        -- 0051 DEC L       2d
-        -- 0052 DEC (HL)    35
-        -- 0053 DEC A       3d
-        INIT_02 => X"0000000000000000000000003d352d251d150d053c342c241c140cff0e040f06",
-        INIT_08 => X"E66ECCDC0E0089881F1108000D000C00830073030B000DCC6666EDCE000100c3", -- 0100, logo checked by boot ROM
-        INIT_09 => X"0000000000000000000000003E33B9BB9F99DCDDCCEC0E6E6367BBBB99D9DDDD", -- 0120
-        INIT_0A => X"0000000000000000000000000000000000000000000000000000000000000000", -- 0140
-        -- INIT_A/INIT_B: Initial values on output port
-        INIT_A => X"000000000",
-        INIT_B => X"000000000",
-        -- INIT_FILE: Optional file used to specify initial RAM contents
-        INIT_FILE => "NONE",
-        -- RSTTYPE: "SYNC" or "ASYNC"
-        RSTTYPE => "SYNC",
-        -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
-        RST_PRIORITY_A => "CE",
-        RST_PRIORITY_B => "CE",
-        -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
-        SIM_COLLISION_CHECK => "ALL",
-        -- SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
-        SIM_DEVICE => "SPARTAN6", -- was: "SPARTAN3ADSP",
-        -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
-        SRVAL_A => X"000000000",
-        SRVAL_B => X"000000000",
-        -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
-        WRITE_MODE_A => "WRITE_FIRST",
-        WRITE_MODE_B => "WRITE_FIRST"
-    )
-    port map (
-        -- Port A
-        DOA => DOA_CART,  -- 32-bit output: A port data output
---      DOPA => DOPA,     -- 4-bit output: A port parity output
-        ADDRA => ADDRCPU,   -- 14-bit input: A port address input
-        CLKA => cpuclk,   -- 1-bit input: A port clock input
-        ENA => '1',       -- 1-bit input: A port enable input
-        REGCEA => '0',    -- 1-bit input: A port register clock enable input
-        RSTA => '0',      -- 1-bit input: A port register set/reset input
-        WEA => "0000",    -- 4-bit input: Port A byte-wide write enable input
-        DIA => X"00000000",       -- 32-bit input: A port data input
-        DIPA => "0000",   -- 4-bit input: A port parity input
-        -- Port B
---      DOB => DOB,       -- 32-bit output: B port data output
---      DOPB => DOPB,     -- 4-bit output: B port parity output
-        ADDRB => "00" & X"000",   -- 14-bit input: B port address input
-        CLKB => '0',      -- 1-bit input: B port clock input
-        ENB => '0',       -- 1-bit input: B port enable input
-        REGCEB => '0',    -- 1-bit input: B port register clock enable input
-        RSTB => '0',      -- 1-bit input: B port register set/reset input
-        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
-        DIB => X"00000000",       -- 32-bit input: B port data input
         DIPB => "0000"    -- 4-bit input: B port parity input
     );
 
