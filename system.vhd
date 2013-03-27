@@ -35,6 +35,7 @@ use ieee.std_logic_unsigned.all ;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.types_comp.all;
 use work.cartram_comp.all;
 use work.sysram_comp.all;
 use work.clockgen_comp.all;
@@ -66,8 +67,8 @@ architecture Behavioral of system is
     signal RAMA : std_logic_vector(31 downto 0);
     signal RAMB : std_logic_vector(31 downto 0);
 
-    signal DIA_TOP, DOA_TOP   : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
-    signal WTOP_EN : STD_LOGIC;
+    signal topram_in : ram_in;
+    signal topram_out : ram_out;
 
     signal clkdiv : std_logic;
     signal divtimer : std_logic_vector(3 downto 0);
@@ -207,14 +208,15 @@ begin
            cart_d               WHEN ABUS(15 downto 13) = "101" else    -- A000-BFFF  Cartridge RAM
            sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else    -- FF40-FF4F  video registers
-           DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else  -- F800-FFFF  fast ram
+           topram_out.odata(7 downto 0) WHEN ABUS(15 downto 11) = "11111" else  -- F800-FFFF  fast ram
            sys_d                WHEN ABUS(15 downto 13) = "111" else    -- E000-FFFF  when not bumped by fast ram
             "ZZZZZZZZ";
 
-    WTOP_EN <= wr_en WHEN ABUS(15 downto 11) = "11111" else '0';
+    topram_in.wen <= wr_en&wr_en&wr_en&wr_en WHEN ABUS(15 downto 11) = "11111" else "0000";
 
-    DIA_TOP(31 downto 8) <= (others => '0');
-    DIA_TOP(7 downto 0) <= wr_d;
+    topram_in.ipar <= (others => '0');
+    topram_in.idata(31 downto 8) <= (others => '0');
+    topram_in.idata(7 downto 0) <= wr_d;
 
     ucartram : cartram port map (RST, cpuclk, ABUS, cart_d, wr_d, '1', wr_en);
     usysram : sysram port map (RST, cpuclk, ABUS, sys_d, wr_d, '1', wr_en);
@@ -328,19 +330,16 @@ begin
     )
     port map (
         -- Port A
-        DOA => DOA_TOP,   -- 32-bit output: A port data output
---      DOPA => DOPA,     -- 4-bit output: A port parity output
-        ADDRA => ADDRCPU, -- 14-bit input: A port address input
-        CLKA => cpuclk,   -- 1-bit input: A port clock input
-        ENA => '1',       -- 1-bit input: A port enable input
-        REGCEA => '0',    -- 1-bit input: A port register clock enable input
-        RSTA => RST,      -- 1-bit input: A port register set/reset input
-        WEA => WTOP_EN & WTOP_EN & WTOP_EN & WTOP_EN,    -- 4-bit input: Port A byte-wide write enable input
-        DIA => DIA_TOP,   -- 32-bit input: A port data input
-        DIPA => "0000",   -- 4-bit input: A port parity input
+        DOA => topram_out.odata,
+        ADDRA => ADDRCPU,
+        CLKA => cpuclk,
+        ENA => '1',
+        REGCEA => '0',
+        RSTA => RST,
+        WEA => topram_in.wen,
+        DIA => topram_in.idata,
+        DIPA => topram_in.ipar,
         -- Port B
---      DOB => DOB,       -- 32-bit output: B port data output
---      DOPB => DOPB,     -- 4-bit output: B port parity output
         ADDRB => (others => '0'),   -- 14-bit input: B port address input
         CLKB => '0',      -- 1-bit input: B port clock input
         ENB => '0',       -- 1-bit input: B port enable input

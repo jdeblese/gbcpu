@@ -30,6 +30,7 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 use work.video_comp.all;
+use work.types_comp.all;
 
 -- FIXME: How does starting, stopping and changing the driver affect
 --  the phase of the clock divider, if at all?
@@ -77,20 +78,8 @@ architecture Behaviour of driver is
     end record;
     signal readpx, readpx_new : readpx_regs;
 
-    type ram_in is record
-        idata : std_logic_vector(31 downto 0);
-        ipar : std_logic_vector(3 downto 0);
-        addr : std_logic_vector(13 downto 0);
-        wen : std_logic_vector(3 downto 0);
-    end record;
-    signal ain, bin, bin_new, din, din_new, fin, fin_new : ram_in;
-
     constant ram_in_zero : ram_in := (X"00000000", "0000", "00000000000000", "0000");
-
-    type ram_out is record
-        odata : std_logic_vector(31 downto 0);
-        opar : std_logic_vector(3 downto 0);
-    end record;
+    signal ain, bin, bin_new, din, din_new, fin, fin_new : ram_in;
     signal aout, bout, cout, dout, eout, fout : ram_out;
 
     signal toggle : std_logic;

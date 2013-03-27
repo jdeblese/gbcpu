@@ -22,6 +22,7 @@ use IEEE.NUMERIC_STD.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.types_comp.all;
 
 entity cartram is
 	Port (
@@ -36,18 +37,7 @@ end cartram;
 
 architecture DataPath of cartram is
 
-	type ram_in is record
-		idata : std_logic_vector(31 downto 0);
-		ipar : std_logic_vector(3 downto 0);
-		addr : std_logic_vector(13 downto 0);
-		wen : std_logic_vector(3 downto 0);
-	end record;
 	signal in01 : ram_in;
-
-	type ram_out is record
-		odata : std_logic_vector(31 downto 0);
-		opar : std_logic_vector(3 downto 0);
-	end record;
 	signal out01 : ram_out;
 
 begin

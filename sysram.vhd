@@ -22,6 +22,7 @@ use IEEE.NUMERIC_STD.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.types_comp.all;
 
 entity sysram is
 	Port (
@@ -36,19 +37,9 @@ end sysram;
 
 architecture DataPath of sysram is
 
-	type ram_in is record
-		idata : std_logic_vector(31 downto 0);
-		ipar : std_logic_vector(3 downto 0);
-		addr : std_logic_vector(13 downto 0);
-		wen : std_logic_vector(3 downto 0);
-	end record;
 	type inputs_type is array (3 downto 0) of ram_in;
 	signal inputs : inputs_type;
 
-	type ram_out is record
-		odata : std_logic_vector(31 downto 0);
-		opar : std_logic_vector(3 downto 0);
-	end record;
 	type outputs_type is array (3 downto 0) of ram_out;
 	signal outputs : outputs_type;
 
