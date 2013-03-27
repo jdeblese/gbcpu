@@ -36,6 +36,7 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 use work.cartram_comp.all;
+use work.sysram_comp.all;
 use work.clockgen_comp.all;
 use work.cpu_comp.all;
 use work.video_comp.all;
@@ -75,14 +76,13 @@ architecture Behavioral of system is
 
     signal spol : std_logic;
 
+
     -- GBCPU
     signal ADDRCPU : STD_LOGIC_VECTOR(13 downto 0);
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
     signal DOA_BOOT : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
-    signal cart_d : std_logic_vector(7 downto 0);
-    signal wr_d : std_logic_vector(7 downto 0);
-    signal vid_d : std_logic_vector(7 downto 0);
+    signal wr_d, cart_d, vid_d, sys_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
     signal pixels : pixelpipe;
     signal clkstatus : clockgen_status;
@@ -202,16 +202,22 @@ begin
     end process;
 
     RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
-           cart_d               WHEN ABUS(15 downto 11) = "00000" else  -- 0000-07FF
+           cart_d               WHEN ABUS(15 downto 14) = "0"   else    -- 0000-7FFF  Cartridge ROM
            vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
-           vid_d                WHEN ABUS(15 downto 4) = X"FF4" else        -- FF40-FF4F
-           DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else    -- F800-FFFF
+           cart_d               WHEN ABUS(15 downto 13) = "101" else    -- A000-BFFF  Cartridge RAM
+           sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
+           vid_d                WHEN ABUS(15 downto 4) = X"FF4" else    -- FF40-FF4F  video registers
+           DOA_TOP(7 downto 0)  WHEN ABUS(15 downto 11) = "11111" else  -- F800-FFFF  fast ram
+           sys_d                WHEN ABUS(15 downto 13) = "111" else    -- E000-FFFF  when not bumped by fast ram
             "ZZZZZZZZ";
 
     WTOP_EN <= wr_en WHEN ABUS(15 downto 11) = "11111" else '0';
 
     DIA_TOP(31 downto 8) <= (others => '0');
     DIA_TOP(7 downto 0) <= wr_d;
+
+    ucartram : cartram port map (RST, cpuclk, ABUS, cart_d, wr_d, '1', wr_en);
+    usysram : sysram port map (RST, cpuclk, ABUS, sys_d, wr_d, '1', wr_en);
 
     debugrd <= read;
     debugwr <= write;
@@ -249,8 +255,6 @@ begin
 
     ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, slowrst );
     uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );
-
-    ucart : cartram port map (RST, cpuclk, ABUS, cart_d, wr_d, '1', wr_en);
 
     bootram : RAMB16BWER
     generic map (

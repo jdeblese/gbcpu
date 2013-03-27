@@ -608,7 +608,7 @@
 244 JMP 245, RF_DMUX d, DMUX rf, RF_OMUX sp
 245 JMP 30c, RF_DMUX d, DMUX rf, RF_OMUX sp
 30c JMP 247, RF_DMUX d, DMUX rf, RF_OMUX sp, WR
-247 JMP 240, RF_DMUX d, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
+247 JMP 250, RF_DMUX d, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
 
 ; PUSH HL                           16 cycles
 ;   SP--
@@ -618,7 +618,7 @@
 248 JMP 249, RF_DMUX h, DMUX rf, RF_OMUX sp
 249 JMP 24a, RF_DMUX h, DMUX rf, RF_OMUX sp
 24a JMP 24b, RF_DMUX h, DMUX rf, RF_OMUX sp, WR
-24b JMP 240, RF_DMUX h, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
+24b JMP 250, RF_DMUX h, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
 
 ; PUSH AF                           16 cycles
 ;   SP--
@@ -628,7 +628,7 @@
 3b8 JMP 3b9, DMUX acc, RF_OMUX sp
 3b9 JMP 3ba, DMUX acc, RF_OMUX sp
 3ba JMP 3bb, DMUX acc, RF_OMUX sp, WR
-3bb JMP 240, DMUX acc, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
+3bb JMP 250, DMUX acc, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
 
 
 ; POP BC                            12 cycles
