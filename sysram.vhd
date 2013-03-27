@@ -42,13 +42,15 @@ architecture DataPath of sysram is
 		addr : std_logic_vector(13 downto 0);
 		wen : std_logic_vector(3 downto 0);
 	end record;
-	type inputs is array (3 downto 0) of ram_in;
+	type inputs_type is array (3 downto 0) of ram_in;
+	signal inputs : inputs_type;
 
 	type ram_out is record
 		odata : std_logic_vector(31 downto 0);
 		opar : std_logic_vector(3 downto 0);
 	end record;
-	type outputs is array (3 downto 0) of ram_in;
+	type outputs_type is array (3 downto 0) of ram_out;
+	signal outputs : outputs_type;
 
 	type loopconv is array (3 downto 0) of std_logic_vector(1 downto 0);
 	constant lc : loopconv := ("00", "01", "10", "11");
@@ -57,28 +59,35 @@ begin
 
 	-- Memory mapping
 
-	for I in 0 to 3 loop
-		-- E000 mirrors C000
-		inputs(I).wen <= WR&WR&WR&WR WHEN ADDR(15 downto 14) = "11" and ADDR(12 downto 11) = lc(I) else "0000";
+	process(ADDR, WR, WR_D)
+	begin
+		for I in 0 to 3 loop
+			-- E000 mirrors C000
+			if ADDR(15 downto 14) = "11" and ADDR(12 downto 11) = lc(I) then
+				inputs(I).wen <= WR&WR&WR&WR;
+			else
+				inputs(I).wen <= "0000";
+			end if;
 
-		inputs(I).addr(13 downto 3) <= ADDR(10 downto 0);
-		inputs(I).addr(2 downto 0)  <= (others => '0');
+			inputs(I).addr(13 downto 3) <= ADDR(10 downto 0);
+			inputs(I).addr(2 downto 0)  <= (others => '0');
 
-		inputs(I).ipar <= (others => '0');
-		inputs(I).idata(31 downto 8) <= (others => '0');
-		inputs(I).idata(7 downto 0) <= WR_D;
-	end loop;
+			inputs(I).ipar <= (others => '0');
+			inputs(I).idata(31 downto 8) <= (others => '0');
+			inputs(I).idata(7 downto 0) <= WR_D;
+		end loop;
+	end process;
 
 	RD_D <= "ZZZZZZZZ" WHEN OE = '0' ELSE
-			outputs(0).odata WHEN ADDR(15 downto 11) = "11000" ELSE  -- C000-C7FF
-			outputs(1).odata WHEN ADDR(15 downto 11) = "11001" ELSE  -- C800-CFFF
-			outputs(2).odata WHEN ADDR(15 downto 11) = "11010" ELSE  -- D000-D7FF
-			outputs(3).odata WHEN ADDR(15 downto 11) = "11011" ELSE  -- D800-DFFF
+			outputs(0).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11000" ELSE  -- C000-C7FF
+			outputs(1).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11001" ELSE  -- C800-CFFF
+			outputs(2).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11010" ELSE  -- D000-D7FF
+			outputs(3).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11011" ELSE  -- D800-DFFF
 			-- E000 mirrors C000
-			outputs(0).odata WHEN ADDR(15 downto 11) = "11100" ELSE  -- E000-E7FF
-			outputs(1).odata WHEN ADDR(15 downto 11) = "11101" ELSE  -- E800-EFFF
-			outputs(2).odata WHEN ADDR(15 downto 11) = "11110" ELSE  -- F000-F7FF
-			outputs(3).odata WHEN ADDR(15 downto 11) = "11111" ELSE  -- F800-FFFF
+			outputs(0).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11100" ELSE  -- E000-E7FF
+			outputs(1).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11101" ELSE  -- E800-EFFF
+			outputs(2).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11110" ELSE  -- F000-F7FF
+			outputs(3).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11111" ELSE  -- F800-FFFF
 	        "ZZZZZZZZ";
 
 	-- Memory declaration
@@ -113,16 +122,16 @@ begin
 	)
 	port map (
 		-- Port A
-		DOA => output(0).odata,
-		DOPA => output(0).opar,
-		ADDRA => input(0).addr,
+		DOA => outputs(0).odata,
+		DOPA => outputs(0).opar,
+		ADDRA => inputs(0).addr,
 		CLKA => CLK,
 		ENA => '1',
 		REGCEA => '0',
 		RSTA => RST,
-		WEA => input(0).wen,
-		DIA => input(0).idata,
-		DIPA => input(0).ipar,
+		WEA => inputs(0).wen,
+		DIA => inputs(0).idata,
+		DIPA => inputs(0).ipar,
 		-- Port B
 		ADDRB => "00" & X"000",   -- 14-bit input: B port address input
 		CLKB => '0',	  -- 1-bit input: B port clock input
@@ -164,16 +173,16 @@ begin
 	)
 	port map (
 		-- Port A
-		DOA => output(1).odata,
-		DOPA => output(1).opar,
-		ADDRA => input(1).addr,
+		DOA => outputs(1).odata,
+		DOPA => outputs(1).opar,
+		ADDRA => inputs(1).addr,
 		CLKA => CLK,
 		ENA => '1',
 		REGCEA => '0',
 		RSTA => RST,
-		WEA => input(1).wen,
-		DIA => input(1).idata,
-		DIPA => input(1).ipar,
+		WEA => inputs(1).wen,
+		DIA => inputs(1).idata,
+		DIPA => inputs(1).ipar,
 		-- Port B
 		ADDRB => "00" & X"000",   -- 14-bit input: B port address input
 		CLKB => '0',	  -- 1-bit input: B port clock input
@@ -215,16 +224,16 @@ begin
 	)
 	port map (
 		-- Port A
-		DOA => output(2).odata,
-		DOPA => output(2).opar,
-		ADDRA => input(2).addr,
+		DOA => outputs(2).odata,
+		DOPA => outputs(2).opar,
+		ADDRA => inputs(2).addr,
 		CLKA => CLK,
 		ENA => '1',
 		REGCEA => '0',
 		RSTA => RST,
-		WEA => input(2).wen,
-		DIA => input(2).idata,
-		DIPA => input(2).ipar,
+		WEA => inputs(2).wen,
+		DIA => inputs(2).idata,
+		DIPA => inputs(2).ipar,
 		-- Port B
 		ADDRB => "00" & X"000",   -- 14-bit input: B port address input
 		CLKB => '0',	  -- 1-bit input: B port clock input
@@ -266,16 +275,16 @@ begin
 	)
 	port map (
 		-- Port A
-		DOA => output(3).odata,
-		DOPA => output(3).opar,
-		ADDRA => input(3).addr,
+		DOA => outputs(3).odata,
+		DOPA => outputs(3).opar,
+		ADDRA => inputs(3).addr,
 		CLKA => CLK,
 		ENA => '1',
 		REGCEA => '0',
 		RSTA => RST,
-		WEA => input(3).wen,
-		DIA => input(3).idata,
-		DIPA => input(3).ipar,
+		WEA => inputs(3).wen,
+		DIA => inputs(3).idata,
+		DIPA => inputs(3).ipar,
 		-- Port B
 		ADDRB => "00" & X"000",   -- 14-bit input: B port address input
 		CLKB => '0',	  -- 1-bit input: B port clock input
