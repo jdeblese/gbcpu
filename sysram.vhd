@@ -53,7 +53,7 @@ architecture DataPath of sysram is
 	signal outputs : outputs_type;
 
 	type loopconv is array (3 downto 0) of std_logic_vector(1 downto 0);
-	constant lc : loopconv := ("00", "01", "10", "11");
+	constant lc : loopconv := ("11", "10", "01", "00");
 
 begin
 
