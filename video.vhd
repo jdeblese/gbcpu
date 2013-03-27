@@ -123,18 +123,18 @@ begin
             mid_doa(7 downto 0) when ABUS(15 downto 11) = "10001" else  -- 8800h -- 8FFFh
             hi_doa(7 downto 0)  when ABUS(15 downto 11) = "10010" else  -- 9000h -- 97FFh
             map_doa(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
-            lcdc                   when ABUS = "1111111101000000" else     -- FF40
-            "00000" & std_logic(ly_coinc) & mode when ABUS = "1111111101000001" else     -- there's more to this register
-            std_logic_vector(scy)  when ABUS = "1111111101000010" else
-            std_logic_vector(scx)  when ABUS = "1111111101000011" else
-            std_logic_vector(ly)   when ABUS = "1111111101000100" else
-            std_logic_vector(lyc)  when ABUS = "1111111101000101" else
-            dma                    when ABUS = "1111111101000110" else
-            bgp                    when ABUS = "1111111101000111" else
-            obp0                   when ABUS = "1111111101001000" else
-            obp1                   when ABUS = "1111111101001001" else
-            std_logic_vector(wy)   when ABUS = "1111111101001010" else
-            std_logic_vector(wx)   when ABUS = "1111111101001011" else  -- Last defined register
+            lcdc                   when ABUS = X"FF40" else     -- FF40
+            "00000" & std_logic(ly_coinc) & mode when ABUS = X"FF41" else     -- there's more to this register
+            std_logic_vector(scy)  when ABUS = X"FF42" else
+            std_logic_vector(scx)  when ABUS = X"FF43" else
+            std_logic_vector(ly)   when ABUS = X"FF44" else
+            std_logic_vector(lyc)  when ABUS = X"FF45" else
+            dma                    when ABUS = X"FF46" else
+            bgp                    when ABUS = X"FF47" else
+            obp0                   when ABUS = X"FF48" else
+            obp1                   when ABUS = X"FF49" else
+            std_logic_vector(wy)   when ABUS = X"FF4A" else
+            std_logic_vector(wx)   when ABUS = X"FF4B" else  -- Last defined register
             "ZZZZZZZZ";
 
     -- *********************************************************************************************
@@ -156,16 +156,16 @@ begin
         elsif rising_edge(CLK) then
             if WR_EN = '1' and ABUS(15 downto 4) = X"FF4" then
                 case ABUS(3 downto 0) is
-                    when "0000" => lcdc <= DIN;
-                    when "0010" => scy  <= unsigned(DIN);
-                    when "0011" => scx  <= unsigned(DIN);
-                    when "0101" => lyc  <= unsigned(DIN);
-                    when "0110" => dma  <= DIN;
-                    when "0111" => bgp  <= DIN;
-                    when "1000" => obp0 <= DIN;
-                    when "1001" => obp1 <= DIN;
-                    when "1010" => wy   <= unsigned(DIN);  -- should only change at the start of a redraw, never during
-                    when "1011" => wx   <= unsigned(DIN);  -- may be changed during a scan line interrupt to distort graphics
+                    when X"0" => lcdc <= DIN;
+                    when X"2" => scy  <= unsigned(DIN);
+                    when X"3" => scx  <= unsigned(DIN);
+                    when X"5" => lyc  <= unsigned(DIN);
+                    when X"6" => dma  <= DIN;
+                    when X"7" => bgp  <= DIN;
+                    when X"8" => obp0 <= DIN;
+                    when X"9" => obp1 <= DIN;
+                    when X"A" => wy   <= unsigned(DIN);  -- should only change at the start of a redraw, never during
+                    when X"B" => wx   <= unsigned(DIN);  -- may be changed during a scan line interrupt to distort graphics
                     when others => null;
                 end case;
             end if;
