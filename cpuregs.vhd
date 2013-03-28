@@ -1,24 +1,53 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+
+package cpuregs_comp is
+    type cr_regs is record
+        cmd : std_logic_vector(7 downto 0);
+        tmp : std_logic_vector(7 downto 0);
+        unq : std_logic_vector(7 downto 0);
+        acc : std_logic_vector(7 downto 0);
+        flags : std_logic_vector(3 downto 0);
+    end record;
+
+    type cr_enables is record
+        cmd : std_logic;
+        tmp : std_logic;
+        unq : std_logic;
+        acc : std_logic;
+        flags : std_logic_vector(3 downto 0);
+    end record;
+
+    component cpuregs
+    Port (  regs_out : out cr_regs;
+            enable : in cr_enables;
+            DATA : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+            FLAGS_IN  : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
+            CLK : IN STD_LOGIC;
+            RST : IN STD_LOGIC );
+    end component;
+
+end package;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use IEEE.NUMERIC_STD.ALL;
 
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.cpuregs_comp.all;
+
 entity cpuregs is
-    Port (  CMD_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-            TMP_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-            UNQ_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-            ACC_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    Port (  regs_out : out cr_regs;
+            enable : in cr_enables;
             DATA : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-            CMD_CE : IN STD_LOGIC;
-            TMP_CE : IN STD_LOGIC;
-            UNQ_CE : IN STD_LOGIC;
-            ACC_CE : IN STD_LOGIC;
-            FLAGS_OUT : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
             FLAGS_IN  : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
-            FLAGS_CE  : IN  STD_LOGIC_VECTOR(3 DOWNTO 0);
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -38,11 +67,11 @@ architecture Behavioral of cpuregs is
 
 begin
 
-    CMD_OUT <= cmd;
-    TMP_OUT <= tmp;
-    UNQ_OUT <= unq;
-    ACC_OUT <= acc;
-    FLAGS_OUT <= flags;
+    regs_out.cmd <= cmd;
+    regs_out.tmp <= tmp;
+    regs_out.unq <= unq;
+    regs_out.acc <= acc;
+    regs_out.flags <= flags;
 
     -- *****************************************************************
     -- JTAG Shift Register
@@ -89,7 +118,7 @@ begin
         if RST = '1' then
             acc <= X"AC";
         elsif rising_edge(CLK) then
-            if ACC_CE = '1' then
+            if enable.acc = '1' then
                 acc <= DATA;
             end if;
         end if;
@@ -101,7 +130,7 @@ begin
         if RST = '1' then
             tmp <= "00000000";
         elsif rising_edge(CLK) then
-            if TMP_CE = '1' then
+            if enable.tmp = '1' then
                 tmp <= DATA;
             end if;
         end if;
@@ -112,7 +141,7 @@ begin
         if RST = '1' then
             unq <= "00000000";
         elsif rising_edge(CLK) then
-            if UNQ_CE = '1' then
+            if enable.unq = '1' then
                 unq <= DATA;
             end if;
         end if;
@@ -124,7 +153,7 @@ begin
         if RST = '1' then
             cmd <= "00000000";
         elsif rising_edge(CLK) then
-            if CMD_CE = '1' then
+            if enable.cmd = '1' then
                 cmd <= DATA;
             end if;
         end if;
@@ -136,16 +165,16 @@ begin
         if (RST = '1') then
             flags <= (others => '0');
         elsif rising_edge(CLK) then
-            if FLAGS_CE(0) = '1' then
+            if enable.flags(0) = '1' then
                 flags(0) <= FLAGS_IN(0);
             end if;
-            if FLAGS_CE(1) = '1' then
+            if enable.flags(1) = '1' then
                 flags(1) <= FLAGS_IN(1);
             end if;
-            if FLAGS_CE(2) = '1' then
+            if enable.flags(2) = '1' then
                 flags(2) <= FLAGS_IN(2);
             end if;
-            if FLAGS_CE(3) = '1' then
+            if enable.flags(3) = '1' then
                 flags(3) <= FLAGS_IN(3);
             end if;
         end if;

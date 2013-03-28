@@ -1,30 +1,50 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use work.cpuregs_comp.all;
+use work.regfile16bit_comp.all;
+
+package microcode_comp is
+    component microcode
+    Port (  ABUSMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+            DBUSMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+            flagsrc : OUT STD_LOGIC;
+            RF_MUX  : OUT rf_muxes;
+            ALU_CMD : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+            ALU_CE  : OUT STD_LOGIC;
+            sreg_en : OUT cr_enables;
+            RAM_WREN : OUT STD_LOGIC;
+            RAM_OE   : OUT STD_LOGIC;
+            CMD   : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+            CFLAG : IN STD_LOGIC;
+            ZFLAG : IN STD_LOGIC;
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
+            CLK : IN STD_LOGIC;
+            RST : IN STD_LOGIC );
+    end component;
+end package;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use IEEE.NUMERIC_STD.ALL;
 
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.cpuregs_comp.all;
+use work.regfile16bit_comp.all;
+
 entity microcode is
     Port (  ABUSMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
             DBUSMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
             flagsrc : OUT STD_LOGIC;
-            zf_en : OUT STD_LOGIC;
-            nf_en : OUT STD_LOGIC;
-            hf_en : OUT STD_LOGIC;
-            cf_en : OUT STD_LOGIC;
-            RF_DMUX : OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
-            RF_IMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
-            RF_AMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
-            RF_OMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
-            RF_CE   : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+            RF_MUX  : OUT rf_muxes;
             ALU_CMD : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
             ALU_CE  : OUT STD_LOGIC;
-            R_CMDCE : OUT STD_LOGIC;
-            R_ACCCE : OUT STD_LOGIC;
-            R_TMPCE : OUT STD_LOGIC;
-            R_UNQCE : OUT STD_LOGIC;
+            sreg_en : OUT cr_enables;
             RAM_WREN : OUT STD_LOGIC;
             RAM_OE   : OUT STD_LOGIC;
             CMD   : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -87,6 +107,12 @@ begin
     -- *****************************************************************
     -- Signal Routing --
 
+    -- Usage
+    -- +-------+-------+-
+    -- /========/..../==/
+    -- /==//=/ /////=/.//
+    -- /====/. ...../=///
+
     cmdjmp <= mc_data0(10);
     flsel <= mc_data0(12);
     fljmp <= mc_data0(13);
@@ -103,32 +129,29 @@ begin
                       mc_data0(8) when others;
 
     flagsrc <= mc_data0(11);
-    zf_en <= mc_par0(1);
-    nf_en <= mc_par0(0);
-    hf_en <= mc_data0(15);
-    cf_en <= mc_data0(14);
+    sreg_en.flags <= mc_par0(1 downto 0) & mc_data0(15 downto 14);  -- znhc
 
     -- Bank 1
-    RF_DMUX <= mc_data1(3 downto 0);
+    RF_MUX.d <= mc_data1(3 downto 0);
 
     with mc_par1(1 downto 0) select
-        RF_IMUX <= mc_data1(6 downto 4) when "00",
+        RF_MUX.i <= mc_data1(6 downto 4) when "00",
                    '0' & cmd(5 downto 4) when "01",
                    '0' & cmd(2 downto 1) when others;
 
-    RF_CE   <= mc_data1(9 downto 8);
-    RF_AMUX <= mc_data1(11 downto 10);
-    RF_OMUX <= mc_data1(14 downto 12) when mc_data1(15) = '0' else
+    RF_MUX.ce   <= mc_data1(9 downto 8);
+    RF_MUX.a <= mc_data1(11 downto 10);
+    RF_MUX.o <= mc_data1(14 downto 12) when mc_data1(15) = '0' else
                cmd(2 downto 0);
 
     -- Bank 2
     ALU_CMD <= mc_data2(5 downto 0);
     ALU_CE  <= mc_data2(6);
 
-    R_CMDCE <= mc_data2(8);
-    R_ACCCE <= mc_data2(9);
-    R_TMPCE <= mc_data2(10);
-    R_UNQCE <= mc_data2(11);
+    sreg_en.cmd <= mc_data2(8);
+    sreg_en.acc <= mc_data2(9);
+    sreg_en.tmp <= mc_data2(10);
+    sreg_en.unq <= mc_data2(11);
 
     RAM_WREN <= mc_data2(12);
 

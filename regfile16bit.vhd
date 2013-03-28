@@ -1,20 +1,48 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+
+package regfile16bit_comp is
+    type rf_muxes is record
+        i : std_logic_vector(2 downto 0);   -- Destination 16-bit register selector
+        o : std_logic_vector(2 downto 0);   -- Source 16-bit register selector to addr, internal datapath
+        d : std_logic_vector(3 downto 0);   -- Source 8-bit register selector to odata
+        a : std_logic_vector(1 downto 0);   -- Second operand selector (Sign extended idata, HL, -1, +1, 0...)
+        ce : std_logic_vector(1 downto 0);  -- Clock enable and 8/16-bit selector for register input (-, lsB, msB, 16-bit)
+    end record;
+
+    component regfile16bit
+    Port (  idata : in std_logic_vector(7 downto 0);    -- Incoming 8-bit data
+            odata : out std_logic_vector(7 downto 0);   -- Outgoing 8-bit data
+            addr : out std_logic_vector(15 downto 0);   -- Outgoing 16-bit address
+            muxes : in rf_muxes;
+            zout : out std_logic;
+            nout : out std_logic;
+            hout : out std_logic;
+            cout : out std_logic;
+            TCK : IN STD_LOGIC;
+            TDL : IN STD_LOGIC;
+            TDI : IN STD_LOGIC;
+            TDO : OUT STD_LOGIC;
+            CLK : IN STD_LOGIC;
+            RST : IN STD_LOGIC );
+    end component;
+end package;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use IEEE.NUMERIC_STD.ALL;
 
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.regfile16bit_comp.all;
+
 entity regfile16bit is
     Port (  idata : in std_logic_vector(7 downto 0);    -- Incoming 8-bit data
             odata : out std_logic_vector(7 downto 0);   -- Outgoing 8-bit data
             addr : out std_logic_vector(15 downto 0);   -- Outgoing 16-bit address
-            imux : in std_logic_vector(2 downto 0);     -- Destination 16-bit register selector
-            omux : in std_logic_vector(2 downto 0);     -- Source 16-bit register selector to addr, internal datapath
-            dmux : in std_logic_vector(3 downto 0);     -- Source 8-bit register selector to odata
-            amux : in std_logic_vector(1 downto 0);     -- Second operand selector (Sign extended idata, HL, -1, +1, 0...)
-            ce : in std_logic_vector(1 downto 0);       -- Clock enable and 8/16-bit selector for register input (-, lsB, msB, 16-bit)
+            muxes : in rf_muxes;
             zout : out std_logic;
             nout : out std_logic;
             hout : out std_logic;
@@ -62,7 +90,7 @@ begin
     ZOUT <= '0';
     NOUT <= '0';
 
-    with omux select
+    with muxes.o select
         obus <= rfile(0) when "000",    -- BC
                 rfile(1) when "001",    -- DE
                 rfile(2) when "010",    -- HL
@@ -71,7 +99,7 @@ begin
                 X"FF00" when "101",     -- Legacy, probably not used
                 X"0000" when others;
 
-    with dmux select
+    with muxes.d select
         odata <= rfile(0)(15 downto 8) when "0000",  -- B
                  rfile(0)( 7 downto 0) when "0001",  -- C
                  rfile(1)(15 downto 8) when "0010",  -- D
@@ -83,7 +111,7 @@ begin
                  rfile(4)(15 downto 8) when "1000",  -- P
                  rfile(4)( 7 downto 0) when others;  -- C
 
-    with amux select
+    with muxes.a select
         abus <= idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata(7) & idata when "00",
                 rfile(2) when "01",     -- HL
                 X"FFFF" when "10",      -- -1
@@ -91,7 +119,7 @@ begin
                 X"0000" when others;
     addr <= obus;
 
-    REGFILE_IN : process(CLK, RST, ce)
+    REGFILE_IN : process(CLK, RST, muxes.ce)
         variable lo : std_logic_vector(12 downto 0);
         variable hi : std_logic_vector(4 downto 0);
     begin
@@ -105,8 +133,8 @@ begin
             end loop;
         elsif rising_edge(CLK) then
             for I in rfile'range loop
-                if ( imux = I ) then
-                    case ce is
+                if ( muxes.i = I ) then
+                    case muxes.ce is
                         when "11" =>                                    -- 16-bit path into 16-bit register
                             lo := ('0' & obus(11 downto 0)) + ('0' & abus(11 downto 0));                        -- lower 3 nibbles
                             hi := ('0' & obus(15 downto 12)) + ('0' & abus(15 downto 12)) + ("0000" & lo(12));  -- high nibble
