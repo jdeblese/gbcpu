@@ -35,6 +35,8 @@ use ieee.std_logic_unsigned.all ;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.timer_comp.all;
+use work.microcode_comp.all;
 use work.types_comp.all;
 use work.cartram_comp.all;
 use work.sysram_comp.all;
@@ -83,7 +85,7 @@ architecture Behavioral of system is
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
     signal DOA_BOOT : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
-    signal wr_d, cart_d, vid_d, sys_d : std_logic_vector(7 downto 0);
+    signal wr_d, cart_d, vid_d, sys_d, timer_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
     signal pixels : pixelpipe;
     signal clkstatus : clockgen_status;
@@ -91,6 +93,8 @@ architecture Behavioral of system is
 
     signal cpuclk, fastclk, pixclk, lockrst : std_logic;
     signal startup, slowrst : std_logic;
+
+    signal rIF, rIE, interrupts : interrupts_group;
 
     -- Debouncer
     component debouncer
@@ -207,10 +211,29 @@ begin
            vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            cart_d               WHEN ABUS(15 downto 13) = "101" else    -- A000-BFFF  Cartridge RAM
            sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
+           timer_d              WHEN ABUS(15 downto 2) = X"FF0" & "01" else -- FF04-FF07  video registers
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else    -- FF40-FF4F  video registers
+           "00000" & rIE.timer & "00" WHEN ABUS        = X"FFFF" else    -- FFFF Interrupt enable register
            topram_out.odata(7 downto 0) WHEN ABUS(15 downto 11) = "11111" else  -- F800-FFFF  fast ram
            sys_d                WHEN ABUS(15 downto 13) = "111" else    -- E000-FFFF  when not bumped by fast ram
             "ZZZZZZZZ";
+
+    process(cpuclk,RST)
+    begin
+        if RST = '1' then
+            rIF.timer <= '0';
+            rIE.timer <= '0';
+        elsif rising_edge(cpuclk) then
+            if ABUS = X"FFFF" and wr_en = '1' then
+                rIE.timer <= wr_d(2);
+            end if;
+            if rIE.timer = '1' and interrupts.timer = '1' then
+                rIF.timer <= '1';
+            elsif ABUS = X"FF0F" and wr_en = '1' then
+                rIF.timer <= wr_d(2);
+            end if;
+        end if;
+    end process;
 
     topram_in.wen <= wr_en&wr_en&wr_en&wr_en WHEN ABUS(15 downto 11) = "11111" else "0000";
 
@@ -247,6 +270,8 @@ begin
         RAM_OE => open,
         wr_d => wr_d,
         RAM_WR => wr_en,
+        rIF => rIF,
+        rIE => rIE,
         TCK => TCK,
         TDL => TDL,
         TDI => TDI,
@@ -254,6 +279,8 @@ begin
         CLK => cpuclk,
         RST => slowrst
     );
+
+    utimer : timer port map ( wr_d, timer_d, ABUS, wr_en, interrupts.timer, cpuclk, slowrst );
 
     ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, slowrst );
     uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );

@@ -4,6 +4,10 @@ use work.cpuregs_comp.all;
 use work.regfile16bit_comp.all;
 
 package microcode_comp is
+    type interrupts_group is record
+        timer : std_logic;
+    end record;
+
     component microcode
     Port (  ABUSMUX : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
             DBUSMUX : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
@@ -17,6 +21,8 @@ package microcode_comp is
             CMD   : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
             CFLAG : IN STD_LOGIC;
             ZFLAG : IN STD_LOGIC;
+            rIF : IN interrupts_group;
+            rIE : IN interrupts_group;
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -34,6 +40,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.microcode_comp.all;
 use work.cpuregs_comp.all;
 use work.regfile16bit_comp.all;
 
@@ -50,6 +57,8 @@ entity microcode is
             CMD   : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
             CFLAG : IN STD_LOGIC;
             ZFLAG : IN STD_LOGIC;
+            rIF : in interrupts_group;
+            rIE : IN interrupts_group;
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -118,15 +127,31 @@ begin
     fljmp <= mc_data0(13);
 
     -- Bank 0
-    mc_addr(9) <= mc_data0(9);
-    with cmdjmp select    -- addr select
-        mc_addr(7 downto 0) <= mc_data0(7 downto 0) when '0',
-                               cmd when others;
-    flagsel <= fljmp & flsel;
-    with flagsel select    -- flag select
-        mc_addr(8) <= cflag when "10",
-                      zflag when "11",
-                      mc_data0(8) when others;
+    process(cmdjmp, flagsel, mc_data0, cmd, cflag, zflag, rIF)
+    begin
+        -- Jump to microcode ISRs rather than final instruction load subroutine
+        if mc_data0(9 downto 0) = "11" & X"fd" and rIF.timer = '1' and rIE.timer = '1' then
+            mc_addr <= "11" & X"E0"; -- Timer Microcode ISR
+        else
+            mc_addr(9) <= mc_data0(9);
+
+            if fljmp = '1' then
+                if flsel = '1' then
+                    mc_addr(8) <= zflag;
+                else
+                    mc_addr(8) <= cflag;
+                end if;
+            else
+                mc_addr(8) <= mc_data0(8);
+            end if;
+
+            if cmdjmp = '0' then
+                mc_addr(7 downto 0) <= mc_data0(7 downto 0);
+            else
+                mc_addr(7 downto 0) <= cmd;
+            end if;
+        end if;
+    end process;
 
     flagsrc <= mc_data0(11);
     sreg_en.flags <= mc_par0(1 downto 0) & mc_data0(15 downto 14);  -- znhc
@@ -252,7 +277,7 @@ begin
         INIT_3B => X"0000000000000000025003bb03ba03b903fa260003b603b503b403b303b203b1", -- 3b0h
         INIT_3C => X"0000000002070207000003a7000003fa00000000000003fd03a703fd0000039b", -- 3c0h
         INIT_3D => X"0000000000000207000003b7000003fa00000000000003fd000003fd0000039b", -- 3d0h
-        INIT_3E => X"0000000000000000000000000000000000000000000000000000000000000000", -- 3e0h
+        INIT_3E => X"03fd03ef03ee03ed03ec03eb03ea03e903e803e703e603e503e403e303e203e1", -- 3e0h
         INIT_3F => X"040003ff03fe03fd03fc03fb03fa03f903f803f703f603f503f403f303f203f1", -- 3f0h
         SRVAL_A => X"000000000",  -- Start with a NOP
         INIT_FILE => "NONE",
@@ -364,7 +389,7 @@ begin
         INIT_3B => X"00000000000000003b3030003000300001404f404000400040004f4040004000", -- 3b0h
         INIT_3C => X"000000003b303b30000002400000000000000000000040000240400000000000", -- 3c0h
         INIT_3D => X"0000000000003b30000002400000000000000000000040000000400000000000", -- 3d0h
-        INIT_3E => X"0000000000000000000000000000000000000000000000000000000000000000", -- 3e0h
+        INIT_3E => X"014002400000000000000000000000000000000000000000000030003b383b39", -- 3e0h
         INIT_3F => X"4f40400040004000000000000000000000000000000000000000000000000000", -- 3f0h
         INIT_FILE => "NONE",
         RSTTYPE => "SYNC",
@@ -412,7 +437,7 @@ begin
         INITP_04 => X"0000400000004000000040000000000000000000000000000000000004000000", -- 200h
         INITP_05 => X"00100003001000030000000000000000000000000000000005abcabf00000000", -- 280h
         INITP_06 => X"00000000000000000000c0000000000000000000000000000000000000000000", -- 300h
-        INITP_07 => X"0000000000000000000000000000000000000000000000000000000000000000", -- 380h
+        INITP_07 => X"000000000000f000000000000000000000000000000000000000000000000000", -- 380h
         INIT_00 => X"40620000204c2048000000000000240040600000204c20480000400000000000", -- 000h
         INIT_01 => X"40630000204c2048000000000000000040610000204c20480000400000000000", -- 010h
         INIT_02 => X"40530000204c2048000000000000000040580000204c20480000400000000000", -- 020h
@@ -457,10 +482,10 @@ begin
         INIT_29 => X"0000807b5000400000000200000000000200807a500050004000500050004000", -- 290h
         INIT_2A => X"0000807d0000000000000000000000000000807c000000000000640000006400", -- 2a0h
         INIT_2B => X"0000807f0000000000000000000000000000807e000000000000000000000000", -- 2b0h
-        INIT_2C => X"c8088079000000000000000000000000c8008078000000008000800000000000", -- 2c0h
-        INIT_2D => X"c818807b000000000100000000000000c810807a000000000000800000000000", -- 2d0h
-        INIT_2E => X"c828807d000000000000400020000000c820807c000000000000000000004000", -- 2e0h
-        INIT_2F => X"c838807f000000000000000000000000c830807e000000000000000000000000", -- 2f0h
+        INIT_2C => X"c8088071000000000000000000000000c8008070000000008000800000000000", -- 2c0h
+        INIT_2D => X"c8188073000000000100000000000000c8108072000000000000800000000000", -- 2d0h
+        INIT_2E => X"c8288075000000000000400020000000c8208074000000000000000000004000", -- 2e0h
+        INIT_2F => X"c8388077000000000000000000000000c8308076000000000000000000000000", -- 2f0h
         INIT_30 => X"0000000000463000000000000000000062000000600060000000500000000000", -- 300h
         INIT_31 => X"04000000000000000000000060008000620000006000600000005000a0000000", -- 310h
         INIT_32 => X"8000000002000000000000006000800062000000620062000000500080000000", -- 320h
@@ -475,7 +500,7 @@ begin
         INIT_3B => X"00000000000000005000500040004000a0000000040000000000000008000000", -- 3b0h
         INIT_3C => X"0000000000000000000080000000000000000000000000008000000000000000", -- 3c0h
         INIT_3D => X"0000000000000000000080000000000000000000000000000000000000000000", -- 3d0h
-        INIT_3E => X"0000000000000000000000000000000000000000000000000000000000000000", -- 3e0h
+        INIT_3E => X"6000c0008064c4280000000000000000700000726400607ec07f900030002400", -- 3e0h
         INIT_3F => X"0000010000000000000000000000000000000000000000000000000000000000", -- 3f0h
         INIT_FILE => "NONE",
         RSTTYPE => "SYNC",

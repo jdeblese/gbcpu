@@ -1,5 +1,21 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+
+package timer_comp is
+    component timer
+    Port (  WR_D    : in std_logic_vector(7 downto 0);
+            RD_D    : out std_logic_vector(7 downto 0);
+            ABUS    : in std_logic_vector(15 downto 0);
+            WR_EN   : in std_logic;
+            INT     : out std_logic;
+            CLK     : in std_logic;
+            RST     : in std_logic );
+    end component;
+end package;
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use IEEE.NUMERIC_STD.ALL;
 
@@ -8,6 +24,8 @@ use UNISIM.VComponents.all;
 
 -- FIXME: How does starting, stopping and changing the timer affect
 --  the phase of the clock divider, if at all?
+
+use work.timer_comp.all;
 
 entity timer is
     Port (  WR_D    : in std_logic_vector(7 downto 0);
@@ -74,7 +92,7 @@ begin
                 if div = X"FF" then
                     div <= X"00";
                 else
-                    div <= tima + "1";
+                    div <= div + "1";
                 end if;
             end if;
 

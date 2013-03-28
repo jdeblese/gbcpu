@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use work.microcode_comp.all;
 
 package cpu_comp is
     component cpu
@@ -8,6 +9,8 @@ package cpu_comp is
             RAM_OE : out STD_LOGIC;
             WR_D : out STD_LOGIC_VECTOR(7 downto 0);
             RAM_WR : out STD_LOGIC;
+            rIF : in interrupts_group;
+            rIE : in interrupts_group;
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -25,7 +28,6 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
-use work.cpu_comp.all;
 use work.cpuregs_comp.all;
 use work.microcode_comp.all;
 use work.regfile16bit_comp.all;
@@ -36,6 +38,8 @@ entity cpu is
             RAM_OE : out STD_LOGIC;
             WR_D : out STD_LOGIC_VECTOR(7 downto 0);
             RAM_WR : out STD_LOGIC;
+            rIF : in interrupts_group;
+            rIE : in interrupts_group;
             TCK : IN STD_LOGIC;
             TDL : IN STD_LOGIC;
             TDI : IN STD_LOGIC;
@@ -131,6 +135,7 @@ begin
                    sreg_en,
                    WR_EN, RAM_OE,
                    specialregs.cmd, cflag, zflag,
+                   rIF, rIE,
                    TCK, TDL, R_TDO_MC_TDI, MC_TDO_RF_TDI,
                    CLK, RST);
 

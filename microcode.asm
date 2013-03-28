@@ -1385,14 +1385,44 @@
 1ee JMP 30f, RF_OMUX hl
 1fe JMP 30f, RF_OMUX hl
 ;   (HL) <= RESET(tmp)  (9 cycles left)
-2c6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111000", STORE_ALU
-2d6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111010", STORE_ALU
-2e6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111100", STORE_ALU
-2f6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111110", STORE_ALU
-2ce JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111001", STORE_ALU
-2de JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111011", STORE_ALU
-2ee JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111101", STORE_ALU
-2fe JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "111111", STORE_ALU
+2c6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110000", STORE_ALU
+2d6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110010", STORE_ALU
+2e6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110100", STORE_ALU
+2f6 JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110110", STORE_ALU
+2ce JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110001", STORE_ALU
+2de JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110011", STORE_ALU
+2ee JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110101", STORE_ALU
+2fe JMP 2a2, RF_OMUX hl, DMUX tmp, alu_cmd <= "110111", STORE_ALU
+
+; ***************************************************************************
+; *     Interrupts                                                          *
+; ***************************************************************************
+
+; PUSH PC                           16 cycles
+;   SP--
+;   tmp <= lsB(PC)
+3e0 JMP 3e1, RF_DMUX pc_lo, DMUX rf, STORE_TMP, RF_OMUX sp, RF_AMUX dec, RF_IMUX sp, RF_CE
+;   (SP--) <= msB(PC)
+3e1 JMP 3e2, RF_DMUX pc_hi, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
+;   (SP) <= tmp
+3e2 JMP 3e3, DMUX tmp, RF_OMUX sp, WR
+
+; Clear the timer flag in the IE register at (FFFF)
+3e3 JMP 3e4, DMUX alucmd, alu_cmd <= "111111", STORE_ALU
+3e4 JMP 3e5, DMUX alu, alu_cmd <= "111110", STORE_ALU
+3e5 JMP 3e6, DMUX alu, STORE_TMP
+3e6 JMP 3e7, AMUX ff_tmp, DMUX ram, alu_cmd <= "110010", STORE_ALU
+3e7 JMP 3e8, AMUX ff_tmp, DMUX alu, WR
+
+3e8 JMP 3e9
+3e9 JMP 3ea
+3ea JMP 3eb
+3eb JMP 3ec
+; Can't actually store 50h, so store 28h and then shift right
+3ec JMP 3ed, DMUX alucmd, alu_cmd <= "101000", STORE_TMP
+3ed JMP 3ee, DMUX tmp, alu_cmd <= "100100", STORE_ALU
+3ee JMP 3ef, DMUX alucmd, alu_cmd <= "000000", RF_IMUX pc, RF_CE hi
+3ef JMP 3fd, DMUX alu, RF_IMUX pc, RF_CE lo
 
 ; ***************************************************************************
 ; *     Subroutines                                                         *
@@ -1414,6 +1444,7 @@
 3fb JMP 3fc
 
 ; 4 cycles to fetch instruction
+; Note that these should not change, as the interrupt handler depends on them
 3fc JMP 3fd, RF_OMUX pc
 3fd JMP 3fe, RF_OMUX pc
 3fe JMP 3ff, RF_OMUX pc, STORE_CMD
