@@ -203,7 +203,7 @@ begin
     end process;
 
     RAM <= DOA_BOOT(7 downto 0) WHEN ABUS(15 downto  8) = "00000000" and BOOTRAM_VIS = '1' else  -- 0000-00FF
-           cart_d               WHEN ABUS(15 downto 14) = "0"   else    -- 0000-7FFF  Cartridge ROM
+           cart_d               WHEN ABUS(15) = '0'             else    -- 0000-7FFF  Cartridge ROM
            vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            cart_d               WHEN ABUS(15 downto 13) = "101" else    -- A000-BFFF  Cartridge RAM
            sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
