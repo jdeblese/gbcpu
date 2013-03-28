@@ -60,25 +60,18 @@ begin
 				inputs(I).wen <= "0000";
 			end if;
 
-			inputs(I).addr(13 downto 3) <= ADDR(10 downto 0);
-			inputs(I).addr(2 downto 0)  <= (others => '0');
+			inputs(I).addr <= ADDR(10 downto 0) & "000";
 
 			inputs(I).ipar <= (others => '0');
-			inputs(I).idata(31 downto 8) <= (others => '0');
-			inputs(I).idata(7 downto 0) <= WR_D;
+			inputs(I).idata <= X"000000" & WR_D;
 		end loop;
 	end process;
 
 	RD_D <= "ZZZZZZZZ" WHEN OE = '0' ELSE
-			outputs(0).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11000" ELSE  -- C000-C7FF
-			outputs(1).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11001" ELSE  -- C800-CFFF
-			outputs(2).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11010" ELSE  -- D000-D7FF
-			outputs(3).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11011" ELSE  -- D800-DFFF
-			-- E000 mirrors C000
-			outputs(0).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11100" ELSE  -- E000-E7FF
-			outputs(1).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11101" ELSE  -- E800-EFFF
-			outputs(2).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11110" ELSE  -- F000-F7FF
-			outputs(3).odata(7 downto 0) WHEN ADDR(15 downto 11) = "11111" ELSE  -- F800-FFFF
+			outputs(0).odata(7 downto 0) WHEN ADDR(15 downto 14) = "11" AND ADDR(12 downto 11) = lc(0) ELSE  -- C000-C7FF, E000-E7FF
+			outputs(1).odata(7 downto 0) WHEN ADDR(15 downto 14) = "11" AND ADDR(12 downto 11) = lc(1) ELSE  -- C800-CFFF, E800-EFFF
+			outputs(2).odata(7 downto 0) WHEN ADDR(15 downto 14) = "11" AND ADDR(12 downto 11) = lc(2) ELSE  -- D000-D7FF, F000-F7FF
+			outputs(3).odata(7 downto 0) WHEN ADDR(15 downto 14) = "11" AND ADDR(12 downto 11) = lc(3) ELSE  -- D800-DFFF, F800-FFFF
 	        "ZZZZZZZZ";
 
 	-- Memory declaration

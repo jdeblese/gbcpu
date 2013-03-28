@@ -23,6 +23,7 @@ package video_comp is
 end package;
 
 use work.video_comp.all;
+use work.types_comp.all;
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -77,12 +78,6 @@ architecture Behaviour of video is
 
     signal lcd_clk : std_logic;
 
-    signal map_doa : std_logic_vector(31 downto 0);
-    signal map_dob : std_logic_vector(31 downto 0);
-    signal map_en : std_logic;
-    signal map_sel : std_logic;
-    signal map_addr : std_logic_vector(9 downto 0);  -- Address within tile map (000h -- 3FFh)
-
     signal lo_addr : std_logic_vector(13 downto 0);
     signal lo_doa : std_logic_vector(31 downto 0);
     signal lo_dob : std_logic_vector(31 downto 0);
@@ -104,6 +99,12 @@ architecture Behaviour of video is
     type PIXEL is array (1 downto 0) of std_logic_vector(7 downto 0);
     signal out_shiftreg, out_latch : PIXEL;
 
+    type twoport_in is array (1 downto 0) of ram_in;
+    type twoport_out is array (1 downto 0) of ram_out;
+
+    signal map_in : twoport_in;
+    signal map_out : twoport_out;
+
 begin
 
     -- Names for ease of use
@@ -117,12 +118,12 @@ begin
     lo_en  <= WR_EN when ABUS(15 downto 11) = "10000" else '0';  -- 8000h -- 87FFh
     mid_en <= WR_EN when ABUS(15 downto 11) = "10001" else '0';  -- 8800h -- 8FFFh
     hi_en  <= WR_EN when ABUS(15 downto 11) = "10010" else '0';  -- 9000h -- 97FFh
-    map_en <= WR_EN when ABUS(15 downto 11) = "10011" else '0';  -- 9800h -- 9FFFh
+    map_in(0).wen <= WR_EN&WR_EN&WR_EN&WR_EN when ABUS(15 downto 11) = "10011" else "0000";  -- 9800h -- 9FFFh
 
     DOUT <= lo_doa(7 downto 0)  when ABUS(15 downto 11) = "10000" else  -- 8000h -- 87FFh
             mid_doa(7 downto 0) when ABUS(15 downto 11) = "10001" else  -- 8800h -- 8FFFh
             hi_doa(7 downto 0)  when ABUS(15 downto 11) = "10010" else  -- 9000h -- 97FFh
-            map_doa(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
+            map_out(0).odata(7 downto 0) when ABUS(15 downto 11) = "10011" else  -- 9800h -- 9FFFh
             lcdc                   when ABUS = X"FF40" else     -- FF40
             "00000" & std_logic(ly_coinc) & mode when ABUS = X"FF41" else     -- there's more to this register
             std_logic_vector(scy)  when ABUS = X"FF42" else
@@ -276,7 +277,7 @@ begin
     begin
         if RST = '1' then
             vram.init <= '0';
-            vram.delay <= (others => '0');
+            vram.delay <= (others => '0');  -- scan line start delay
             vram.wr <= '0';
             vram.tile <= (others => '0');
         elsif rising_edge(clk) then
@@ -291,10 +292,12 @@ begin
     begin
         nxt := vram;
 
+        -- vram.delay is decremented with each CPU clock tick
         if nxt.init = '0' and nxt.delay /= "0" then
             nxt.delay := vram.delay - 1;
         end if;
 
+        -- iterate across tiles to generate a scanline
         if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
             -- Start counting up tiles once out of init
             if VRAMCS = VRAM_RST then
@@ -321,7 +324,7 @@ begin
     end process;
 
     -- *********************************************************************************************
-
+    -- Counter for shifting out scanlines
     -- Count out 160 pixels on the falling edge, starting after init and delay are zero
     process(CLK,RST)
         variable count : unsigned(7 downto 0);
@@ -348,20 +351,21 @@ begin
     -- *********************************************************************************************
 
     -- Set the tile map address and save the tile read
-    map_sel <= lcdc(3);
+    map_in(1).addr(13) <= lcdc(3);
+    map_in(1).addr(2 downto 0) <= (others => '0');
     process(CLK,RST)
         variable x : unsigned(4 downto 0);
         variable y : unsigned(7 downto 0);
     begin
         if RST = '1' then
-            map_addr <= (others => '0');
+            map_in(1).addr(12 downto 3) <= (others => '0');
             tileidx <= (others => '0');
         elsif falling_edge(CLK) then
             if VRAMCS = VRAM_TILE then
                 x := vram.tile + scx(7 downto 3);
                 y := ly + scy;
-                map_addr <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
-                tileidx <= map_dob(7 downto 0);
+                map_in(1).addr(12 downto 3) <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
+                tileidx <= map_out(1).odata(7 downto 0);
             end if;
         end if;
     end process;
@@ -501,8 +505,8 @@ begin
     -- *********************************************************************************************
     -- Local RAM
 
-    -- External access is through port A, according to memory map defined above
-    -- Internal access is through port B, using 'dataddr' / 'map_sel & mapaddr' and '_dob' signals
+    -- External access is through port A
+    -- Internal access is through port B
 
 
     lo_addr(2 downto 0) <= "000";
@@ -649,26 +653,34 @@ begin
     )
     port map (
         -- Port A: data from CPU
-        DOA => map_doa,   -- 32-bit output: A port data output
-        ADDRA => ABUS(10 downto 0) & "000", -- 14-bit input: A port address input: 8-bit output -> 11-bit address
-        CLKA => CLK,      -- 1-bit input: A port clock input
-        ENA => '1',       -- 1-bit input: A port enable input
-        REGCEA => '0',    -- 1-bit input: A port register clock enable input
-        RSTA => '0',      -- 1-bit input: A port register set/reset input
-        WEA => map_en & map_en & map_en & map_en,   -- 4-bit input: Port A byte-wide write enable input
-        DIA => X"000000" & DIN, -- 32-bit input: A port data input
-        DIPA => "0000",   -- 4-bit input: A port parity input
+        DOA => map_out(0).odata,
+        ADDRA => ABUS(10 downto 0) & "000",
+        CLKA => CLK,
+        ENA => '1',
+        REGCEA => '0',
+        RSTA => '0',
+        WEA => map_in(0).wen,
+        DIA => map_in(0).idata,
+        DIPA => map_in(0).ipar,
         -- Port B: data to internal bus
-        DOB => map_dob,   -- 32-bit output: B port data output
-        ADDRB => map_sel & map_addr & "000", -- 14-bit input: B port address input: 8-bit output -> 11-bit address
-        CLKB => CLK,      -- 1-bit input: B port clock input
-        ENB => internal_en, -- 1-bit input: B port enable input
-        REGCEB => '0',    -- 1-bit input: B port register clock enable input
-        RSTB => '0',      -- 1-bit input: B port register set/reset input
-        WEB => "0000",    -- 4-bit input: Port B byte-wide write enable input
-        DIB => X"00000000", -- 32-bit input: B port data input
-        DIPB => "0000"    -- 4-bit input: B port parity input
+        DOB => map_out(1).odata,
+        ADDRB => map_in(1).addr,
+        CLKB => CLK,
+        ENB => internal_en,
+        REGCEB => '0',
+        RSTB => '0',
+        WEB => map_in(1).wen,
+        DIB => map_in(1).idata,
+        DIPB => map_in(1).ipar
     );
+
+    map_in(0).addr <= ABUS(10 downto 0) & "000";
+    map_in(0).idata <= X"000000" & DIN;
+    map_in(0).ipar <= (others => '0');
+
+    map_in(1).wen <= (others => '0');
+    map_in(1).idata <= (others => '0');
+    map_in(1).ipar <= (others => '0');
 
 
 end Behaviour;

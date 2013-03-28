@@ -10,7 +10,8 @@ use UNISIM.VComponents.all;
 --  the phase of the clock divider, if at all?
 
 entity timer is
-    Port (  DBUS    : inout std_logic_vector(7 downto 0);
+    Port (  WR_D    : in std_logic_vector(7 downto 0);
+            RD_D    : out std_logic_vector(7 downto 0);
             ABUS    : in std_logic_vector(15 downto 0);
             WR_EN   : in std_logic;
             INT     : out std_logic;
@@ -36,11 +37,11 @@ begin
         end if;
     end process;
 
-    DBUS <= "ZZZZZZZZ" when WR_EN = '1' else
-            div  when ABUS = "1111111100000100" else
-            tima when ABUS = "1111111100000101" else
-            tma  when ABUS = "1111111100000110" else
-            tac  when ABUS = "1111111100000111" else
+    RD_D <= "ZZZZZZZZ" when WR_EN = '1' else
+            div  when ABUS = X"FF04" else
+            tima when ABUS = X"FF05" else
+            tma  when ABUS = X"FF06" else
+            tac  when ABUS = X"FF07" else
             "ZZZZZZZZ";
 
     inproc : process(CLK, RST)
@@ -49,31 +50,35 @@ begin
             tma <= X"dd";       -- Don't initialize to zero
             tac <= X"02";       -- Don't initialize to zero
         elsif rising_edge(CLK) then
-            if WR_EN = '1' and ABUS = "1111111100000110" then
-                tma <= DBUS;
-            elsif WR_EN = '1' and ABUS = "1111111100000111" then
-                tac(2 downto 0) <= DBUS(2 downto 0);        -- FIXME: Are only the lower 3 bits writable?
+            if WR_EN = '1' and ABUS = X"FF06" then
+                tma <= WR_D;
+            elsif WR_EN = '1' and ABUS = X"FF07" then
+                tac(2 downto 0) <= WR_D(2 downto 0);        -- FIXME: Are only the lower 3 bits writable?
             end if;
         end if;
     end process;
 
     divproc : process(CLK, RST)
-        variable cen, old : std_logic;
+        variable cen_old : std_logic;
     begin
         if RST = '1' then
             div <= X"dd";       -- Don't initialize to zero
         elsif rising_edge(CLK) then
-            cen := clkgen(7);
-            if WR_EN = '1' and ABUS = "1111111100000100" then
-                div <= X"00";       -- Resets to zero when written to
-            elsif tac(2) = '1' and cen = '1' and old = '0' then
+
+            -- reset 'div' to zero when written to
+            if WR_EN = '1' and ABUS = X"FF04" then
+                div <= X"00";
+
+            -- increment 'div' on the rising edge of CPU CLK / 2^8, if enabled by tac(2)
+            elsif tac(2) = '1' and clkgen(7) = '1' and cen_old = '0' then
                 if div = X"FF" then
                     div <= X"00";
                 else
                     div <= tima + "1";
                 end if;
             end if;
-            old := cen;
+
+            cen_old := clkgen(7);
         end if;
     end process;
 
@@ -92,9 +97,10 @@ begin
                 when "11" => cen := clkgen(7);     -- CLK / 2^8
                 when others => null;
             end case;
-            if WR_EN = '1' and ABUS = "1111111100000101" then
-                tima <= DBUS;
+            if WR_EN = '1' and ABUS = X"FF05" then
+                tima <= WR_D;
             elsif tac(2) = '1' and cen = '1' and old = '0' then
+                -- 'tima' does not overflow to zero but is reset from 'tma' instead
                 if tima = X"FF" then
                     tima <= tma;
                     INT <= '1';
