@@ -860,6 +860,7 @@
 
 ; RST                   16 cycles
 ;   TODO 16 or 32 cycles?
+;   FIXME is sp decremented a sufficient number of times? Seems like only once.
 
 ; helper
 ;   (SP--) <= msB(PC)       (14 cycles left)
@@ -1425,9 +1426,10 @@
 3ef JMP 3fd, DMUX alu, RF_IMUX pc, RF_CE lo
 
 ; ***************************************************************************
-; *     Subroutines                                                         *
+; *     Delay Line / Opcode Fetch                                           *
 ; ***************************************************************************
 
+; FIXME delay line is too long, not used
 3f0 JMP 3f1
 3f1 JMP 3f2
 3f2 JMP 3f3
@@ -1445,6 +1447,7 @@
 
 ; 4 cycles to fetch instruction
 ; Note that these should not change, as the interrupt handler depends on them
+; FIXME interrupt occurs between 3fc and 3fd, but some opcodes jump straight to 3fd and 3fe
 3fc JMP 3fd, RF_OMUX pc
 3fd JMP 3fe, RF_OMUX pc
 3fe JMP 3ff, RF_OMUX pc, STORE_CMD
