@@ -213,7 +213,8 @@ begin
            sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
            timer_d              WHEN ABUS(15 downto 2) = X"FF0" & "01" else -- FF04-FF07  video registers
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else    -- FF40-FF4F  video registers
-           "00000" & rIE.timer & "00" WHEN ABUS        = X"FFFF" else    -- FFFF Interrupt enable register
+           "000" & rIF.ext & rIF.serial & rIF.timer & rIF.lcd & rIF.vblank WHEN ABUS = X"FF0F" else    -- FF0F Interrupt flag register
+           "000" & rIE.ext & rIE.serial & rIE.timer & rIE.lcd & rIE.vblank WHEN ABUS = X"FFFF" else    -- FFFF Interrupt enable register
            topram_out.odata(7 downto 0) WHEN ABUS(15 downto 11) = "11111" else  -- F800-FFFF  fast ram
            sys_d                WHEN ABUS(15 downto 13) = "111" else    -- E000-FFFF  when not bumped by fast ram
             "ZZZZZZZZ";
@@ -221,16 +222,42 @@ begin
     process(cpuclk,RST)
     begin
         if RST = '1' then
-            rIF.timer <= '0';
-            rIE.timer <= '0';
+            rIF <= ('0', '0', '0', '0', '0');
+            rIE <= ('0', '0', '0', '0', '0');
         elsif rising_edge(cpuclk) then
+            -- Writes to enable register
             if ABUS = X"FFFF" and wr_en = '1' then
-                rIE.timer <= wr_d(2);
+                rIE.vblank <= wr_d(0);
+                rIE.lcd    <= wr_d(1);
+                rIE.timer  <= wr_d(2);
+                rIE.serial <= wr_d(3);
+                rIE.ext    <= wr_d(4);
+            end if;
+            -- Writes to flag register
+            if rIE.vblank = '1' and interrupts.vblank = '1' then
+                rIF.vblank <= '1';
+            elsif ABUS = X"FF0F" and wr_en = '1' then
+                rIF.vblank <= wr_d(0);
+            end if;
+            if rIE.lcd = '1' and interrupts.lcd = '1' then
+                rIF.lcd <= '1';
+            elsif ABUS = X"FF0F" and wr_en = '1' then
+                rIF.lcd <= wr_d(1);
             end if;
             if rIE.timer = '1' and interrupts.timer = '1' then
                 rIF.timer <= '1';
             elsif ABUS = X"FF0F" and wr_en = '1' then
                 rIF.timer <= wr_d(2);
+            end if;
+            if rIE.serial = '1' and interrupts.serial = '1' then
+                rIF.serial <= '1';
+            elsif ABUS = X"FF0F" and wr_en = '1' then
+                rIF.serial <= wr_d(3);
+            end if;
+            if rIE.ext = '1' and interrupts.ext = '1' then
+                rIF.ext <= '1';
+            elsif ABUS = X"FF0F" and wr_en = '1' then
+                rIF.ext <= wr_d(4);
             end if;
         end if;
     end process;

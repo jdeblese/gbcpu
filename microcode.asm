@@ -1399,31 +1399,61 @@
 ; *     Interrupts                                                          *
 ; ***************************************************************************
 
-; PUSH PC                           16 cycles
+; Interrupt handler jumps to fixed address 3e0-3e4 depending on interrupt
+; CMD is not preserved, used for microcode jumping
+; Makes use of ALU output as additional storage and of alu_cmd as immediate value
+; FIXME does IF flag need to be reset?
+; FIXME doesn't respect memory access timing
+
+; VBlank jump to 20F for bit set operation
+3e0 JMP 3e5, DMUX alucmd, alu_cmd <= "001111", STORE_CMD
+; LCDC jump to 21F for bit set operation
+3e1 JMP 3e5, DMUX alucmd, alu_cmd <= "011111", STORE_CMD
+; Timer jump to 22F for bit set operation
+3e2 JMP 3e5, DMUX alucmd, alu_cmd <= "101111", STORE_CMD
+; Serial jump to 23F for bit set operation
+3e3 JMP 3e5, DMUX alucmd, alu_cmd <= "111111", STORE_CMD
+; Pin jump to 20B for bit set operation
+3e4 JMP 3e5, DMUX alucmd, alu_cmd <= "001011", STORE_CMD
+
+; Set up the address to modify IE flag by setting tmp to FFh
+3e5 JMP 3e6, DMUX alucmd, alu_cmd <= "111111", STORE_ALU
+3e6 JMP 3e7, DMUX alu, alu_cmd <= "111110", STORE_ALU
+3e7 JMP 200, JCMD, DMUX alu, STORE_TMP
+
+; VBlank clears bit 0 of (FF&tmp), 20h in unq
+20F JMP 3e8, AMUX ff_tmp, DMUX ram, alu_cmd <= "110000", STORE_ALU
+3e8 JMP 3ed, DMUX alucmd, alu_cmd <= "100000", STORE_UNQ
+; LCDC clears bit 1 of IE, 24h in unq
+21F JMP 3e8, AMUX ff_tmp, DMUX ram, alu_cmd <= "110001", STORE_ALU
+3e9 JMP 3ed, DMUX alucmd, alu_cmd <= "100100", STORE_UNQ
+; Timer clears bit 2 of IE, 28h in unq
+22F JMP 3ea, AMUX ff_tmp, DMUX ram, alu_cmd <= "110010", STORE_ALU
+3ea JMP 3ed, DMUX alucmd, alu_cmd <= "101000", STORE_UNQ
+; Serial clears bit 3 of IE, 2ch in unq
+23F JMP 3e8, AMUX ff_tmp, DMUX ram, alu_cmd <= "110011", STORE_ALU
+3eb JMP 3ed, DMUX alucmd, alu_cmd <= "101100", STORE_UNQ
+; Pin clears bit 4 of IE, 30h in unq
+20b JMP 3e8, AMUX ff_tmp, DMUX ram, alu_cmd <= "110100", STORE_ALU
+3ec JMP 3ed, DMUX alucmd, alu_cmd <= "110000", STORE_UNQ
+
+; Write ALU output to (FF&tmp), left shift unq
+3ed JMP 3ee, AMUX ff_tmp, DMUX alu, WR
+3ee JMP 3bf, DMUX unq, alu_cmd <= "100100", STORE_ALU
+; Push PC onto stack using tmp, set PC using ALU
+;;;   SP--, tmp <= lsB(PC)
+;;3bf JMP 3cf, RF_DMUX pc_lo, DMUX rf, STORE_TMP, RF_OMUX sp, RF_AMUX dec, RF_IMUX sp, RF_CE
 ;   SP--
-;   tmp <= lsB(PC)
-3e0 JMP 3e1, RF_DMUX pc_lo, DMUX rf, STORE_TMP, RF_OMUX sp, RF_AMUX dec, RF_IMUX sp, RF_CE
+3bf JMP 3cf, RF_OMUX sp, RF_AMUX dec, RF_IMUX sp, RF_CE
 ;   (SP--) <= msB(PC)
-3e1 JMP 3e2, RF_DMUX pc_hi, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
-;   (SP) <= tmp
-3e2 JMP 3e3, DMUX tmp, RF_OMUX sp, WR
-
-; Clear the timer flag in the IE register at (FFFF)
-3e3 JMP 3e4, DMUX alucmd, alu_cmd <= "111111", STORE_ALU
-3e4 JMP 3e5, DMUX alu, alu_cmd <= "111110", STORE_ALU
-3e5 JMP 3e6, DMUX alu, STORE_TMP
-3e6 JMP 3e7, AMUX ff_tmp, DMUX ram, alu_cmd <= "110010", STORE_ALU
-3e7 JMP 3e8, AMUX ff_tmp, DMUX alu, WR
-
-3e8 JMP 3e9
-3e9 JMP 3ea
-3ea JMP 3eb
-3eb JMP 3ec
-; Can't actually store 50h, so store 28h and then shift right
-3ec JMP 3ed, DMUX alucmd, alu_cmd <= "101000", STORE_TMP
-3ed JMP 3ee, DMUX tmp, alu_cmd <= "100100", STORE_ALU
-3ee JMP 3ef, DMUX alucmd, alu_cmd <= "000000", RF_IMUX pc, RF_CE hi
-3ef JMP 3fd, DMUX alu, RF_IMUX pc, RF_CE lo
+3cf JMP 3df, RF_DMUX pc_hi, DMUX rf, RF_OMUX sp, WR, RF_AMUX dec, RF_IMUX sp, RF_CE
+;;;   (SP) <= tmp
+;;3df JMP 3be, DMUX tmp, RF_OMUX sp, WR
+;   (SP) <= lsb(PC)
+3df JMP 3be, RF_DMUX pc_lo, DMUX rf, RF_OMUX sp, WR
+;   PC <= 00h & alu
+3be JMP 3ce, DMUX alucmd, alu_cmd <= "000000", RF_IMUX pc, RF_CE hi
+3ce JMP 3fd, DMUX alu, RF_IMUX pc, RF_CE lo
 
 ; ***************************************************************************
 ; *     Delay Line / Opcode Fetch                                           *
