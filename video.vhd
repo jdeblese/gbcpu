@@ -70,7 +70,7 @@ architecture Behaviour of video is
     signal VRAMCS, VRAMNS, VRAMOS: VRAMSTATES;
 
     type vram_regs is record
-        delay : unsigned(2 downto 0);
+        delay : unsigned(3 downto 0);
         init, wr : std_logic;
         tile : unsigned(4 downto 0);
     end record;
@@ -207,26 +207,38 @@ begin
     end process;
 
     -- *********************************************************************************************
-    -- VRAM FSM
+
+    VID.wr <= vram.wr;
+    debug <= lcdc(7);
 
     process (CLK, RST)
     begin
         if RST = '1' then
+            CS <= RESET;
             VRAMCS <= VRAM_RST;
+            vram <= ((others => '0'), '0', '0', (others => '0'));
         elsif rising_edge(CLK) then  -- LCD clocks data in on falling edge
+            CS <= NS;
             VRAMCS <= VRAMNS;
             VRAMOS <= VRAMCS;  -- This might be better done via a toggling bit
+            vram <= vram_new;
         end if;
     end process;
 
-    process (RST, VRAMCS, VRAMOS, NS, vram)
+    process (RST, VRAMCS, VRAMOS, NS, vram, VRAMNS, VRAMCS, scx, eol)
+        variable vram_nxt : vram_regs;
     begin
+        vram_nxt := vram;
 
         case VRAMCS is
             when VRAM_RST =>
                 VRAMNS <= VRAM_RST;
                 if NS = MAPREAD then
                     VRAMNS <= VRAM_TILE;
+                    vram_nxt.init := '1';
+                    vram_nxt.tile := "00000";
+                    -- FIXME select background or window delay
+                    vram_nxt.delay := ('1' & unsigned(scx(2 downto 0))) + "1";  -- When rendering background, first column is read twice
                 end if;
 
             when VRAM_TILE =>
@@ -252,6 +264,8 @@ begin
                 elsif VRAMOS = VRAM_HI then
                     if vram.init = '1' then
                         VRAMNS <= VRAM_TILE;
+                        vram_nxt.init := '0';
+                        -- FIXME when rendering window, tile should be incremented here
                     else
                         VRAMNS <= VRAM_SPRITE;
                     end if;
@@ -263,64 +277,25 @@ begin
                     VRAMNS <= VRAM_RST;
                 elsif VRAMOS = VRAM_SPRITE then
                     VRAMNS <= VRAM_TILE;
+                    vram_nxt.tile := vram.tile + 1;
                 end if;
 
             when others =>
                 VRAMNS <= VRAM_RST;
         end case;
-    end process;
-
-    -- *********************************************************************************************
-
-    VID.wr <= vram.wr;
-    process(CLK,RST)
-    begin
-        if RST = '1' then
-            vram.init <= '0';
-            vram.delay <= (others => '0');  -- scan line start delay
-            vram.wr <= '0';
-            vram.tile <= (others => '0');
-        elsif rising_edge(clk) then
-            vram <= vram_new;
-        end if;
-    end process;
-
-    debug <= lcdc(7);
-
-    process(vram, VRAMNS, VRAMCS, scx, eol)
-        variable nxt : vram_regs;
-    begin
-        nxt := vram;
 
         -- vram.delay is decremented with each CPU clock tick
-        if nxt.init = '0' and nxt.delay /= "0" then
-            nxt.delay := vram.delay - 1;
-        end if;
-
-        -- iterate across tiles to generate a scanline
-        if VRAMNS = VRAM_TILE and VRAMCS /= VRAM_TILE then
-            -- Start counting up tiles once out of init
-            if VRAMCS = VRAM_RST then
-                nxt.init := '1';
-                nxt.delay := unsigned(scx(2 downto 0));
-                nxt.tile := "00000";
-            else
-                nxt.init := '0';
-            end if;
-
-            if nxt.init = '0' then
-                nxt.tile := vram.tile + 1;
-            end if;
-
+        if vram_nxt.init = '0' and vram_nxt.delay /= "0" then
+            vram_nxt.delay := vram.delay - 1;
         end if;
 
         if eol = '1' then
-            nxt.wr := '0';
-        elsif VRAMCS /= VRAM_RST and nxt.init = '0' and nxt.delay = "0" then
-            nxt.wr := '1';
+            vram_nxt.wr := '0';
+        elsif VRAMCS /= VRAM_RST and vram_nxt.init = '0' and vram_nxt.delay = "0" then
+            vram_nxt.wr := '1';
         end if;
 
-        vram_new <= nxt;
+        vram_new <= vram_nxt;
     end process;
 
     -- *********************************************************************************************
@@ -350,40 +325,31 @@ begin
 
     -- *********************************************************************************************
 
-    -- Set the tile map address and save the tile read
     map_in(1).addr(13) <= lcdc(3);
     map_in(1).addr(2 downto 0) <= (others => '0');
+
+    -- Set the tile map address and save the tile read
+    -- Set the tile data address and latch the data
     process(CLK,RST)
         variable x : unsigned(4 downto 0);
         variable y : unsigned(7 downto 0);
-    begin
-        if RST = '1' then
-            map_in(1).addr(12 downto 3) <= (others => '0');
-            tileidx <= (others => '0');
-        elsif falling_edge(CLK) then
-            if VRAMCS = VRAM_TILE then
-                x := vram.tile + scx(7 downto 3);
-                y := ly + scy;
-                map_in(1).addr(12 downto 3) <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
-                tileidx <= map_out(1).odata(7 downto 0);
-            end if;
-        end if;
-    end process;
-
-    -- Set the tile data address and latch the data
-    process(CLK,RST)
-        variable x, y : unsigned(7 downto 0);
         variable rowdata : std_logic_vector(7 downto 0);
     begin
         if RST = '1' then
             dataddr <= (others => '0');
             bitfield <= '0';
             out_latch <= (others => (others => '0'));
+            map_in(1).addr(12 downto 3) <= (others => '0');
+            tileidx <= (others => '0');
         elsif falling_edge(CLK) then
-            if VRAMCS = VRAM_LO or VRAMCS = VRAM_HI then
+            x := vram.tile + scx(7 downto 3);
+            y := ly + scy;
 
-                y := ly + scy;
+            if VRAMCS = VRAM_TILE then
+                map_in(1).addr(12 downto 3) <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
+                tileidx <= map_out(1).odata(7 downto 0);
 
+            elsif VRAMCS = VRAM_LO or VRAMCS = VRAM_HI then
                 dataddr(9 downto 3) <= tileidx(6 downto 0);  -- which tile to be read determined by tile map
                 dataddr(2 downto 0) <= std_logic_vector(y(2 downto 0));  -- row of tile to be read determined by ly and scy
 
@@ -434,15 +400,6 @@ begin
     -- *********************************************************************************************
     -- Renderer FSM
 
-    SYNC_PROC: process (CLK, RST)
-    begin
-        if RST = '1' then
-            CS <= RESET;
-        elsif rising_edge(CLK) then
-            CS <= NS;
-        end if;
-    end process;
-
     COMB_PROC: process (RST, CS, lcdc, ly, count, eol)
     begin
 
@@ -492,7 +449,7 @@ begin
                     NS <= OAMSCAN;
                 end if;
 
-            when others => 
+            when others =>
                 NS <= RESET;
         end case;
     end process;
