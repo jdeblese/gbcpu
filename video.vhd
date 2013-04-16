@@ -71,8 +71,9 @@ architecture Behaviour of video is
 
     type vram_regs is record
         delay : unsigned(3 downto 0);
-        init, wr : std_logic;
-        tile : unsigned(4 downto 0);
+        init, inwin, wr : std_logic;
+        bgtile : unsigned(4 downto 0);
+        wintile : unsigned(4 downto 0);
     end record;
     signal vram, vram_new : vram_regs;
 
@@ -94,7 +95,6 @@ architecture Behaviour of video is
     signal hi_en : std_logic;
 
     signal internal_en : std_logic;
-    signal eol : std_logic;
 
     type PIXEL is array (1 downto 0) of std_logic_vector(7 downto 0);
     signal out_shiftreg, out_latch : PIXEL;
@@ -104,6 +104,9 @@ architecture Behaviour of video is
 
     signal map_in : twoport_in;
     signal map_out : twoport_out;
+
+    signal scanx, scanx_new : unsigned(7 downto 0);
+    signal eol, eol_new : std_logic;
 
 begin
 
@@ -216,8 +219,8 @@ begin
         if RST = '1' then
             CS <= RESET;
             VRAMCS <= VRAM_RST;
-            vram <= ((others => '0'), '0', '0', (others => '0'));
-        elsif rising_edge(CLK) then  -- LCD clocks data in on falling edge
+            vram <= ((others => '0'), '0', '0', '0', (others => '0'), (others => '0'));
+        elsif rising_edge(CLK) then  -- State engine, reads occur on rising edge
             CS <= NS;
             VRAMCS <= VRAMNS;
             VRAMOS <= VRAMCS;  -- This might be better done via a toggling bit
@@ -225,10 +228,41 @@ begin
         end if;
     end process;
 
-    process (RST, VRAMCS, VRAMOS, NS, vram, VRAMNS, VRAMCS, scx, eol)
+    process (CLK, RST)
+    begin
+        if RST = '1' then
+            scanx <= (others => '0');
+            eol <= '0';
+        elsif falling_edge(CLK) then  -- LCD clocks data in on falling edge
+            scanx <= scanx_new;
+            eol <= eol_new;
+        end if;
+    end process;
+
+    process (RST, CS, VRAMCS, VRAMOS, NS, vram, VRAMNS, VRAMCS, scx, wx, wy, ly, eol, scanx)
         variable vram_nxt : vram_regs;
+        variable scanx_nxt : unsigned(7 downto 0);
+        variable eol_nxt : std_logic;
     begin
         vram_nxt := vram;
+        scanx_nxt := scanx;
+        eol_nxt := eol;
+
+        -- Count out 160 pixels (falling edge) starting after init and delay are zero
+        if CS = MAPREAD and vram.delay = "0" and vram.init = '0' then
+            if scanx = X"9F" then
+                eol_nxt := '1';
+            else
+                scanx_nxt := scanx + "1";
+            end if;
+        else
+            eol_nxt := '0';
+        end if;
+
+        -- vram.delay is decremented with each CPU clock tick
+        if vram.init = '0' and vram.delay /= "0" then
+            vram_nxt.delay := vram.delay - 1;
+        end if;
 
         case VRAMCS is
             when VRAM_RST =>
@@ -236,9 +270,11 @@ begin
                 if NS = MAPREAD then
                     VRAMNS <= VRAM_TILE;
                     vram_nxt.init := '1';
-                    vram_nxt.tile := "00000";
+                    vram_nxt.bgtile := "00000";
                     -- FIXME select background or window delay
-                    vram_nxt.delay := ('1' & unsigned(scx(2 downto 0))) + "1";  -- When rendering background, first column is read twice
+                    vram_nxt.delay := ('1' & unsigned(scx(2 downto 0)));  -- When rendering background, first column is read twice
+                    scanx_nxt := X"00";
+                    vram_nxt.inwin := '0';
                 end if;
 
             when VRAM_TILE =>
@@ -265,7 +301,10 @@ begin
                     if vram.init = '1' then
                         VRAMNS <= VRAM_TILE;
                         vram_nxt.init := '0';
-                        -- FIXME when rendering window, tile should be incremented here
+                        -- when rendering window, tile should be incremented here
+                        if vram.inwin = '1' then
+                            vram_nxt.wintile := vram.wintile + 1;
+                        end if;
                     else
                         VRAMNS <= VRAM_SPRITE;
                     end if;
@@ -277,17 +316,16 @@ begin
                     VRAMNS <= VRAM_RST;
                 elsif VRAMOS = VRAM_SPRITE then
                     VRAMNS <= VRAM_TILE;
-                    vram_nxt.tile := vram.tile + 1;
+                    if vram.inwin = '1' then
+                        vram_nxt.wintile := vram.wintile + 1;
+                    else
+                        vram_nxt.bgtile := vram.bgtile + 1;
+                    end if;
                 end if;
 
             when others =>
                 VRAMNS <= VRAM_RST;
         end case;
-
-        -- vram.delay is decremented with each CPU clock tick
-        if vram_nxt.init = '0' and vram_nxt.delay /= "0" then
-            vram_nxt.delay := vram.delay - 1;
-        end if;
 
         if eol = '1' then
             vram_nxt.wr := '0';
@@ -295,37 +333,23 @@ begin
             vram_nxt.wr := '1';
         end if;
 
-        vram_new <= vram_nxt;
-    end process;
-
-    -- *********************************************************************************************
-    -- Counter for shifting out scanlines
-    -- Count out 160 pixels on the falling edge, starting after init and delay are zero
-    process(CLK,RST)
-        variable count : unsigned(7 downto 0);
-    begin
-        if RST = '1' then
-            eol <= '1';
-            count := (others => '0');
-        elsif falling_edge(CLK) then
-            if vram.init = '1' then
-                count := X"9F";
-                eol <= '0';
-            elsif CS = MAPREAD and vram.delay = "0" then
-                if count = "0" then
-                    eol <= '1';
-                else
-                    count := count - "1";
-                end if;
-            else
-                eol <= '0';
-            end if;
+        if vram_nxt.init = '0' and vram_nxt.delay = "0" and vram.inwin = '0' and ly >= wy and scanx = wx then
+            vram_nxt.inwin := '1';
+            vram_nxt.init := '1';
+--          vram_nxt.delay := ('0' & unsigned(wx(2 downto 0)));  -- When rendering window, first column is read only once
+            vram_nxt.wr := '0';
+            vram_nxt.wintile := (others => '0');
+            VRAMNS <= VRAM_TILE;
         end if;
+
+        vram_new <= vram_nxt;
+        scanx_new <= scanx_nxt;
+        eol_new <= eol_nxt;
     end process;
+
 
     -- *********************************************************************************************
 
-    map_in(1).addr(13) <= lcdc(3);
     map_in(1).addr(2 downto 0) <= (others => '0');
 
     -- Set the tile map address and save the tile read
@@ -342,7 +366,13 @@ begin
             map_in(1).addr(12 downto 3) <= (others => '0');
             tileidx <= (others => '0');
         elsif falling_edge(CLK) then
-            x := vram.tile + scx(7 downto 3);
+            if vram.inwin = '1' then
+                x := vram.wintile + scx(7 downto 3);
+                map_in(1).addr(13) <= lcdc(6);
+            else
+                x := vram.bgtile + scx(7 downto 3);
+                map_in(1).addr(13) <= lcdc(3);
+            end if;
             y := ly + scy;
 
             if VRAMCS = VRAM_TILE then
