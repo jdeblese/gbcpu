@@ -369,11 +369,12 @@ begin
             if vram.inwin = '1' then
                 x := vram.wintile + scx(7 downto 3);
                 map_in(1).addr(13) <= lcdc(6);
+                y := ly - wy;
             else
                 x := vram.bgtile + scx(7 downto 3);
                 map_in(1).addr(13) <= lcdc(3);
+                y := ly + scy;
             end if;
-            y := ly + scy;
 
             if VRAMCS = VRAM_TILE then
                 map_in(1).addr(12 downto 3) <= std_logic_vector(y(7 downto 3)) & std_logic_vector(x);
