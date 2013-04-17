@@ -304,10 +304,18 @@ begin
                 elsif VRAMOS = VRAM_HI then
                     if vram.init = '1' then
                         VRAMNS <= VRAM_TILE;
-                        vram_nxt.init := '0';
-                        -- when rendering window, tile should be incremented here
+                        -- when rendering window and leaving init, tile should be incremented
                         if vram.inwin = '1' then
                             vram_nxt.wintile := vram.wintile + 1;
+                        end if;
+                        -- Check if we need to jump to window init immediately
+                        if vram.inwin = '0' and wx(7 downto 3) = "00000" and ly >= wy then
+                            -- vram_nxt.init := '1'; -- Is already set
+                            vram_nxt.inwin := '1';
+                            vram_nxt.delay := '0' & (7 - unsigned(wx(2 downto 0)));
+                            vram_nxt.wintile := (others => '0');
+                        else
+                            vram_nxt.init := '0';
                         end if;
                     else
                         VRAMNS <= VRAM_SPRITE;
@@ -337,10 +345,11 @@ begin
             vram_nxt.wr := '1';
         end if;
 
-        if vram_nxt.init = '0' and vram_nxt.delay = "0" and vram.inwin = '0' and ly >= wy and scanx = wx then
+        -- This is not within the FSM as switching to window can happen at any moment and interrupts background
+        if vram.init = '0' and vram.inwin = '0' and ly >= wy and scanx /= 0 and (scanx + 7) = wx then
             vram_nxt.inwin := '1';
             vram_nxt.init := '1';
---          vram_nxt.delay := ('0' & unsigned(wx(2 downto 0)));  -- When rendering window, first column is read only once
+            vram_nxt.delay := X"0";
             vram_nxt.wr := '0';
             vram_nxt.wintile := (others => '0');
             VRAMNS <= VRAM_TILE;
