@@ -108,6 +108,8 @@ architecture Behaviour of video is
     signal scanx, scanx_new : unsigned(7 downto 0);
     signal eol, eol_new : std_logic;
 
+    signal int_vblank, int_vblank_new : std_logic;
+
 begin
 
     -- Names for ease of use
@@ -220,11 +222,13 @@ begin
             CS <= RESET;
             VRAMCS <= VRAM_RST;
             vram <= ((others => '0'), '0', '0', '0', (others => '0'), (others => '0'));
+            int_vblank <= '0';
         elsif rising_edge(CLK) then  -- State engine, reads occur on rising edge
             CS <= NS;
             VRAMCS <= VRAMNS;
             VRAMOS <= VRAMCS;  -- This might be better done via a toggling bit
             vram <= vram_new;
+            int_vblank <= int_vblank_new;
         end if;
     end process;
 
@@ -432,10 +436,11 @@ begin
     -- Renderer FSM
 
     COMB_PROC: process (RST, CS, lcdc, ly, count, eol)
+        variable int_vblank_nxt : std_logic;
     begin
-
         internal_en <= '0';     -- Disable internal RAM port when not in use to avoid collisions
         mode <= "00";
+        int_vblank_nxt := '0';
 
         case CS is
             when RESET =>
@@ -468,6 +473,7 @@ begin
                 if count = "111000111" then -- 455 (1C7h)
                     if ly = "10001111" then -- 143 (8Fh)
                         NS <= VBLANK;
+                        int_vblank_nxt := '1';
                     else
                         NS <= OAMSCAN;
                     end if;
@@ -483,6 +489,8 @@ begin
             when others =>
                 NS <= RESET;
         end case;
+
+        int_vblank_new <= int_vblank_nxt;
     end process;
 
     -- *********************************************************************************************
