@@ -4,10 +4,10 @@ USE ieee.std_logic_1164.ALL;
 use work.uart_comp.all;
 use work.clockgen_comp.all;
 
-ENTITY uart_tb IS
-END uart_tb;
+ENTITY fakeuart_tb IS
+END fakeuart_tb;
 
-ARCHITECTURE behavior OF uart_tb IS 
+ARCHITECTURE behavior OF fakeuart_tb IS 
 
 	--Inputs
 	signal WR_D : std_logic_vector(7 downto 0) := (others => '0');
@@ -35,7 +35,7 @@ BEGIN
     lockrst <= RST or not(clkstatus.locked);
 
 	-- Instantiate the Unit Under Test (UUT)
-	uut: uart PORT MAP ( WR_D, RD_D, ABUS, WR_EN, INT, TX, RX, CLK, RST );
+	uut: uart PORT MAP ( WR_D, RD_D, ABUS, WR_EN, INT, TX, RX, CPUCLK, RST );
 
 	-- Clock process definitions
 	CLK_process :process
@@ -62,7 +62,7 @@ BEGIN
 		WR_EN <= '0';
 
 		ABUS <= X"FF02";
-		WR_D <= X"80";
+		WR_D <= X"FF";
 		wait for CPUCLK_period * 2;
 		WR_EN <= '1';
 		wait for CPUCLK_period * 2;

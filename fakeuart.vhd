@@ -8,11 +8,11 @@ package uart_comp is
 		RD_D  : out std_logic_vector(7 downto 0);
 		ABUS  : in std_logic_vector(15 downto 0);
 		WR_EN : in std_logic;
-		INT	  : out std_logic;
-		TX 	  : out std_logic;
-		RX 	  : in std_logic;
-		CLK	  : in std_logic;
-		RST	  : in std_logic );
+		INT   : out std_logic;
+		TX    : out std_logic;
+		RX    : in std_logic;
+		CLK   : in std_logic;
+		RST   : in std_logic );
 	end component;
 end package;
 
@@ -35,11 +35,11 @@ entity uart is
 		RD_D  : out std_logic_vector(7 downto 0);
 		ABUS  : in std_logic_vector(15 downto 0);
 		WR_EN : in std_logic;
-		INT	  : out std_logic;
-		TX 	  : out std_logic;
-		RX 	  : in std_logic;
-		CLK	  : in std_logic;
-		RST	  : in std_logic );
+		INT   : out std_logic;
+		TX    : out std_logic;
+		RX    : in std_logic;
+		CLK   : in std_logic;
+		RST   : in std_logic );
 end uart;
 
 architecture Behaviour of uart is
@@ -81,6 +81,7 @@ begin
 			CS <= SLEEP;
 			tx_int <= '1';
 			div <= (others => '0');
+			bitcount <= (others => '0');
 		elsif rising_edge(CLK) then
 			sb <= sb_new;
 			sc <= sc_new;
@@ -92,7 +93,7 @@ begin
 		end if;
 	end process;
 
-	combproc : process(CS, tx_int, div, sb, sc, shift, WR_EN)
+	combproc : process(sb, sc, shift, CS, tx_int, div, bitcount, ABUS, WR_D, WR_EN)
 		variable sb_nxt, sc_nxt, shift_nxt : std_logic_vector(7 downto 0);
 		variable STEP : STATES;
 		variable tx_nxt : std_logic;
@@ -111,9 +112,10 @@ begin
 			if bitcount_nxt = "1000" then -- Time to send the stop bit
 				tx_nxt := '1';
 				bitcount_nxt := "1001";
-				sb_nxt := shift;
 			elsif bitcount_nxt = "1001" then -- Done transmitting
 				STEP := SLEEP;
+				sc_nxt(7) := '0';
+				sb_nxt := shift;
 			else -- Shifting out data
 				shift_nxt := '0' & shift(7 downto 1);
 				tx_nxt := shift(0);
@@ -132,8 +134,9 @@ begin
 					STEP := TXMIT;
 					-- Start bit
 					tx_nxt := '0';
-					div_nxt := "01";
+					div_nxt := "10";  -- Start at 2 rather than 1 because write takes 2 cycles, or start at 1 and check CS
 					bitcount_nxt := (others => '0');
+					shift_nxt := sb;
 				else
 					STEP := SLEEP;
 				end if;
@@ -145,8 +148,8 @@ begin
 		shift_new <= shift_nxt;
 		NS        <= STEP;
 		tx_new    <= tx_nxt;
-		div_new   <= div;
-		bitcount_new <= bitcount;
+		div_new   <= div_nxt;
+		bitcount_new <= bitcount_nxt;
 	end process;
 
 end Behaviour;
