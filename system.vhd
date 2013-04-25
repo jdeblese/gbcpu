@@ -19,6 +19,8 @@ package system_comp is
         TDO : out STD_LOGIC;
         TDL : in STD_LOGIC;
         TCK : in STD_LOGIC;
+        TX  : out STD_LOGIC;
+        RX  : in STD_LOGIC;
         VSYNC : OUT STD_LOGIC;
         HSYNC : OUT STD_LOGIC;
         RED : OUT STD_LOGIC_VECTOR(2 downto 0);
@@ -35,6 +37,7 @@ use ieee.std_logic_unsigned.all ;
 library UNISIM;
 use UNISIM.VComponents.all;
 
+use work.uart_comp.all;
 use work.timer_comp.all;
 use work.microcode_comp.all;
 use work.types_comp.all;
@@ -57,6 +60,8 @@ entity system is
         TDO : out STD_LOGIC;
         TDL : in STD_LOGIC;
         TCK : in STD_LOGIC;
+        TX  : out STD_LOGIC;
+        RX  : in STD_LOGIC;
         VSYNC : OUT STD_LOGIC;
         HSYNC : OUT STD_LOGIC;
         RED : OUT STD_LOGIC_VECTOR(2 downto 0);
@@ -85,7 +90,7 @@ architecture Behavioral of system is
     signal ABUS : STD_LOGIC_VECTOR(15 downto 0);
     signal RAM : STD_LOGIC_VECTOR(7 downto 0);
     signal DOA_BOOT : STD_LOGIC_VECTOR(31 downto 0);  -- A port data output
-    signal wr_d, cart_d, vid_d, sys_d, timer_d : std_logic_vector(7 downto 0);
+    signal wr_d, cart_d, vid_d, sys_d, timer_d, uart_d : std_logic_vector(7 downto 0);
     signal wr_en : std_logic;
     signal pixels : pixelpipe;
     signal clkstatus : clockgen_status;
@@ -211,6 +216,8 @@ begin
            vid_d                WHEN ABUS(15 downto 13) = "100" else    -- 8000-9FFF
            cart_d               WHEN ABUS(15 downto 13) = "101" else    -- A000-BFFF  Cartridge RAM
            sys_d                WHEN ABUS(15 downto 13) = "110" else    -- C000-DFFF
+           uart_d               WHEN ABUS = X"FF01"             else
+           uart_d               WHEN ABUS = X"FF02"             else
            timer_d              WHEN ABUS(15 downto 2) = X"FF0" & "01" else -- FF04-FF07  video registers
            vid_d                WHEN ABUS(15 downto 4) = X"FF4" else    -- FF40-FF4F  video registers
            "000" & rIF.ext & rIF.serial & rIF.timer & rIF.lcd & rIF.vblank WHEN ABUS = X"FF0F" else    -- FF0F Interrupt flag register
@@ -308,6 +315,7 @@ begin
     );
 
     utimer : timer port map ( wr_d, timer_d, ABUS, wr_en, interrupts.timer, cpuclk, slowrst );
+    uuart : uart port map ( wr_d, uart_d, ABUS, wr_en, interrupts.serial, RX, TX, cpuclk, slowrst );
 
     ugpu : video port map ( wr_d, vid_d, ABUS, wr_en, pixels, LED(6), cpuclk, slowrst );
     uvga : driver port map ( VSYNC, HSYNC, RED, GREEN, BLUE, pixels, fastclk, cpuclk, pixclk, lockrst, LED(7) );

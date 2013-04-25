@@ -26,6 +26,8 @@ entity oledcpu is
         LED : OUT STD_LOGIC_VECTOR(7 downto 0);
         SW : IN STD_LOGIC_VECTOR(3 downto 0);
         BTN : IN STD_LOGIC_VECTOR(4 downto 0);
+        TX  : out STD_LOGIC;
+        RX  : in STD_LOGIC;
         VSYNC : OUT STD_LOGIC;
         HSYNC : OUT STD_LOGIC;
         RED : OUT STD_LOGIC_VECTOR(2 downto 0);
@@ -551,7 +553,7 @@ begin
         end if;
     end process;
 
-    usys : system port map( RST, CLK, LED, read, write, '0', TDO, TDL, clkdiv, VSYNC, HSYNC, RED, GREEN, BLUE );
+    usys : system port map( RST, CLK, LED, read, write, '0', TDO, TDL, clkdiv, TX, RX, VSYNC, HSYNC, RED, GREEN, BLUE );
 --  usys : system port map( RST, CLK, LED, read, write, '0', open, '0', '0', VSYNC, HSYNC, RED, GREEN, BLUE );
 
 end Behavioral;
