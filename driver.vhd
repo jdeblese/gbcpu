@@ -129,7 +129,7 @@ begin
         end if;
     end process;
 
-    process(px, readpx, bin, din, fin, bout, toggle)
+    process(px, readpx, bin, din, fin, bout, dout, fout, toggle)
         variable nxtpx : readpx_regs;
         variable nxtbin, nxtdin, nxtfin : ram_in;
         variable edge : std_logic;
